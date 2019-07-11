@@ -1,0 +1,7 @@
+name = "Syntrophy"
+uuid = "9beb1e98-a3da-11e9-19cb-5504ca95a4d1"
+authors = ["Jacob Cook <jc2017@ic.ac.uk>"]
+version = "0.1.0"
+
+[deps]
+TerminalMenus = "dc548174-15c3-5faf-af27-7997cfbde655"

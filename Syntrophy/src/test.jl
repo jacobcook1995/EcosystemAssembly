@@ -4,14 +4,14 @@ using Syntrophy
 
 function main()
     # Need to find a suitable testing example tomorrow
-    # T = 312.0 # Standard temp
-    # sub = [ 2.00*10^(-9), 5.9*10^(-5)]
-    # prod = [ 3.56*10^(-7), 1.0/18.0]
-    # subS = [4,1]
-    # prodS = [1,2]
-    # ΔG0 = -47860.0
+    T = 298.0 # Standard temp
+    sub = [ 2.00*10^(-4)]
+    prod = [ 3.00*10^(-6) ]
+    subS = [1]
+    prodS = [1]
+    ΔG0 = 7549.6429
     ΔG = GFree(sub,subS,prod,prodS,T,ΔG0)
-    println(ΔG)
+    println(ΔG/4184)
     return(nothing)
 end
 

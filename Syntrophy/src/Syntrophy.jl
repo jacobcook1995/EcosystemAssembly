@@ -9,7 +9,7 @@ export GFree
 # Decleration of internally used constants
 Rgas = 8.31446261815324 # gas constant in J.K^-1.mol^-1
 
-# Function to calculate Gibbs free energy change of the reaction
+# Function to calculate Gibbs free energy change (in Joules) of the reaction
 function GFree(subC::Array{Float64,1},subN::Array{Int64,1},prodC::Array{Float64,1},prodN::Array{Int64,1},Temp::Float64,ΔG0::Float64)
     # SubC => substrate concentrations in Moles
     # SubN => substrate stochiometry

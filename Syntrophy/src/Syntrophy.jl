@@ -5,7 +5,7 @@ module Syntrophy
 using DifferentialEquations
 
 # Export objects and function that I want to be externally accessible
-export GFree, θT, Nut, React, Microbe, ↦
+export GFree, θT, netE, Nut, React, Microbe, ↦
 
 # Decleration of internally used constants
 Rgas = 8.31446261815324 # gas constant in J.K^-1.mol^-1
@@ -30,31 +30,37 @@ struct Microbe
     η::Float64 # free energy use strategy, mol of ATP per mol of substrate
     m::Float64 # maintainance cost, mol of ATP per cell per second
     reac::Int64 # Identity of reaction used to fuel
+    δ::Float64 # dilution rate s^-1
 end
 
 # Overloadable version of getfields
 ↦(s, f) = getfield(s, f)
 
 # Function to calculate Gibbs free energy change (in Joules) of the reaction
-function GFree(subC::Array{Float64,1},subN::Array{Int64,1},prodC::Array{Float64,1},prodN::Array{Int64,1},Temp::Float64,ΔG0::Float64)
-    # SubC => substrate concentrations in Moles
-    # SubN => substrate stochiometry
-    # ProdC => product concentrations in Moles
-    # ProdN => product stochiometry
+function GFree(concs::Array{Float64,1},stoc::Array{Int64,1},Temp::Float64,ΔG0::Float64)
+    # concs => concentrations in Moles
+    # stoc => reaction stochiometries
     # Temp => temperature
     # ΔG0 => Gibbs free energy change in standard conditions
     ############ START OF FUNCTION ###################
 
-    # Calculate reaction quotient, Q
-    den = 1.0
-    for i = 1:length(subC)
-        den *= (subC[i])^subN[i]
+    # Expecting stochiometry of one reaction and corresponding concentrations
+    # so should be vectors of same length
+    if length(stoc) != length(concs)
+        error("Data of mismatching length!")
     end
-    num = 1.0
-    for i = 1:length(prodC)
-        num *= (prodC[i])^prodN[i]
+
+    # Find reaction quotient, Q
+    Q = 1
+    for i = length(stoc)
+        if stoc[i] > 0
+            Q *= concs[i]^(stoc[i])
+        elseif stoc[i] < 0
+            Q *= concs[i]^(stoc[i])
+        else
+            error("Should not provide any non reacting species in reaction")
+        end
     end
-    Q = num/den
 
     # Calculate temp dependant factor
     RT = Rgas*Temp
@@ -81,7 +87,7 @@ function θT(concs::Array{Float64,1},stoc::Array{Int64,1},ΔGATP::Float64,ΔG0::
     end
 
     # Find reaction quotient, Q
-    Q = 0
+    Q = 1
     for i = length(stoc)
         if stoc[i] > 0
             Q *= concs[i]^(stoc[i])
@@ -96,8 +102,18 @@ function θT(concs::Array{Float64,1},stoc::Array{Int64,1},ΔGATP::Float64,ΔG0::
     RT = Rgas*Temp
 
     θ = Q*exp((ΔG0+η*ΔGATP)/RT)
-
     return(θ)
+end
+
+# Function to calulatenet energy retained by cell after maintainance contribution
+function netE(η::Float64,rate::Float64,m::Float64)
+    # rate => rate of reaction
+    # m => # maintainance cost, mol of ATP per cell per second
+    # η => free energy use strategy, mol of ATP per mol of substrate
+    ############ START OF FUNCTION ###################
+
+    E = η*rate - m
+    return(E)
 end
 
 end # module

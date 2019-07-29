@@ -9,6 +9,9 @@ Icon
 # Thumbnails
 ._*
 
+# Don't want to upload images
+*.png
+
 # Files that might appear in the root of a volume
 .DocumentRevisions-V100
 .fseventsd

@@ -3,6 +3,7 @@ module Syntrophy
 # Can import or use other modules
 # Can also include code from other files other files
 using DifferentialEquations
+using LaTeXStrings
 
 # Export objects and function that I want to be externally accessible
 export GFree, θT, netE, Nut, React, Microbe, ↦

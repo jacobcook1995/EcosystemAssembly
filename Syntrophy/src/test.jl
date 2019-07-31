@@ -8,7 +8,7 @@ using Plots
 # Function to update population and nutrient concentrations
 # Throughout this function there are sections that are very specific needs to be further generalised!
 function npops(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},nuts::Array{Nut,1},reacs::Array{React,1},
-                mics::Array{Microbe,1},t::Float64)
+                mics::Array{Microbe,1},ex::Array{Int64,1},t::Float64)
     # Extract required parameters
     Y = p[1]
     Γ = p[2]
@@ -29,11 +29,18 @@ function npops(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},nuts
     # Make vector to store nutrient changes due to consumption
     δX = zeros(N)
     for i = 1:length(stc)
-        δX[i] = stc[i]*sum(q) # Assumes single reaction
+        for j = N+1:N+M
+            δX[i] += stc[i]*q[j-N]*u[j] # Assumes single reaction
+        end
     end
+    # q has no dependance on population
     # Now update nutrients
     for i = 1:N
-        du[i] = α[i]-(δ[i]+δX[i])*u[i]
+        if (i in ex) == false
+            du[i] = α[i]-δ[i]*u[i]+δX[i]
+        else
+            du[i] = 0
+        end
     end
     # Then calculate population changes
     for i = N+1:N+M
@@ -83,19 +90,19 @@ function thermrate(concs::Array{Float64,1},pops::Array{Float64,1},K::Float64,qm:
     return(q)
 end
 
-function main()
+function gluc()
     # Nutrient variables
-    α = 4.70*10^(-9)
-    δ = 3.50*10^(-5)
+    α = 3.00*10^(-8)
+    δ = 1.00*10^(-6) # Death rate that doesn't wash out cells
     # make nutrients
     # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
-    nuts = [Nut(1,α,δ),Nut(2,6*α,δ),Nut(3,0,δ),Nut(4,0,0)]
+    nuts = [Nut(1,α,δ),Nut(2,6*α,δ),Nut(3,0,δ),Nut(4,0,δ)]
     # Now make reactions
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η1 = 38.0
-    η2 = 37.0
+    η1 = 41.2
+    η2 = 41.0
     # maintainance equal
     m = 2.16*10^(-19)
     # both have same substrate and end product
@@ -103,10 +110,10 @@ function main()
     # make microbes
     mics = [Microbe(η1,m,r,δ),Microbe(η2,m,r,δ)]
     # Set intial populations and nutrient concentrations
-    pops = 1.0*10^(-6)*ones(length(mics))
+    pops = 10.0*ones(length(mics))
     concs = zeros(length(nuts))
-    concs[1] = 0.00013
-    concs[2] = 0.0008
+    concs[1] = 0.3# start with high amount of glucose
+    concs[2] = 0.0018 # WHY NOT JUST FIX O2 and pH?
     concs[3] = 1.00*10^(-9)
     concs[4] = 1.00*10^(-7) # pH 7
     # Define some constants
@@ -118,17 +125,16 @@ function main()
     Temp = 312.0 # Temperature that growth is occuring at in Kelvin
     p = [Y,Γ,K,qm,ΔGATP,Temp]
     u0 = [concs;pops]
-    tspan = (0.0,100000.0)
+    tspan = (0.0,2500000.0)
+    ex = [2,4]
     # Make reduced version of function inputting unchanging microbes
-    f(du,u,p,t) = npops(du,u,p,nuts,reac,mics,t)
+    f(du,u,p,t) = npops(du,u,p,nuts,reac,mics,ex,t)
     prob = ODEProblem(f,u0,tspan,p)
-    sol = solve(prob)
+    sol = solve(prob,adaptive=false,dt=2000) # turned dt down to make plots look nicer
     # Now do plotting
-    plot(sol.t,sol'[:,1:4])
-    savefig("Output/Nutrients.png")
-    plot(sol.t,sol'[:,5:6])
-    savefig("Output/Populations.png")
+    plot(sol.t,sol'[:,5:6],label=["\\eta = $((mics.↦:η)[1])","\\eta = $((mics.↦:η)[2])"])
+    savefig("Output/Populations$(η1)vs$(η2).png")
     return(nothing)
 end
 
-@time main()
+@time gluc()

@@ -50,40 +50,6 @@ function npops(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},nuts
     return(du)
 end
 
-# function to calculate the thermodynamic consumption rate
-# This function also needs genralising
-function thermrate(concs::Array{Float64,1},pops::Array{Float64,1},K::Float64,qm::Float64,ΔGATP::Float64,
-                    ΔG0::Float64,Temp::Float64,stoc::Array{Int64,1},η::Array{Float64,1})
-    # concs => Vector of nutrient concentrations
-    # pops => Vector of population densities
-    # K => Saturation constant for the substrate
-    # qm => Maximal reaction rate for substrate
-    # stoc => stochiometry vector
-    # ΔGATP => Gibbs free energy to form ATP in standard cell
-    # ΔG0 => Standard gibbs free energy of reaction
-    # Temp => Temperature in Kelvin
-    # η => free energy use strategy, mol of ATP per mol of substrate
-    ############ START OF FUNCTION ###################
-
-    # Initialise consumption matrix
-    q = zeros(length(pops))
-
-    # Calculate substrate coefficent
-    S = 1
-    for i = 1:length(stoc)
-        if stoc[i] < 0
-            S *= concs[i]^(-stoc[i])
-        end
-    end
-    # Loop over population to find rates q
-    for i = 1:length(pops)
-        # Call function to find thermodynamic factor θ
-        θ = θT(concs,stoc,ΔGATP,ΔG0,η[i],Temp)
-        # Only η changes between species
-        q[i] = qm*S*(1-θ)/(K+S*(1+θ))
-    end
-    return(q)
-end
 
 function gluc()
     # Nutrient variables

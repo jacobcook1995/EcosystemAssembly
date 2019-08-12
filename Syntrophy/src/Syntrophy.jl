@@ -4,7 +4,7 @@ module Syntrophy
 # Can also include code from other files other files
 
 # Export complicated functions
-export GFree, θT, netE
+export GFree, θT, netE, SubCoef
 # expoert all my objects
 export Nut, React, Microbe
 # export very simple functions
@@ -56,17 +56,8 @@ function GFree(concs::Array{Float64,1},stoc::Array{Int64,1},Temp::Float64,ΔG0::
         error("Data of mismatching length!")
     end
 
-    # Find reaction quotient, Q
-    Q = 1
-    for i = length(stoc)
-        if stoc[i] > 0
-            Q *= concs[i]^(stoc[i])
-        elseif stoc[i] < 0
-            Q *= concs[i]^(stoc[i])
-        else
-            error("Should not provide any non reacting species in reaction")
-        end
-    end
+    # Calculate reaction coeeficent Q
+    Q = QCoef(concs,stoc)
 
     # Calculate temp dependant factor
     RT = Rgas*Temp
@@ -92,6 +83,49 @@ function θT(concs::Array{Float64,1},stoc::Array{Int64,1},ΔGATP::Float64,ΔG0::
         error("Data of mismatching length!")
     end
 
+    # Calculate reaction coeeficent Q
+    Q = QCoef(concs,stoc)
+
+    # Calculate temp dependant factor
+    RT = Rgas*Temp
+
+    θ = Q*exp((ΔG0+η*ΔGATP)/RT)
+    return(θ)
+end
+
+# Function to calulate net energy retained by cell after maintainance contribution
+function netE(η::Float64,rate::Float64,m::Float64)
+    # rate => rate of reaction
+    # m => # maintainance cost, mol of ATP per cell per second
+    # η => free energy use strategy, mol of ATP per mol of substrate
+    ############ START OF FUNCTION ###################
+
+    E = η*rate - m
+    return(E)
+end
+
+# function to calulate substrate coefficent for a given reaction
+function SubCoef(concs::Array{Float64,1},stoc::Array{Int64,1})
+    # concs => Vector of nutrient concentrations
+    # stoc => stochiometry vector for reaction
+    ############ START OF FUNCTION ###################
+
+    S = 1
+    for i = 1:length(stoc)
+        # If chemical used by reaction then it is a substrate
+        if stoc[i] < 0
+            S *= concs[i]^(-stoc[i])
+        end
+    end
+    return(S)
+end
+
+# function to calulate reaction coefficent for a given reaction
+function QCoef(concs::Array{Float64,1},stoc::Array{Int64,1})
+    # concs => Vector of nutrient concentrations
+    # stoc => stochiometry vector for reaction
+    ############ START OF FUNCTION ###################
+
     # Find reaction quotient, Q
     Q = 1
     for i = length(stoc)
@@ -103,23 +137,7 @@ function θT(concs::Array{Float64,1},stoc::Array{Int64,1},ΔGATP::Float64,ΔG0::
             error("Should not provide any non reacting species in reaction")
         end
     end
-
-    # Calculate temp dependant factor
-    RT = Rgas*Temp
-
-    θ = Q*exp((ΔG0+η*ΔGATP)/RT)
-    return(θ)
-end
-
-# Function to calulatenet energy retained by cell after maintainance contribution
-function netE(η::Float64,rate::Float64,m::Float64)
-    # rate => rate of reaction
-    # m => # maintainance cost, mol of ATP per cell per second
-    # η => free energy use strategy, mol of ATP per mol of substrate
-    ############ START OF FUNCTION ###################
-
-    E = η*rate - m
-    return(E)
+    return(Q)
 end
 
 end # module

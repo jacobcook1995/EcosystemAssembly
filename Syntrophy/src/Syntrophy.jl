@@ -2,11 +2,13 @@ module Syntrophy
 
 # Can import or use other modules
 # Can also include code from other files other files
-using DifferentialEquations
-using LaTeXStrings
 
-# Export objects and function that I want to be externally accessible
-export GFree, θT, netE, Nut, React, Microbe, ↦
+# Export complicated functions
+export GFree, θT, netE
+# expoert all my objects
+export Nut, React, Microbe
+# export very simple functions
+export ↦
 
 # Decleration of internally used constants
 Rgas = 8.31446261815324 # gas constant in J.K^-1.mol^-1
@@ -14,8 +16,11 @@ Rgas = 8.31446261815324 # gas constant in J.K^-1.mol^-1
 # Structure to store nutrient identies, supply rates and washout fractions
 struct Nut
     idt::Int64 # Identifying integer should be unique
-    α::Float64 # Supply rate mol ml^−1 s^−1
+    cst::Bool # Bool to set concentration constant or not
+    α::Float64 # Supply rate mol l^−1 s^−1
     δ::Float64 # dilution rate s^-1
+    # Test to ensure that constant nutrients don't have supply or dilution rates
+    Nut(x,y,z,h) = (y == true && (z != 0.0 || h != 0.0)) ? error("Constant nutrient?") : new(x,y,z,h)
 end
 
 # Structure to store details of each reaction
@@ -23,7 +28,7 @@ struct React
     idt::Int64 # Identifying integer should be unique
     nidt::Array{Int64,1} # nutrient identifiers
     stc::Array{Int64,1} # stochiometry -ve indicates substrate
-    ΔG0::Float64 # Gibbs free energy (in Joules) at standard condidtions
+    ΔG0::Float64 # Gibbs free energy (in Joules) at standard conditions
 end
 
 # Structure to store microbial strategies and populations

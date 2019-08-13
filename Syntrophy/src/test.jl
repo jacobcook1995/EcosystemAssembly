@@ -1,14 +1,65 @@
 using Syntrophy
 using Plots
+using DifferentialEquations
 
 # This is a script to write my testing code into
 # Anything reusable should be moved into Syntrophy.jl as a seperate callable function
 
+# Function to update population and nutrient concentrations
+# This is run for a single population utilising a single reaction
+function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},nuts::Array{Nut,1},reacs::Array{React,1},
+                mics::Array{Microbe,1},t::Float64)
+    # Extract required parameters
+    Y = p[1]
+    # Extract relevant data from vector of nutrients
+    α = nuts.↦:α
+    δ = nuts.↦:δ
+    con = nuts.↦:cst
+    N = length(nuts) # Number of nutrients
+    # And relevant data from vector of microbes
+    η = (mics.↦:η)[1]
+    m = (mics.↦:m)[1] # running for single microbe
+    M = length(mics) # Number of microbes
+    # Extract reaction stochiometry
+    stc = (reacs.↦:stc)[1]
+    ΔG0 = (reacs.↦:ΔG0)[1]
+    # Now calculate q
+    # p[2] = KS, p[3] = qm, p[4] = ΔGATP, p[5] = Temp
+    q = qrate(u[1:N],p[2],p[3],p[4],ΔG0,p[5],stc,η)
+    # Make vector to store nutrient changes due to consumption
+    δX = zeros(N)
+    for i = 1:length(stc)
+        for j = N+1:N+M
+            δX[i] += stc[i]*q*u[j] # Assumes single reaction
+        end
+    end
+    # q has no dependance on population
+    # Now update nutrients
+    for i = 1:N
+        if con[i] == false
+            du[i] = α[i]-δ[i]*u[i]+δX[i]
+        else
+            du[i] = 0
+        end
+    end
+    # Then calculate population changes
+    for i = N+1:N+M
+        j = i-N
+        E = netE(η,q,m)
+        if E >= 0.0 # find if growing or decaying
+            du[i] = E*Y*u[i] # No dilution rate so can ignore
+        else
+            du[i] = 0.0
+        end
+    end
+    return(du)
+end
+
 # function to calculate the rate of substrate consumption q
-function qrate(concs::Array{Float64,1},K::Float64,qm::Float64,ΔGATP::Float64,
+function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,
                     ΔG0::Float64,Temp::Float64,stoc::Array{Int64,1},η::Float64)
     # concs => Vector of nutrient concentrations
-    # K => Saturation constant for the substrate
+    # KS => Saturation constant for the substrate
     # qm => Maximal reaction rate for substrate
     # stoc => stochiometry vector
     # ΔGATP => Gibbs free energy to form ATP in standard cell
@@ -18,11 +69,11 @@ function qrate(concs::Array{Float64,1},K::Float64,qm::Float64,ΔGATP::Float64,
     ############ START OF FUNCTION ###################
 
     # calulate substrate coefficent
-    S = SubCoef(concs,stoc)
+    S = SCoef(concs,stoc)
     # Call function to find thermodynamic factor θ
     θ = θT(concs,stoc,ΔGATP,ΔG0,η,Temp)
     # Only η changes between species
-    q = qm*S*(1-θ)/(K+S*(1+θ))
+    q = qm*S*(1-θ)/(KS+S*(1+θ))
     return(q)
 end
 
@@ -39,16 +90,17 @@ function gluc()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η = 32.0
+    η = 42.0
     r = 1 # Only reaction
+    m = 2.16*10^(-19) # maintainance
     # Considering 1 microbe with no maintaince and no dilution
-    mics = [Microbe(η,0.0,1,0.0)]
+    mics = [Microbe(η,m,1,0.0)]
     # Set intial populations and nutrient concentrations
-    pops = 10.0*ones(length(mics))
+    pops = 100.0*ones(length(mics))
     concs = zeros(length(nuts))
     # define initial concentrations
     concs[1] = 0.0555 # high initial concentration to ensure growth
-    concs[2] = 0.0375 # High value so oxegen isn't limiting
+    concs[2] = 0.21 #0.0375 # High value so oxegen isn't limiting
     concs[3] = 0.0 # No initial concentration
     concs[4] = 1.00*10.0^(-7) # pH 7
     # Define some constants
@@ -60,10 +112,23 @@ function gluc()
     qm = 3.42*10.0^(-18) # maximal rate substrate consumption mol cell s^-1
     p = [Y,KS,qm,ΔGATP,Temp]
     u0 = [concs;pops]
+    tspan = (0.0,1000000.0)
 
-    # Testing qrate
+    # Make reduced version of function inputting unchanging microbes
+    f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
+    prob = ODEProblem(f,u0,tspan,p)
+    sol = solve(prob,adaptive=false,dt=100) # turned dt down to make plots look nicer
+    # Now do plotting
+    plot(sol.t,sol'[:,1])
+    savefig("Output/$(η)test1.png")
+    plot(sol.t,sol'[:,3])
+    savefig("Output/$(η)test3.png")
+    plot(sol.t,sol'[:,5])
+    savefig("Output/$(η)test5.png")
     stoc = (reac.↦:stc)[1]
-    q = qrate(concs,KS,qm,ΔGATP,ΔG0,Temp,stoc,η)
+    # Print final thermodynamic term
+    θf = θT(sol'[end,1:4],stoc,ΔGATP,ΔG0,η,Temp)
+    println(θf)
     return(nothing)
 end
 

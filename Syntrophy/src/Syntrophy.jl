@@ -4,7 +4,7 @@ module Syntrophy
 # Can also include code from other files other files
 
 # Export complicated functions
-export GFree, θT, netE, SubCoef
+export GFree, θT, netE, SCoef, QCoef
 # expoert all my objects
 export Nut, React, Microbe
 # export very simple functions
@@ -105,7 +105,7 @@ function netE(η::Float64,rate::Float64,m::Float64)
 end
 
 # function to calulate substrate coefficent for a given reaction
-function SubCoef(concs::Array{Float64,1},stoc::Array{Int64,1})
+function SCoef(concs::Array{Float64,1},stoc::Array{Int64,1})
     # concs => Vector of nutrient concentrations
     # stoc => stochiometry vector for reaction
     ############ START OF FUNCTION ###################
@@ -128,7 +128,7 @@ function QCoef(concs::Array{Float64,1},stoc::Array{Int64,1})
 
     # Find reaction quotient, Q
     Q = 1
-    for i = length(stoc)
+    for i = 1:length(stoc)
         if stoc[i] > 0
             Q *= concs[i]^(stoc[i])
         elseif stoc[i] < 0

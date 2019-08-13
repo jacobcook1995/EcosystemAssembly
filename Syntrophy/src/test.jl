@@ -49,7 +49,7 @@ function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},
         if E >= 0.0 # find if growing or decaying
             du[i] = E*Y*u[i] # No dilution rate so can ignore
         else
-            du[i] = 0.0
+            du[i] = E*Y*u[i]
         end
     end
     return(du)
@@ -74,6 +74,10 @@ function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,
     θ = θT(concs,stoc,ΔGATP,ΔG0,η,Temp)
     # Only η changes between species
     q = qm*S*(1-θ)/(KS+S*(1+θ))
+    # Catch unbiological negative rate case
+    if q < 0.0
+        q = 0.0
+    end
     return(q)
 end
 
@@ -100,7 +104,7 @@ function gluc()
     concs = zeros(length(nuts))
     # define initial concentrations
     concs[1] = 0.0555 # high initial concentration to ensure growth
-    concs[2] = 0.21 #0.0375 # High value so oxegen isn't limiting
+    concs[2] = 0.21 # High value so oxegen isn't limiting
     concs[3] = 0.0 # No initial concentration
     concs[4] = 1.00*10.0^(-7) # pH 7
     # Define some constants
@@ -112,12 +116,12 @@ function gluc()
     qm = 3.42*10.0^(-18) # maximal rate substrate consumption mol cell s^-1
     p = [Y,KS,qm,ΔGATP,Temp]
     u0 = [concs;pops]
-    tspan = (0.0,1000000.0)
+    tspan = (0.0,5000000.0)
 
     # Make reduced version of function inputting unchanging microbes
     f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
     prob = ODEProblem(f,u0,tspan,p)
-    sol = solve(prob,adaptive=false,dt=100) # turned dt down to make plots look nicer
+    sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
     # Now do plotting
     plot(sol.t,sol'[:,1])
     savefig("Output/$(η)test1.png")

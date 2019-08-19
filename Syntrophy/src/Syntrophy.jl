@@ -4,7 +4,7 @@ module Syntrophy
 # Can also include code from other files other files
 
 # Export complicated functions
-export GFree, θT, netE, SCoef, QCoef
+export GFree, θT, netE, SCoef, QCoef, qrate
 # expoert all my objects
 export Nut, React, Microbe
 # export very simple functions
@@ -138,6 +138,32 @@ function QCoef(concs::Array{Float64,1},stoc::Array{Int64,1})
         end
     end
     return(Q)
+end
+
+# function to calculate the rate of substrate consumption q
+function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,
+                    ΔG0::Float64,Temp::Float64,stoc::Array{Int64,1},η::Float64)
+    # concs => Vector of nutrient concentrations
+    # KS => Saturation constant for the substrate
+    # qm => Maximal reaction rate for substrate
+    # stoc => stochiometry vector
+    # ΔGATP => Gibbs free energy to form ATP in standard cell
+    # ΔG0 => Standard gibbs free energy of reaction
+    # Temp => Temperature in Kelvin
+    # η => free energy use strategy, mol of ATP per mol of substrate
+    ############ START OF FUNCTION ###################
+
+    # calulate substrate coefficent
+    S = SCoef(concs,stoc)
+    # Call function to find thermodynamic factor θ
+    θ = θT(concs,stoc,ΔGATP,ΔG0,η,Temp)
+    # Only η changes between species
+    q = qm*S*(1-θ)/(KS+S*(1+θ))
+    # Catch unbiological negative rate case
+    if q < 0.0
+        q = 0.0
+    end
+    return(q)
 end
 
 end # module

@@ -1,6 +1,8 @@
 using Syntrophy
 using Plots
 using DifferentialEquations
+using LaTeXStrings
+import PyPlot
 
 # This is a script to write my testing code into
 # Anything reusable should be moved into Syntrophy.jl as a seperate callable function
@@ -8,7 +10,7 @@ using DifferentialEquations
 # Function to update population and nutrient concentrations
 # This is run for a single population utilising a single reaction
 function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},nuts::Array{Nut,1},reacs::Array{React,1},
-                mics::Array{Microbe,1},t::Float64)
+                mic::Microbe,t::Float64)
     # Extract required parameters
     Y = p[1]
     # Extract relevant data from vector of nutrients
@@ -17,9 +19,9 @@ function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},
     con = nuts.↦:cst
     N = length(nuts) # Number of nutrients
     # And relevant data from vector of microbes
-    η = (mics.↦:η)[1]
-    m = (mics.↦:m)[1] # running for single microbe
-    M = length(mics) # Number of microbes
+    η = mic.η
+    m = mic.m # running for single microbe
+    M = 1 # Number of microbes
     # Extract reaction stochiometry
     stc = (reacs.↦:stc)[1]
     ΔG0 = (reacs.↦:ΔG0)[1]
@@ -55,38 +57,10 @@ function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},
     return(du)
 end
 
-# function to calculate the rate of substrate consumption q
-function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,
-                    ΔG0::Float64,Temp::Float64,stoc::Array{Int64,1},η::Float64)
-    # concs => Vector of nutrient concentrations
-    # KS => Saturation constant for the substrate
-    # qm => Maximal reaction rate for substrate
-    # stoc => stochiometry vector
-    # ΔGATP => Gibbs free energy to form ATP in standard cell
-    # ΔG0 => Standard gibbs free energy of reaction
-    # Temp => Temperature in Kelvin
-    # η => free energy use strategy, mol of ATP per mol of substrate
-    ############ START OF FUNCTION ###################
-
-    # calulate substrate coefficent
-    S = SCoef(concs,stoc)
-    # Call function to find thermodynamic factor θ
-    θ = θT(concs,stoc,ΔGATP,ΔG0,η,Temp)
-    # Only η changes between species
-    q = qm*S*(1-θ)/(KS+S*(1+θ))
-    # Catch unbiological negative rate case
-    if q < 0.0
-        q = 0.0
-    end
-    return(q)
-end
-
-
-
 function gluc()
     # Nutrient variables
     α = 5.55*10^(-6)
-    δ = 1.00*10^(-4)
+    δ = 2.00*10^(-4) #1.00*10^(-4)
     # make nutrients
     # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
     nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
@@ -94,13 +68,13 @@ function gluc()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η = 42.0
+    η = 15.0
     r = 1 # Only reaction
     m = 2.16*10^(-19) # maintainance
     # Considering 1 microbe with no maintaince and no dilution
-    mics = [Microbe(η,m,1,0.0)]
+    mics = Microbe(η,m,1,0.0)
     # Set intial populations and nutrient concentrations
-    pops = 100.0*ones(length(mics))
+    pops = 100.0
     concs = zeros(length(nuts))
     # define initial concentrations
     concs[1] = 0.0555 # high initial concentration to ensure growth
@@ -131,9 +105,12 @@ function gluc()
     savefig("Output/$(η)test5.png")
     stoc = (reac.↦:stc)[1]
     # Print final thermodynamic term
-    θf = θT(sol'[end,1:4],stoc,ΔGATP,ΔG0,η,Temp)
-    println(θf)
+    L = size(sol',1)
+    θs = zeros(L)
+    for i = 1:L
+        θs[i] = θT(sol'[i,1:4],stoc,ΔGATP,ΔG0,η,Temp)
+    end
+    plot(sol.t,θs)
+    savefig("Output/Theta.png")
     return(nothing)
 end
-
-@time gluc()

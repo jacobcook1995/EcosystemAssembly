@@ -136,6 +136,7 @@ function maxcosump()
     return(nothing)
 end
 
+# function to plot a thermodynamically limited population and one without this limitation
 function limunlim()
     # Nutrient variables
     α = 5.55*10^(-6)

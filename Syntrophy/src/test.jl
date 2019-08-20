@@ -120,8 +120,8 @@ end
 # It then outputs this data to be plotted in another script
 function varcosump()
     # Nutrient variables
-    α = 5.55*10^(-6)
-    δ = 2.00*10^(-4) #1.00*10^(-4)
+    α = 5.55*10^(-6) # middle
+    δ = 2.00*10^(-4) # middle
     # make nutrients
     # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
     nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
@@ -191,7 +191,7 @@ function varcosump()
     # First line essentially a header
     out[1,1] = NaN
     out[1,2] = α
-    out[2,2] = δ
+    out[1,3] = δ
     for i = 1:N
         out[i+1,1] = ηs[i]
         out[i+1,2] = θs[i]
@@ -214,4 +214,88 @@ function varcosump()
     return(nothing)
 end
 
-@time varcosump()
+# Function to read in sort and plot the maximum atp production rate data
+function plotvar()
+    # Get all file names
+    files = readdir("Data")
+    # remove non-csvs
+    files = filter!(x->x[end-3:end]==".csv",files)
+    # Calculate number of valid files
+    L = length(files)
+    # setup plots
+    pyplot(dpi=150)
+    p1 = plot(title="Maximal rate for differing removal",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel="Maximal ATP production rate mol/s")
+    p2 = plot(title="Maximal rate for differing supply",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel="Maximal ATP production rate mol/s")
+    p3 = plot(title="Thermodynamic inhibition for differing removal",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel=L"\theta\;\;")
+    p4 = plot(title="Thermodynamic inhibition for differing supply",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel=L"\theta\;\;")
+    # Read in files one by one to plot
+    for i = 1:L
+        infile = "Data/$(files[i])"
+        # now read in data
+        l = countlines(infile)
+        w = 3
+        data = zeros(l-1,w)
+        # Create storage for supply and removal rates
+        α = 0.0
+        δ = 0.0
+        open(infile, "r") do in_file
+            # Use a for loop to process the rows in the input file one-by-one
+            k = 0 # first line is header and must be treated seperately
+            for line in eachline(in_file)
+                # parse line by finding commas
+                len = length(line)
+                comma = fill(0,w+1)
+                j = 1
+                for i = 1:len
+                    if line[i] == ','
+                        j += 1
+                        comma[j] = i
+                    end
+                end
+                comma[end] = len+1
+                # first line
+                if k == 0
+                    α = parse(Float64,line[(comma[2]+1):(comma[3]-1)])
+                    δ = parse(Float64,line[(comma[3]+1):(comma[4]-1)])
+                    # Round both to 3 sf for nicer label names
+                    α = round(α; sigdigits=3)
+                    δ = round(δ; sigdigits=3)
+                else
+                    for i = 1:w
+                        data[k,i] = parse(Float64,line[(comma[i]+1):(comma[i+1]-1)])
+                    end
+                end
+                k += 1
+            end
+        end
+        # Use α and δ to make nice labels
+        La = L"\alpha\;=\;"
+        Ld = L"\delta\;=\;"
+        lb = "$(La)$(α) $(Ld)$(δ)"
+        println(α)
+        println(δ)
+        I = argmax(data[:,3])
+        println(data[I,1])
+        # Plot the data
+        # Filter so that the graphs are better comparisons
+        if α ≈ 5.55*10^(-6) && δ ≈ 2.00*10^(-4)
+            p1 = plot!(p1,data[:,1],data[:,3],label=lb,color=i)
+            p2 = plot!(p2,data[:,1],data[:,3],label=lb,color=i)
+            p3 = plot!(p3,data[:,1],data[:,2],label=lb,color=i)
+            p4 = plot!(p4,data[:,1],data[:,2],label=lb,color=i)
+        elseif α ≈ 5.55*10^(-6)
+            p1 = plot!(p1,data[:,1],data[:,3],label=lb,color=i)
+            p3 = plot!(p3,data[:,1],data[:,2],label=lb,color=i)
+        elseif δ ≈ 2.00*10^(-4)
+            p2 = plot!(p2,data[:,1],data[:,3],label=lb,color=i)
+            p4 = plot!(p4,data[:,1],data[:,2],label=lb,color=i)
+        end
+    end
+    savefig(p1,"Output/RateCompR.png")
+    savefig(p2,"Output/RateCompS.png")
+    savefig(p3,"Output/ThermCompR.png")
+    savefig(p4,"Output/ThermCompS.png")
+    return(nothing)
+end
+
+@time plotvar()

@@ -272,10 +272,6 @@ function plotvar()
         La = L"\alpha\;=\;"
         Ld = L"\delta\;=\;"
         lb = "$(La)$(α) $(Ld)$(δ)"
-        println(α)
-        println(δ)
-        I = argmax(data[:,3])
-        println(data[I,1])
         # Plot the data
         # Filter so that the graphs are better comparisons
         if α ≈ 5.55*10^(-6) && δ ≈ 2.00*10^(-4)

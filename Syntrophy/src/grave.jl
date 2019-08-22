@@ -1,56 +1,5 @@
 # Graveyard for old functions that I should delete eventually
 
-# Function to update population and nutrient concentrations
-# Throughout this function there are sections that are very specific needs to be further generalised!
-function npops(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},nuts::Array{Nut,1},reacs::Array{React,1},
-                mics::Array{Microbe,1},ex::Array{Int64,1},t::Float64)
-    # Extract required parameters
-    Y = p[1]
-    Γ = p[2]
-    # Extract relevant data from vector of nutrients
-    α = nuts.↦:α
-    δ = nuts.↦:δ
-    N = length(nuts) # Number of nutrients
-    # And relevant data from vector of microbes
-    η = mics.↦:η
-    m = mics.↦:m
-    δ2 = mics.↦:δ
-    M = length(mics) # Number of microbes
-    # Extract reaction stochiometry
-    stc = (reacs.↦:stc)[1]
-    ΔG0 = (reacs.↦:ΔG0)[1]
-    # Now calculate q
-    q = thermrate(u[1:N],u[N+1:end],p[3],p[4],p[5],ΔG0,p[6],stc,η)
-    # Make vector to store nutrient changes due to consumption
-    δX = zeros(N)
-    for i = 1:length(stc)
-        for j = N+1:N+M
-            δX[i] += stc[i]*q[j-N]*u[j] # Assumes single reaction
-        end
-    end
-    # q has no dependance on population
-    # Now update nutrients
-    for i = 1:N
-        if (i in ex) == false
-            du[i] = α[i]-δ[i]*u[i]+δX[i]
-        else
-            du[i] = 0
-        end
-    end
-    # Then calculate population changes
-    for i = N+1:N+M
-        j = i-N
-        E = netE(η[j],q[j],m[j])
-        if E >= 0.0 # find if growing or decaying
-            du[i] = E*Y*u[i] - δ2[j]*u[i]
-        else
-            du[i] = E*Γ*u[i] - δ2[j]*u[i]
-        end
-    end
-    return(du)
-end
-
-
 function gluc()
     # Nutrient variables
     α = 3.00*10^(-8)

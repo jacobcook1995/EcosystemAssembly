@@ -2,6 +2,7 @@ using Syntrophy
 using Plots
 using DifferentialEquations
 using LaTeXStrings
+using Measures
 import PyPlot
 
 # This is a script to store the functions that plot the figures shown in my Syntrophy SI
@@ -128,11 +129,11 @@ function maxcosump()
     # Plot maximal ATP generation rate
     plot(ηs,atpgen,xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",yaxis="Maximal ATP production rate mol/s",label="")
     plot!(title="ATP rate vs efficency trade off")
-    savefig("Output/Atpgenrate.png")
+    savefig("Output/SynPlots/Atpgenrate.png")
     # Plot thermodynamicinhibition term
     plot(ηs,θs,xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",yaxis=L"\theta\;\;",label="")
     plot!(title="Thermodynamic inhibition as a function of efficency")
-    savefig("Output/ThermInhib.png")
+    savefig("Output/SynPlots/ThermInhib.png")
     return(nothing)
 end
 
@@ -173,29 +174,30 @@ function limunlim()
     tspan = (0.0,5000000.0)
     stoc = (reac.↦:stc)[1]
 
-    # Make reduced version of function inputting unchanging microbes
-    # Do non-limited case first
-    pyplot(dpi=150,size =(500,500))
+    # Change python variable name
+    pyplot(dpi=150)
     f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics[1],t)
     prob = ODEProblem(f,u0,tspan,p)
     sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
     # Plot nutrient concentrations on same graph
-    p1 = plot(sol.t,[sol'[:,1],sol'[:,3]],ylabel="Concentration M L^-1",label=["substrate" "product"],title="No thermodynamic inhibition")
+    Lη = L"\eta"
+    p1 = plot(sol.t,[sol'[:,1],sol'[:,3]],ylabel="Concentration M L^-1",label=["substrate" "product"],title="No inhibition ($(Lη) = $(ηs[1]))")
     # Then plot population on another subplot
-    p2 = plot(sol.t,sol'[:,5],label="",ylabel="population cells L^-1")
-    plot(p1,p2,layout=(2,1),xlabel="time s")
-    savefig("Output/Unlim.png")
+    p3 = plot(sol.t,sol'[:,5],label="",ylabel="Cell density L^-1")
 
     # Then do same for limited case
     g(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics[2],t)
     prob = ODEProblem(g,u0,tspan,p)
     sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
     # Plot nutrient concentrations on same graph
-    p1 = plot(sol.t,[sol'[:,1],sol'[:,3]],ylabel="Concentration M L^-1",label=["substrate" "product"],title="Thermodynamic inhibition")
+    p2 = plot(sol.t,[sol'[:,1],sol'[:,3]],ylabel="Concentration M L^-1",label=["substrate" "product"],title="Inhibition ($(Lη) = $(ηs[2]))")
     # Then plot population on another subplot
-    p2 = plot(sol.t,sol'[:,5],label="",ylabel="population cells L^-1")
-    plot(p1,p2,layout=(2,1),xlabel="time s")
-    savefig("Output/Lim.png")
+    p4 = plot(sol.t,sol'[:,5],label="",ylabel="Cell density L^-1")
+    # Set overall plot height and width and make combined plot
+    width = 800
+    height = 600
+    plot(p1,p2,p3,p4,layout=(2,2),size = (width, height),xlabel="time s",left_margin=5mm,right_margin=5mm)
+    savefig("Output/SynPlots/LimUnlim.png")
     return(nothing)
 end
 
@@ -308,10 +310,10 @@ function plotvar()
     L = length(files)
     # setup plots
     pyplot(dpi=150)
-    p1 = plot(title="Maximal rate for differing removal",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel="Maximal ATP production rate mol/s")
-    p2 = plot(title="Maximal rate for differing supply",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel="Maximal ATP production rate mol/s")
-    p3 = plot(title="Thermodynamic inhibition for differing removal",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel=L"\theta\;\;")
-    p4 = plot(title="Thermodynamic inhibition for differing supply",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel=L"\theta\;\;")
+    p1 = plot(title="Variation of removal rate",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel="Maximal ATP production rate mol/s")
+    p2 = plot(title="Variation of supply rate",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel="Maximal ATP production rate mol/s")
+    p3 = plot(xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel=L"\theta\;\;")
+    p4 = plot(xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel=L"\theta\;\;")
     # Read in files one by one to plot
     for i = 1:L
         infile = "Data/$(files[i])"
@@ -371,13 +373,32 @@ function plotvar()
             p4 = plot!(p4,data[:,1],data[:,2],label=lb,color=i)
         end
     end
-    savefig(p1,"Output/RateCompR.png")
-    savefig(p2,"Output/RateCompS.png")
-    savefig(p3,"Output/ThermCompR.png")
-    savefig(p4,"Output/ThermCompS.png")
+    # set total size of plot and then plot all together
+    width = 800
+    height = 600
+    plot(p1,p2,p3,p4,layout=(2,2),xlabel=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",size=(width,height),left_margin=5mm,right_margin=5mm)
+    plot!(ann = (:top_left, :auto)) # give figures letters to identify
+    savefig("Output/SynPlots/ThermComp.png")
     return(nothing)
 end
 
-@time maxcosump()
-@time limunlim()
-@time plotvar()
+# Throwaway function to test modifying matplotlib objects
+# DELETE WHEN DONE
+function test()
+    pyplot(dpi=150)
+    x = 0:0.1:10
+    y = 0:0.1:10
+    p1 = plot(x,y)
+    # println(getproperty(p1.o,:option_image_nocomposite))
+    # savefig("Output/test.png")
+    println(typeof(p1))
+    ax = p1.o
+    ax."annotate"(val.str,xy = (x,y),annotation_clip=false)
+    return(nothing)
+end
+
+# This whole script can stand a lot of improvement
+@time test() # DELETE WHEN DONE
+# @time maxcosump()
+# @time limunlim()
+# @time plotvar()

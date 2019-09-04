@@ -126,14 +126,16 @@ function maxcosump()
         ηs[i] = ηc # save η for later plotting
     end
     pyplot(dpi=150)
+    width = 800
+    height = 300
     # Plot maximal ATP generation rate
-    plot(ηs,atpgen,xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",yaxis="Maximal ATP production rate mol/s",label="")
-    plot!(title="ATP rate vs efficency trade off")
-    savefig("Output/SynPlots/Atpgenrate.png")
+    p1 = plot(ηs,atpgen,xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",yaxis="Maximal ATP production rate mol/s",label="")
+    plot!(title="Production")
     # Plot thermodynamicinhibition term
-    plot(ηs,θs,xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",yaxis=L"\theta\;\;",label="")
-    plot!(title="Thermodynamic inhibition as a function of efficency")
-    savefig("Output/SynPlots/ThermInhib.png")
+    p2 = plot(ηs,θs,xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",yaxis=L"\theta\;\;",label="")
+    plot!(title="Inhibition")
+    plot(p1,p2,layout=(1,2),size = (width,height),left_margin=5mm,right_margin=5mm)
+    savefig("Output/SynPlots/VarEff.png")
     return(nothing)
 end
 
@@ -141,7 +143,7 @@ end
 function limunlim()
     # Nutrient variables
     α = 5.55*10^(-6)
-    δ = 2.00*10^(-4) #1.00*10^(-4)
+    δ = 2.00*10^(-4)
     # make nutrients
     # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
     nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
@@ -382,23 +384,8 @@ function plotvar()
     return(nothing)
 end
 
-# Throwaway function to test modifying matplotlib objects
-# DELETE WHEN DONE
-function test()
-    pyplot(dpi=150)
-    x = 0:0.1:10
-    y = 0:0.1:10
-    p1 = plot(x,y)
-    # println(getproperty(p1.o,:option_image_nocomposite))
-    # savefig("Output/test.png")
-    println(typeof(p1))
-    ax = p1.o
-    ax."annotate"(val.str,xy = (x,y),annotation_clip=false)
-    return(nothing)
-end
 
 # This whole script can stand a lot of improvement
-@time test() # DELETE WHEN DONE
 # @time maxcosump()
 # @time limunlim()
-# @time plotvar()
+@time plotvar()

@@ -4,6 +4,7 @@ using DifferentialEquations
 using LaTeXStrings
 using Measures
 import PyPlot
+using MyPlots # NOT RIGHT WAY OF DEALING WITH THIS
 
 # This is a script to store the functions that plot the figures shown in my Syntrophy SI
 
@@ -125,15 +126,20 @@ function maxcosump()
         θs[i] = θT(sol'[end,1:4],stoc,ΔGATP,ΔG0,ηc,Temp) # obtain thermodynamic term
         ηs[i] = ηc # save η for later plotting
     end
-    pyplot(dpi=150)
+    pyplot(dpi=200)
     width = 800
     height = 300
     # Plot maximal ATP generation rate
     p1 = plot(ηs,atpgen,xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",yaxis="Maximal ATP production rate mol/s",label="")
-    plot!(title="Production")
+    p1 = plot!(p1,title="Production")
+    # THIS DOES NOT WORK YET AS I HAVEN'T SET UP MODULE CORRECTLY YET
+    px, py = annpos(ηs,atpgen)
+    p1 = annotate!(p1,px,py,text("A",17,:black))
     # Plot thermodynamicinhibition term
     p2 = plot(ηs,θs,xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",yaxis=L"\theta\;\;",label="")
-    plot!(title="Inhibition")
+    p2 = plot!(p2,title="Inhibition")
+    px, py = annpos(ηs,θs)
+    p2 = annotate!(p2,px,py,text("B",17,:black))
     plot(p1,p2,layout=(1,2),size = (width,height),left_margin=5mm,right_margin=5mm)
     savefig("Output/SynPlots/VarEff.png")
     return(nothing)
@@ -386,6 +392,6 @@ end
 
 
 # This whole script can stand a lot of improvement
-# @time maxcosump()
+@time maxcosump()
 # @time limunlim()
-@time plotvar()
+# @time plotvar()

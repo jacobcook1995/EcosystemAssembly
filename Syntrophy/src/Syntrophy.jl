@@ -5,7 +5,7 @@ module Syntrophy
 
 # Export complicated functions
 export GFree, θT, netE, SCoef, QCoef, qrate
-# expoert all my objects
+# export all my objects
 export Nut, React, Microbe
 # export very simple functions
 export ↦

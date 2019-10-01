@@ -139,7 +139,7 @@ function maxcosump()
     p2 = plot!(p2,title="Inhibition")
     px, py = annpos(ηs,θs)
     p2 = annotate!(p2,px,py,text("B",17,:black))
-    plot(p1,p2,layout=(1,2),size = (width,height),left_margin=5mm,right_margin=5mm)
+    plot(p1,p2,layout=(1,2),size = (width,height),left_margin=5mm,right_margin=5mm,top_margin=10mm)
     savefig("Output/SynPlots/VarEff.png")
     return(nothing)
 end
@@ -182,15 +182,20 @@ function limunlim()
     stoc = (reac.↦:stc)[1]
 
     # Change python variable name
-    pyplot(dpi=150)
+    pyplot(dpi=200)
     f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics[1],t)
     prob = ODEProblem(f,u0,tspan,p)
     sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
     # Plot nutrient concentrations on same graph
     Lη = L"\eta"
     p1 = plot(sol.t,[sol'[:,1],sol'[:,3]],ylabel="Concentration M L^-1",label=["substrate" "product"],title="No inhibition ($(Lη) = $(ηs[1]))")
+    # Find ideal annotation position and annotate
+    px, py = annpos(sol.t,[sol'[:,1];sol'[:,3]])
+    p1 = annotate!(p1,px,py,text("A",17,:black))
     # Then plot population on another subplot
     p3 = plot(sol.t,sol'[:,5],label="",ylabel="Cell density L^-1")
+    px, py = annpos(sol.t,sol'[:,5])
+    p3 = annotate!(p3,px,py,text("C",17,:black))
 
     # Then do same for limited case
     g(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics[2],t)
@@ -198,12 +203,16 @@ function limunlim()
     sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
     # Plot nutrient concentrations on same graph
     p2 = plot(sol.t,[sol'[:,1],sol'[:,3]],ylabel="Concentration M L^-1",label=["substrate" "product"],title="Inhibition ($(Lη) = $(ηs[2]))")
+    px, py = annpos(sol.t,[sol'[:,1];sol'[:,3]])
+    p2 = annotate!(p2,px,py,text("B",17,:black))
     # Then plot population on another subplot
     p4 = plot(sol.t,sol'[:,5],label="",ylabel="Cell density L^-1")
+    px, py = annpos(sol.t,sol'[:,5])
+    p4 = annotate!(p4,px,py,text("D",17,:black))
     # Set overall plot height and width and make combined plot
     width = 800
     height = 600
-    plot(p1,p2,p3,p4,layout=(2,2),size = (width, height),xlabel="time s",left_margin=5mm,right_margin=5mm)
+    plot(p1,p2,p3,p4,layout=(2,2),size = (width, height),xlabel="time s",left_margin=5mm,right_margin=5mm,top_margin=10mm)
     savefig("Output/SynPlots/LimUnlim.png")
     return(nothing)
 end
@@ -316,11 +325,19 @@ function plotvar()
     # Calculate number of valid files
     L = length(files)
     # setup plots
-    pyplot(dpi=150)
+    pyplot(dpi=200)
     p1 = plot(title="Variation of removal rate",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel="Maximal ATP production rate mol/s")
     p2 = plot(title="Variation of supply rate",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel="Maximal ATP production rate mol/s")
     p3 = plot(xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel=L"\theta\;\;")
     p4 = plot(xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",ylabel=L"\theta\;\;")
+    # Find length of file
+    testfile = "Data/$(files[1])"
+    l = countlines(testfile)-1
+    # Make data structure to store all data
+    datay = zeros(4,3,l)
+    datax = zeros(l)
+    # And some counters
+    i1 = i2 = i3 = i4 = 1
     # Read in files one by one to plot
     for i = 1:L
         infile = "Data/$(files[i])"
@@ -368,22 +385,56 @@ function plotvar()
         # Plot the data
         # Filter so that the graphs are better comparisons
         if α ≈ 5.55*10^(-6) && δ ≈ 2.00*10^(-4)
+            # Do plotting and then store appropiate data
             p1 = plot!(p1,data[:,1],data[:,3],label=lb,color=i)
             p2 = plot!(p2,data[:,1],data[:,3],label=lb,color=i)
             p3 = plot!(p3,data[:,1],data[:,2],label=lb,color=i)
             p4 = plot!(p4,data[:,1],data[:,2],label=lb,color=i)
+            # Store appropiate data
+            datay[1,i1,:] = data[:,3]
+            datay[2,i2,:] = data[:,3]
+            datay[3,i3,:] = data[:,2]
+            datay[4,i4,:] = data[:,2]
+            # increment appropiate counters
+            i1 += 1
+            i2 += 1
+            i3 += 1
+            i4 += 1
         elseif α ≈ 5.55*10^(-6)
             p1 = plot!(p1,data[:,1],data[:,3],label=lb,color=i)
             p3 = plot!(p3,data[:,1],data[:,2],label=lb,color=i)
+            datay[1,i1,:] = data[:,3]
+            datay[3,i3,:] = data[:,2]
+            # increment appropiate counters
+            i1 += 1
+            i3 += 1
         elseif δ ≈ 2.00*10^(-4)
             p2 = plot!(p2,data[:,1],data[:,3],label=lb,color=i)
             p4 = plot!(p4,data[:,1],data[:,2],label=lb,color=i)
+            datay[2,i2,:] = data[:,3]
+            datay[4,i4,:] = data[:,2]
+            # increment appropiate counters
+            i2 += 1
+            i4 += 1
+        end
+        if i == L
+            # Store the unchanging x data
+            datax = data[:,1]
         end
     end
+    # Annotation step
+    px, py = annpos(datax,[datay[1,1,:];datay[1,2,:];datay[1,3,:]])
+    p1 = annotate!(p1,px,py,text("A",17,:black))
+    px, py = annpos(datax,[datay[2,1,:];datay[2,2,:];datay[2,3,:]])
+    p2 = annotate!(p2,px,py,text("B",17,:black))
+    px, py = annpos(datax,[datay[3,1,:];datay[3,2,:];datay[3,3,:]])
+    p3 = annotate!(p3,px,py,text("C",17,:black))
+    px, py = annpos(datax,[datay[4,1,:];datay[4,2,:];datay[4,3,:]])
+    p4 = annotate!(p4,px,py,text("D",17,:black))
     # set total size of plot and then plot all together
     width = 800
     height = 600
-    plot(p1,p2,p3,p4,layout=(2,2),xlabel=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",size=(width,height),left_margin=5mm,right_margin=5mm)
+    plot(p1,p2,p3,p4,layout=(2,2),xlabel=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}",size=(width,height),left_margin=5mm,right_margin=5mm,top_margin=10mm)
     plot!(ann = (:top_left, :auto)) # give figures letters to identify
     savefig("Output/SynPlots/ThermComp.png")
     return(nothing)
@@ -391,6 +442,6 @@ end
 
 
 # This whole script can stand a lot of improvement
-@time maxcosump()
+# @time maxcosump()
 # @time limunlim()
-# @time plotvar()
+@time plotvar()

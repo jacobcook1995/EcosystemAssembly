@@ -1,8 +1,9 @@
-module MyPlots
+# module MyPlots
 
 # This is a module to contain helpful scripts to aid my plotting
+# Is this a module though?
 
-export annpos
+export annpos # Not sure if I need this export
 
 # A function to return positions for labels
 function annpos(datax::Array{Float64,1},datay::Array{Float64,1},δx=0.15::Float64,δy=0.125::Float64)
@@ -18,4 +19,4 @@ function annpos(datax::Array{Float64,1},datay::Array{Float64,1},δx=0.15::Float6
     return(posx,posy)
 end
 
-end
+# end

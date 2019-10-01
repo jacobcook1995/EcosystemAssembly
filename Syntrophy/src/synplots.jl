@@ -4,7 +4,6 @@ using DifferentialEquations
 using LaTeXStrings
 using Measures
 import PyPlot
-using MyPlots # NOT RIGHT WAY OF DEALING WITH THIS
 
 # This is a script to store the functions that plot the figures shown in my Syntrophy SI
 

@@ -1,7 +1,9 @@
 module Syntrophy
 
 # Can import or use other modules
-# Can also include code from other files other files
+
+# Including the MyPlots file which should help with plotting
+include("MyPlots.jl")
 
 # Export complicated functions
 export GFree, θT, netE, SCoef, QCoef, qrate

@@ -6,7 +6,7 @@ module Syntrophy
 include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available
 
 # Export complicated functions
-export GFree, θT, netE, SCoef, QCoef, qrate
+export GFree, θT, netE, SCoef, QCoef, qrate, Keq
 # export all my objects
 export Nut, React, Microbe
 # export very simple functions
@@ -166,6 +166,21 @@ function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,
         q = 0.0
     end
     return(q)
+end
+
+# function to calculate equilbriun constant for a given ATP producing reaction
+function Keq(ΔG0::Float64,η::Float64,ΔGATP::Float64,T::Float64)
+    # ΔG0 => standard Gibbs free energy
+    # η => number of moles of ATP produced
+    # ΔGATP => Gibbs free energy to form ATP in standard cell
+    # T => Temperature
+    ############ START OF FUNCTION ###################
+
+    # Define RT
+    RT = Rgas*T
+    # Then find equilbrium constant
+    K = exp(-(ΔG0+η*ΔGATP)/RT)
+    return(K)
 end
 
 end # module

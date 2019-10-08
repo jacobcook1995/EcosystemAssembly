@@ -2,7 +2,8 @@ using Syntrophy
 using Plots
 using DifferentialEquations
 using LaTeXStrings
-import PyPlot
+# Not needed at moment
+# import PyPlot
 
 # This is a script to write my testing code into
 # Anything reusable should be moved into Syntrophy.jl as a seperate callable function
@@ -60,7 +61,7 @@ end
 function gluc()
     # Nutrient variables
     α = 5.55*10^(-6)
-    δ = 2.00*10^(-4) #1.00*10^(-4)
+    δ = 2.00*10^(-4) # 1.00*10^(-4)
     # make nutrients
     # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
     nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
@@ -114,3 +115,65 @@ function gluc()
     savefig("Output/Theta.png")
     return(nothing)
 end
+
+# function to find qm, KS, m, Y based on reference values, kinetic parameters and enzyme concentrations
+function qKmY(k1::Float64,K1::Float64,k2::Float64,K2::Float64,E0::Float64,E0ref::Float64,mref::Float64,Yref::Float64)
+    # Standard formula for qm and KS
+    qm = k2*E0
+    KS = (K1+k2)/(k1)
+    # poportional sub-linear increase in maintainance with amount
+    m = mref + 0.25*mref*(E0-E0ref)/E0ref
+    # decrease in same proportion for yield
+    Y = Yref - 0.25*Yref*(E0-E0ref)/E0ref
+    return(qm,KS,m,Y)
+end
+
+# function to investigate the r vs K tradeoff to attempt to see if it has a thermodynamic origin
+function rvsK()
+    # Set up for glucose respiration => A lot of these things need changing
+    # Nutrient variables
+    α = 5.55*10^(-6)
+    δ = 2.00*10^(-4)
+    Temp = 312.0 # Temperature that growth is occuring at in Kelvin
+    # make nutrients
+    # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
+    nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
+    # Now make reactions
+    ΔG0 = -2843800.0
+    reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
+    # microbe variables
+    η = 37.5
+    ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
+    r = 1 # Only reaction
+    # Define kinetic parameters explicitly
+    E0ref = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
+    k2 = 140.0 # Infered from old qm
+    K1 = k2 # As we assume that both directions have same maximal rate
+    k1 = 1.17*10.0^(7) # Infered from KS based on value of the above
+    # Now work out equlibrium constant K in order to find final rate
+    K = Keq(ΔG0,η,ΔGATP,Temp)
+    K2 = k1*k2/(K1*K)
+    # These can be used as reference values corresponding to the case of E0ref
+    mr = 2.16*10.0^(-19) # maintainance
+    Yr = 2.36*10.0^(13) # yield in cells per mole of ATP
+    # Find KS, qm, maintainance and yield using function
+    E0 = E0ref # TEST CASE DELETE!
+    qm, KS, m, Y = qKmY(k1,K1,k2,K2,E0,E0ref,mr,Yr)
+    # Considering 1 microbe with no maintaince and no dilution
+    mics = Microbe(η,m,1,0.0)
+    # Set intial populations and nutrient concentrations
+    pops = 100.0
+    concs = zeros(length(nuts))
+    # define initial concentrations
+    concs[1] = 0.0555 # high initial concentration to ensure growth
+    concs[2] = 0.21 # High value so oxegen isn't limiting
+    concs[3] = 0.0 # No initial concentration
+    concs[4] = 1.00*10.0^(-7) # pH 7
+    # Should change temperature eventually
+    p = [Y,KS,qm,ΔGATP,Temp]
+    u0 = [concs;pops]
+
+    return(nothing)
+end
+
+@time rvsK()

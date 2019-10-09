@@ -2,8 +2,7 @@ using Syntrophy
 using Plots
 using DifferentialEquations
 using LaTeXStrings
-# Not needed at moment
-# import PyPlot
+import PyPlot
 
 # This is a script to write my testing code into
 # Anything reusable should be moved into Syntrophy.jl as a seperate callable function
@@ -131,13 +130,12 @@ function qKmY(k1::Float64,K1::Float64,k2::Float64,K2::Float64,E0::Float64,E0ref:
 end
 
 # function to return k parameters based on a single k value
-# What do I read in?
-function parak(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
-    K1 = 140.0 # Set default K1 here
-    K2 = 67.31 # Set default K2 here
+function parak(K1::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
+    k1 = 1.17*10.0^(7) # Set default k1 here
+    k2 = 140.0 # Set default k2 here
     # Now work out equlibrium constant K in order to find final rate
     K = Keq(ΔG0,η,ΔGATP,Temp)
-    k1 = K*K1*K2/k2
+    K2 = k1*k2/(K1*K)
     return(k1,k2,K1,K2)
 end
 
@@ -174,8 +172,8 @@ function rvsK()
     u0 = [concs;pops]
     tspan = (0.0,5000000.0)
     # The important difference now is in the value of k1
-    k2 = 140.0
-    k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
+    K1 = 140.0
+    k1, k2, K1, K2 = parak(K1,ΔG0,η,ΔGATP,Temp)
     println("k1 = $(k1)")
     println("k2 = $(k2)")
     println("K1 = $(K1)")
@@ -200,8 +198,8 @@ function rvsK()
     end
     println("r = $(maximum(v))")
     # Important difference now is in the value of k2
-    k2 = (1/10)*k2
-    k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
+    K1 = (1/10)*K1
+    k1, k2, K1, K2 = parak(K1,ΔG0,η,ΔGATP,Temp)
     println("k1 = $(k1)")
     println("k2 = $(k2)")
     println("K1 = $(K1)")
@@ -223,6 +221,7 @@ function rvsK()
     for i = 2:length(sol'[:,5])
         v[i-1] = (sol'[i,5]-sol'[i-1,5])/500
     end
+    pyplot()
     println("r = $(maximum(v))")
     plot(sol'[:,5])
     savefig("Output/test1.png")

@@ -27,8 +27,8 @@ function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},
     stc = (reacs.↦:stc)[1]
     ΔG0 = (reacs.↦:ΔG0)[1]
     # Now calculate q
-    # p[2] = KS, p[3] = qm, p[4] = ΔGATP, p[5] = Temp
-    q = qrate(u[1:N],p[2],p[3],p[4],ΔG0,p[5],stc,η)
+    # p[2] = KS, p[3] = qm, p[4] = ΔGATP, p[5] = Temp, p[6] = kr
+    q = qrate(u[1:N],p[2],p[3],p[4],ΔG0,p[5],stc,η,p[6])
     # Make vector to store nutrient changes due to consumption
     δX = zeros(N)
     for i = 1:length(stc)
@@ -118,102 +118,31 @@ end
 
 # function to find qm, KS, m, Y based on reference values, kinetic parameters and enzyme concentrations
 function qKmY(k1::Float64,K1::Float64,k2::Float64,K2::Float64,E0::Float64,E0ref::Float64,mref::Float64,Yref::Float64)
-    # Standard formula for qm and KS
+    # Standard formula for qm, KS, KP and kr
     qm = k2*E0
     KS = (K1+k2)/(k1)
+    KP = (K1+k2)/(K2)
+    kr = k2/K1
     # poportional sub-linear increase in maintainance with amount
     m = mref + 0.1*mref*(E0-E0ref)/E0ref # More than a 10% penalty and the tradeoff is lost
     # decrease in same proportion for yield
     Y = Yref - 0.1*Yref*(E0-E0ref)/E0ref
-    return(qm,KS,m,Y)
-end
-
-# function to investigate the r vs K tradeoff to attempt to see if it has a thermodynamic origin
-function rvsK()
-    # Set up for glucose respiration => A lot of these things need changing
-    # Nutrient variables
-    α = 5.55*10^(-6)
-    δ = 2.00*10^(-4)
-    Temp = 312.0 # Temperature that growth is occuring at in Kelvin
-    # make nutrients
-    # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
-    nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
-    # Now make reactions
-    ΔG0 = -2843800.0
-    reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
-    # microbe variables
-    η = 37.5
-    ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
-    r = 1 # Only reaction
-    # Define kinetic parameters explicitly
-    E0ref = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
-    k2 = 140.0 # Infered from old qm
-    K1 = k2 # As we assume that both directions have same maximal rate
-    k1 = 1.17*10.0^(7) # Infered from KS based on value of the above
-    # Now work out equlibrium constant K in order to find final rate
-    K = Keq(ΔG0,η,ΔGATP,Temp)
-    K2 = k1*k2/(K1*K)
-    # These can be used as reference values corresponding to the case of E0ref
-    mr = 2.16*10.0^(-19) # maintainance
-    Yr = 2.36*10.0^(13) # yield in cells per mole of ATP
-    # Set intial populations and nutrient concentrations
-    pops = 100.0
-    concs = zeros(length(nuts))
-    # define initial concentrations
-    concs[1] = 0.0555 # high initial concentration to ensure growth
-    concs[2] = 0.21 # High value so oxegen isn't limiting
-    concs[3] = 0.0 # No initial concentration
-    concs[4] = 1.00*10.0^(-7) # pH 7
-    u0 = [concs;pops]
-    tspan = (0.0,5000000.0)
-    # Important difference now is in the value of E0
-    E0 = E0ref
-    # Find KS, qm, maintainance and yield using function
-    qm, KS, m, Y = qKmY(k1,K1,k2,K2,E0,E0ref,mr,Yr)
-    # Considering 1 microbe with maintaince but no dilution
-    mics = Microbe(η,m,1,0.0)
-    p = [Y,KS,qm,ΔGATP,Temp]
-    # Make reduced version of function inputting unchanging microbes
-    f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
-    prob = ODEProblem(f,u0,tspan,p)
-    sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
-    println("K = $(maximum(sol'[:,5]))")
-    # Now find maximal growth rate r
-    v = zeros(length(sol'[:,5])-1)
-    for i = 2:length(sol'[:,5])
-        v[i-1] = (sol'[i,5]-sol'[i-1,5])/500
-    end
-    println("r = $(maximum(v))")
-    # Important difference now is in the value of E0
-    E0 = 2*E0ref
-    # Find KS, qm, maintainance and yield using function
-    qm, KS, m, Y = qKmY(k1,K1,k2,K2,E0,E0ref,mr,Yr)
-    # Considering 1 microbe with maintaince but no dilution
-    mics = Microbe(η,m,1,0.0)
-    p = [Y,KS,qm,ΔGATP,Temp]
-    # Make reduced version of function inputting unchanging microbes
-    f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
-    prob = ODEProblem(f,u0,tspan,p)
-    sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
-    println("K = $(maximum(sol'[:,5]))")
-    for i = 2:length(sol'[:,5])
-        v[i-1] = (sol'[i,5]-sol'[i-1,5])/500
-    end
-    println("r = $(maximum(v))")
-    return(nothing)
+    return(qm,KS,KP,kr,m,Y)
 end
 
 # function to return k parameters based on a single k value
-function parak(k1::Float64,k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
-    K1 = k2 # As we assume that both directions have same maximal rate
+# What do I read in?
+function parak(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
+    k1 = 1.17*10.0^(7) # Set default k1 here
+    K2 = 67.31 # Set default K2 here
     # Now work out equlibrium constant K in order to find final rate
     K = Keq(ΔG0,η,ΔGATP,Temp)
-    K2 = k1*k2/(K1*K)
+    K1 = k1*k2/(K2*K)
     return(k1,k2,K1,K2)
 end
 
 # a second similar function to test the effect of changing reaction rates
-function rvsK2()
+function rvsK()
     # Set up for glucose respiration => A lot of these things need changing
     # Nutrient variables
     α = 5.55*10^(-6)
@@ -245,19 +174,20 @@ function rvsK2()
     u0 = [concs;pops]
     tspan = (0.0,5000000.0)
     # The important difference now is in the value of k1
-    k1 = 1.17*10.0^(7) # Set default k1 here
     k2 = 140.0
-    k1, k2, K1, K2 = parak(k1,k2,ΔG0,η,ΔGATP,Temp)
-    println("k1 = $(k1)")
-    println("k2 = $(k2)")
-    println("K1 = $(K1)")
-    println("K2 = $(K2)")
+    k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
+    # println("k1 = $(k1)")
+    # println("k2 = $(k2)")
+    # println("K1 = $(K1)")
+    # println("K2 = $(K2)")
     # Find KS, qm, maintainance and yield using function
-    qm, KS, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)
+    qm, KS, KP, kr, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)
+    println("qm = $(qm)")
+    println("KS = $(KS)")
+    println("KP = $(KP)")
     # Considering 1 microbe with maintaince but no dilution
     mics = Microbe(η,m,1,0.0)
-    p = [Y,KS,qm,ΔGATP,Temp]
-    println("KS = $(KS)")
+    p = [Y,KS,qm,ΔGATP,Temp,kr]
     # Make reduced version of function inputting unchanging microbes
     f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
     prob = ODEProblem(f,u0,tspan,p)
@@ -269,19 +199,21 @@ function rvsK2()
         v[i-1] = (sol'[i,5]-sol'[i-1,5])/500
     end
     println("r = $(maximum(v))")
-    # Important difference now is in the value of E0
-    k1 = (1/4)*k1
-    k1, k2, K1, K2 = parak(k1,k2,ΔG0,η,ΔGATP,Temp)
-    println("k1 = $(k1)")
-    println("k2 = $(k2)")
-    println("K1 = $(K1)")
-    println("K2 = $(K2)")
+    # Important difference now is in the value of k2
+    k2 = 10000*k2
+    k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
+    # println("k1 = $(k1)")
+    # println("k2 = $(k2)")
+    # println("K1 = $(K1)")
+    # println("K2 = $(K2)")
     # Find KS, qm, maintainance and yield using function
-    qm, KS, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)
+    qm, KS, KP, kr, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)
+    println("qm = $(qm)")
+    println("KS = $(KS)")
+    println("KP = $(KP)")
     # Considering 1 microbe with maintaince but no dilution
     mics = Microbe(η,m,1,0.0)
-    p = [Y,KS,qm,ΔGATP,Temp]
-    println("KS = $(KS)")
+    p = [Y,KS,qm,ΔGATP,Temp,kr]
     # Make reduced version of function inputting unchanging microbes
     f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
     prob = ODEProblem(f,u0,tspan,p)
@@ -300,4 +232,4 @@ function rvsK2()
     return(nothing)
 end
 
-@time rvsK2()
+@time rvsK()

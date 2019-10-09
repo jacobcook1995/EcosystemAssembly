@@ -143,8 +143,8 @@ function QCoef(concs::Array{Float64,1},stoc::Array{Int64,1})
 end
 
 # function to calculate the rate of substrate consumption q
-function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,
-                    ΔG0::Float64,Temp::Float64,stoc::Array{Int64,1},η::Float64)
+function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,ΔG0::Float64,
+                    Temp::Float64,stoc::Array{Int64,1},η::Float64,kr=1.0::Float64)
     # concs => Vector of nutrient concentrations
     # KS => Saturation constant for the substrate
     # qm => Maximal reaction rate for substrate
@@ -153,6 +153,7 @@ function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,
     # ΔG0 => Standard gibbs free energy of reaction
     # Temp => Temperature in Kelvin
     # η => free energy use strategy, mol of ATP per mol of substrate
+    # kr => Ratio of maximal forward to maximum backwards rate
     ############ START OF FUNCTION ###################
 
     # calulate substrate coefficent
@@ -160,7 +161,7 @@ function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,
     # Call function to find thermodynamic factor θ
     θ = θT(concs,stoc,ΔGATP,ΔG0,η,Temp)
     # Only η changes between species
-    q = qm*S*(1-θ)/(KS+S*(1+θ))
+    q = qm*S*(1-θ)/(KS+S*(1+kr*θ))
     # Catch unbiological negative rate case
     if q < 0.0
         q = 0.0

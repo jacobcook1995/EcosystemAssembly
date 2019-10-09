@@ -267,7 +267,7 @@ function rvsK2()
     end
     println("r = $(maximum(v))")
     # Important difference now is in the value of E0
-    k2 = 20*140.0
+    k2 = 20*140.0 # Can I just increase k2 for ever?????????
     k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
     # Find KS, qm, maintainance and yield using function
     qm, KS, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)

@@ -133,11 +133,11 @@ end
 # function to return k parameters based on a single k value
 # What do I read in?
 function parak(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
-    k1 = 1.17*10.0^(7) # Set default k1 here
+    K1 = 140.0 # Set default K1 here
     K2 = 67.31 # Set default K2 here
     # Now work out equlibrium constant K in order to find final rate
     K = Keq(ΔG0,η,ΔGATP,Temp)
-    K1 = k1*k2/(K2*K)
+    k1 = K*K1*K2/k2
     return(k1,k2,K1,K2)
 end
 
@@ -176,10 +176,10 @@ function rvsK()
     # The important difference now is in the value of k1
     k2 = 140.0
     k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
-    # println("k1 = $(k1)")
-    # println("k2 = $(k2)")
-    # println("K1 = $(K1)")
-    # println("K2 = $(K2)")
+    println("k1 = $(k1)")
+    println("k2 = $(k2)")
+    println("K1 = $(K1)")
+    println("K2 = $(K2)")
     # Find KS, qm, maintainance and yield using function
     qm, KS, KP, kr, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)
     println("qm = $(qm)")
@@ -200,17 +200,18 @@ function rvsK()
     end
     println("r = $(maximum(v))")
     # Important difference now is in the value of k2
-    k2 = 10000*k2
+    k2 = (1/10)*k2
     k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
-    # println("k1 = $(k1)")
-    # println("k2 = $(k2)")
-    # println("K1 = $(K1)")
-    # println("K2 = $(K2)")
+    println("k1 = $(k1)")
+    println("k2 = $(k2)")
+    println("K1 = $(K1)")
+    println("K2 = $(K2)")
     # Find KS, qm, maintainance and yield using function
     qm, KS, KP, kr, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)
     println("qm = $(qm)")
     println("KS = $(KS)")
     println("KP = $(KP)")
+    println("kr = $(kr)")
     # Considering 1 microbe with maintaince but no dilution
     mics = Microbe(η,m,1,0.0)
     p = [Y,KS,qm,ΔGATP,Temp,kr]

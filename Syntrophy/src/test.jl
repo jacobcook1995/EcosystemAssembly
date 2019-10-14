@@ -115,20 +115,6 @@ function gluc()
     return(nothing)
 end
 
-# function to find qm, KS, m, Y based on reference values, kinetic parameters and enzyme concentrations
-function qKmY(k1::Float64,K1::Float64,k2::Float64,K2::Float64,E0::Float64,E0ref::Float64,mref::Float64,Yref::Float64)
-    # Standard formula for qm, KS, KP and kr
-    qm = k2*E0
-    KS = (K1+k2)/(k1)
-    KP = (K1+k2)/(K2)
-    kr = k2/K1
-    # poportional sub-linear increase in maintainance with amount
-    m = mref + 0.1*mref*(E0-E0ref)/E0ref # More than a 10% penalty and the tradeoff is lost
-    # decrease in same proportion for yield
-    Y = Yref - 0.1*Yref*(E0-E0ref)/E0ref
-    return(qm,KS,KP,kr,m,Y)
-end
-
 # function to return k parameters based on a single k value
 function parak(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
     k1 = 1.17*10.0^(7) # Set default k1 here
@@ -245,9 +231,22 @@ function rvsK()
 end
 
 # function to find steady state of case without thermodynamic limitation
-function stead(KS::Float64,η::Float64,qm::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64)
+function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64,θ::Float64)
     # Calulate R
-    R = KS/(1+(η*qm/m))
+    R = m*KS/(m*(1+kr*θ)+η*qm*(1-θ))
+    # Then find fractional contribution from S
+    S = R/((CO)^6)
+    # Then calculate X
+    X = (η/m)*(α-δ*S)
+    # Then calulate P
+    P = 6*m*X/(δ*η)
+    return(S,P,X)
+end
+
+# test function to find steady state of case with totak thermodynamic limitation (θ=1)
+function steadT(KS::Float64,kr::Float64,η::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64)
+    # Calulate R
+    R = KS/(1+kr)
     # Then find fractional contribution from S
     S = R/((CO)^6)
     # Then calculate X
@@ -271,7 +270,7 @@ function predict()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η = 33.0 # this is the actual physiological value
+    η = 41.5 # this is the actual physiological value
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     r = 1 # Only reaction
     # Define kinetic parameters explicitly
@@ -310,13 +309,27 @@ function predict()
     prob = ODEProblem(f,u0,tspan,p)
     sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
     println("K = $(maximum(sol'[:,5]))")
-    println("max S = $(minimum(sol'[:,1]))") # Declines from initially high value
+    println("min S = $(minimum(sol'[:,1]))") # Declines from initially high value
     println("max P = $(maximum(sol'[:,3]))")
+    # Find steady state value of θ
+    stoc = (reac.↦:stc)[1]
+    θ = θT(sol'[end,1:4],stoc,ΔGATP,ΔG0,η,Temp) # WRONG POINT TO USE NEED FINAL CONCENTRATIONS
+    println("Steady state θ = $(θ)")
     # Now find and print predicted steady state values
-    S, P, X = stead(KS,η,qm,m,concs[2],α,δ)
+    S, P, X = stead(KS,kr,η,qm,m,concs[2],α,δ,θ)
     println("predicted K = $(X)")
     println("predicted S = $(S)")
     println("predicted P = $(P)")
+    pyplot()
+    plot(sol'[:,5])
+    hline!([X])
+    savefig("Output/test1.png")
+    plot(sol'[:,3])
+    hline!([P])
+    savefig("Output/test2.png")
+    plot(sol'[:,1])
+    hline!([S])
+    savefig("Output/test3.png")
     return(nothing)
 end
 

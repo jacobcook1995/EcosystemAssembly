@@ -115,6 +115,16 @@ function gluc()
     return(nothing)
 end
 
+# function to find qm, KS, m, Y based on reference values, kinetic parameters and enzyme concentrations
+function qKmY(k1::Float64,K1::Float64,k2::Float64,K2::Float64,E0::Float64)
+    # Standard formula for qm, KS, KP and kr
+    qm = k2*E0
+    KS = (K1+k2)/(k1)
+    KP = (K1+k2)/(K2)
+    kr = k2/K1
+    return(qm,KS,KP,kr)
+end
+
 # function to return k parameters based on a single k value
 function parak(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
     k1 = 1.17*10.0^(7) # Set default k1 here
@@ -145,8 +155,8 @@ function rvsK()
     # Define kinetic parameters explicitly
     E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
     # These can be used as reference values corresponding to the case of E0ref
-    mr = 2.16*10.0^(-19) # maintainance
-    Yr = 2.36*10.0^(13) # yield in cells per mole of ATP
+    m = 2.16*10.0^(-19) # maintainance
+    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
     # Set intial populations and nutrient concentrations
     pops = 100.0
     concs = zeros(length(nuts))
@@ -165,7 +175,7 @@ function rvsK()
     println("K1 = $(K1)")
     println("K2 = $(K2)")
     # Find KS, qm, maintainance and yield using function
-    qm, KS, KP, kr, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)
+    qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
     println("qm = $(qm)")
     println("KS = $(KS)")
     println("KP = $(KP)")
@@ -192,7 +202,7 @@ function rvsK()
     println("K1 = $(K1)")
     println("K2 = $(K2)")
     # Find KS, qm, maintainance and yield using function
-    qm, KS, KP, kr, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)
+    qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
     println("qm = $(qm)")
     println("KS = $(KS)")
     println("KP = $(KP)")
@@ -233,7 +243,7 @@ end
 # function to find steady state of case without thermodynamic limitation
 function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64,θ::Float64)
     # Calulate R
-    R = m*KS/(m*(1+kr*θ)+η*qm*(1-θ))
+    R = m*KS/(η*qm*(1-θ)-m*(1+kr*θ))
     # Then find fractional contribution from S
     S = R/((CO)^6)
     # Then calculate X
@@ -246,7 +256,7 @@ end
 # test function to find steady state of case with totak thermodynamic limitation (θ=1)
 function steadT(KS::Float64,kr::Float64,η::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64)
     # Calulate R
-    R = KS/(1+kr)
+    R = -KS/(1+kr)
     # Then find fractional contribution from S
     S = R/((CO)^6)
     # Then calculate X
@@ -270,14 +280,14 @@ function predict()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η = 41.5 # this is the actual physiological value
+    η = 42.0 # this is the actual physiological value
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     r = 1 # Only reaction
     # Define kinetic parameters explicitly
     E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
     # These can be used as reference values corresponding to the case of E0ref
-    mr = 2.16*10.0^(-19) # maintainance
-    Yr = 2.36*10.0^(13) # yield in cells per mole of ATP
+    m = 2.16*10.0^(-19) # maintainance
+    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
     # Set intial populations and nutrient concentrations
     pops = 100.0
     concs = zeros(length(nuts))
@@ -296,7 +306,7 @@ function predict()
     println("K1 = $(K1)")
     println("K2 = $(K2)")
     # Find KS, qm, maintainance and yield using function
-    qm, KS, KP, kr, m, Y = qKmY(k1,K1,k2,K2,E0,E0,mr,Yr)
+    qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
     println("qm = $(qm)")
     println("KS = $(KS)")
     println("KP = $(KP)")
@@ -313,7 +323,7 @@ function predict()
     println("max P = $(maximum(sol'[:,3]))")
     # Find steady state value of θ
     stoc = (reac.↦:stc)[1]
-    θ = θT(sol'[end,1:4],stoc,ΔGATP,ΔG0,η,Temp) # WRONG POINT TO USE NEED FINAL CONCENTRATIONS
+    θ = θT(sol'[end,1:4],stoc,ΔGATP,ΔG0,η,Temp)
     println("Steady state θ = $(θ)")
     # Now find and print predicted steady state values
     S, P, X = stead(KS,kr,η,qm,m,concs[2],α,δ,θ)

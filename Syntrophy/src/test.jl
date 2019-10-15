@@ -3,6 +3,7 @@ using Plots
 using DifferentialEquations
 using LaTeXStrings
 import PyPlot
+using SymPy
 
 # This is a script to write my testing code into
 # Anything reusable should be moved into Syntrophy.jl as a seperate callable function
@@ -253,19 +254,6 @@ function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Fl
     return(S,P,X)
 end
 
-# test function to find steady state of case with totak thermodynamic limitation (θ=1)
-function steadT(KS::Float64,kr::Float64,η::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64)
-    # Calulate R
-    R = -KS/(1+kr)
-    # Then find fractional contribution from S
-    S = R/((CO)^6)
-    # Then calculate X
-    X = (η/m)*(α-δ*S)
-    # Then calulate P
-    P = 6*m*X/(δ*η)
-    return(S,P,X)
-end
-
 # Function to predict steady state populations in non-thermodynamically limited case
 function predict()
     # Set up for glucose respiration => A lot of these things need changing
@@ -280,7 +268,7 @@ function predict()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η = 42.0 # this is the actual physiological value
+    η = 43.3 # this is the actual physiological value
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     r = 1 # Only reaction
     # Define kinetic parameters explicitly
@@ -343,4 +331,50 @@ function predict()
     return(nothing)
 end
 
-@time predict()
+# function to try and find the analytic solution for steady state population and concentrations
+function anstead()
+    P, S, X, m, η, δ, α, q = symbols("P S X m eta delta alpha q",positive=true)
+    # Rate of change of substrate
+    dS = -m*X/η - δ*S + α
+    # Rate of change of product
+    dP = 6*m*X/η - δ*P
+    # Solve first expression for S
+    X1 = SymPy.solve(dS,X)
+    # Only one solution so overwrite
+    X1 = X1[1]
+    # Substitute into product rate of change to eliminate X
+    dP = subs(dP,X=>X1)
+    # Then try to solve this expression for P
+    P1 = SymPy.solve(dP,P)
+    # Only one solution so overwrite
+    P1 = P1[1]
+    # Now write out expression for rate of change of X
+    dX = η*q - m
+    # Need a lot more variables to define q
+    qm, R, θ, KS, Q, Keq, kr, O2, H = symbols("qm R theta KS Q Keq kr O2 H",positive=true)
+    # Now define q and sub expression in dX
+    q1 = qm*R*(1-θ)/(KS+R*(1+kr*θ))
+    dX = subs(dX,q=>q1)
+    # Next sub for R
+    R1 = S*O2^6
+    dX = subs(dX,R=>R1)
+    # Then need to define and expand θ and sub in to dX
+    θ1 = Q/Keq
+    Q1 = (P^6)*(H^6)/(S*(O2^6))
+    θ1 = subs(θ1,Q=>Q1)
+    dX = subs(dX,θ=>θ1)
+    # Now sub in expression for to obtain expression in terms of S
+    dX = subs(dX,P=>P1)
+    # Complex expression, first simplify
+    dX = simplify(dX)
+    # Then remove denominator as solving equal to zero
+    dX = dX*denom(dX)
+    return(nothing)
+end
+
+# Comments:
+# Could potentially experiment with expanding out Keq as this depends partly on η
+# But also this introduces two more parameters ΔG_0 and ΔG_ATP
+# Isn't returning a solution at the moment so seems premature for this
+
+@time anstead()

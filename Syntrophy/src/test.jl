@@ -254,85 +254,8 @@ function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Fl
     return(S,P,X)
 end
 
-# Function to predict steady state populations in non-thermodynamically limited case
-function predict()
-    # Set up for glucose respiration => A lot of these things need changing
-    # Nutrient variables
-    α = 5.55*10^(-6)
-    δ = 2.00*10^(-4)
-    Temp = 312.0 # Temperature that growth is occuring at in Kelvin
-    # make nutrients
-    # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
-    nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
-    # Now make reactions
-    ΔG0 = -2843800.0
-    reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
-    # microbe variables
-    η = 43.3 # this is the actual physiological value
-    ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
-    r = 1 # Only reaction
-    # Define kinetic parameters explicitly
-    E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
-    # These can be used as reference values corresponding to the case of E0ref
-    m = 2.16*10.0^(-19) # maintainance
-    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
-    # Set intial populations and nutrient concentrations
-    pops = 100.0
-    concs = zeros(length(nuts))
-    # define initial concentrations
-    concs[1] = 0.0555 # high initial concentration to ensure growth
-    concs[2] = 0.21 # High value so oxegen isn't limiting
-    concs[3] = 0.0 # No initial concentration
-    concs[4] = 1.00*10.0^(-7) # pH 7
-    u0 = [concs;pops]
-    tspan = (0.0,5000000.0)
-    # The important difference now is in the value of k1
-    k2 = 140.0
-    k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
-    println("k1 = $(k1)")
-    println("k2 = $(k2)")
-    println("K1 = $(K1)")
-    println("K2 = $(K2)")
-    # Find KS, qm, maintainance and yield using function
-    qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
-    println("qm = $(qm)")
-    println("KS = $(KS)")
-    println("KP = $(KP)")
-    println("kr = $(kr)")
-    # Considering 1 microbe with maintaince but no dilution
-    mics = Microbe(η,m,1,0.0)
-    p = [Y,KS,qm,ΔGATP,Temp,kr]
-    # Make reduced version of function inputting unchanging microbes
-    f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
-    prob = ODEProblem(f,u0,tspan,p)
-    sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
-    println("K = $(maximum(sol'[:,5]))")
-    println("min S = $(minimum(sol'[:,1]))") # Declines from initially high value
-    println("max P = $(maximum(sol'[:,3]))")
-    # Find steady state value of θ
-    stoc = (reac.↦:stc)[1]
-    θ = θT(sol'[end,1:4],stoc,ΔGATP,ΔG0,η,Temp)
-    println("Steady state θ = $(θ)")
-    # Now find and print predicted steady state values
-    S, P, X = stead(KS,kr,η,qm,m,concs[2],α,δ,θ)
-    println("predicted K = $(X)")
-    println("predicted S = $(S)")
-    println("predicted P = $(P)")
-    pyplot()
-    plot(sol'[:,5])
-    hline!([X])
-    savefig("Output/test1.png")
-    plot(sol'[:,3])
-    hline!([P])
-    savefig("Output/test2.png")
-    plot(sol'[:,1])
-    hline!([S])
-    savefig("Output/test3.png")
-    return(nothing)
-end
-
 # function to try and find the analytic solution for steady state population and concentrations
-function anstead()
+function anstead(sm::Float64,sH::Float64,sα::Float64,sδ::Float64,sη::Float64,sqm::Float64,skr::Float64,sKS::Float64,sKeq::Float64,sO2::Float64)
     P, S, X, m, η, δ, α, q = symbols("P S X m eta delta alpha q",positive=true)
     # Rate of change of substrate
     dS = -m*X/η - δ*S + α
@@ -371,6 +294,101 @@ function anstead()
     dX = dX*denom(dX)
     # Convert expression to a (6th order) polynomial in S
     dX = sympy.Poly(dX,S) # Needs to be lower case as this is qualifying the containing (python) module
+    # Now reduce to first order polynomial and solve
+    c0 = dX.coeffs()[7]
+    c1 = dX.coeffs()[6]
+    dX1 = c1*S + c0
+    S1 = SymPy.solve(dX1,S)
+    S1 = S1[1] # Take single solution
+    # Then subsitute for the relevant values
+    S1 = subs(S1,m=>sm,H=>sH,α=>sα,δ=>sδ,η=>sη,qm=>sqm,kr=>skr,KS=>sKS,Keq=>sKeq,O2=>sO2)
+    # And do same for P
+    P1 = subs(P1,S=>S1,α=>sα,δ=>sδ)
+    # Now find X
+    X1 = subs(X1,S=>S1,α=>sα,δ=>sδ,η=>sη,m=>sm)
+    return(S1,P1,X1)
+end
+
+# Function to predict steady state populations in non-thermodynamically limited case
+function predict()
+    # Set up for glucose respiration => A lot of these things need changing
+    # Nutrient variables
+    α = 5.55*10^(-6)
+    δ = 2.00*10^(-4)
+    Temp = 312.0 # Temperature that growth is occuring at in Kelvin
+    # make nutrients
+    # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
+    nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
+    # Now make reactions
+    ΔG0 = -2843800.0
+    reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
+    # microbe variables
+    η = 41.1 # this is the actual physiological value
+    ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
+    r = 1 # Only reaction
+    # Define kinetic parameters explicitly
+    E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
+    # These can be used as reference values corresponding to the case of E0ref
+    m = 2.16*10.0^(-19) # maintainance
+    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
+    # Set intial populations and nutrient concentrations
+    pops = 100.0
+    concs = zeros(length(nuts))
+    # define initial concentrations
+    concs[1] = 0.0555 # high initial concentration to ensure growth
+    concs[2] = 0.21 # High value so oxegen isn't limiting
+    concs[3] = 0.0 # No initial concentration
+    concs[4] = 1.00*10.0^(-7) # pH 7
+    u0 = [concs;pops]
+    tspan = (0.0,5000000.0)
+    # The important difference now is in the value of k1
+    k2 = 140.0
+    k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
+    println("k1 = $(k1)")
+    println("k2 = $(k2)")
+    println("K1 = $(K1)")
+    println("K2 = $(K2)")
+    # Find KS, qm, maintainance and yield using function
+    qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
+    println("qm = $(qm)")
+    println("KS = $(KS)")
+    println("KP = $(KP)")
+    println("kr = $(kr)")
+    # Considering 1 microbe with maintaince but no dilution
+    mics = Microbe(η,m,1,0.0)
+    p = [Y,KS,qm,ΔGATP,Temp,kr]
+    # Make reduced version of function inputting unchanging microbes
+    f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
+    prob = ODEProblem(f,u0,tspan,p)
+    sol = DifferentialEquations.solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
+    println("K = $(maximum(sol'[:,5]))")
+    println("min S = $(minimum(sol'[:,1]))") # Declines from initially high value
+    println("max P = $(maximum(sol'[:,3]))")
+    # Find steady state value of θ
+    stoc = (reac.↦:stc)[1]
+    θ = θT(sol'[end,1:4],stoc,ΔGATP,ΔG0,η,Temp)
+    println("Steady state θ = $(θ)")
+    # Now find and print predicted steady state values
+    S, P, X = stead(KS,kr,η,qm,m,concs[2],α,δ,θ)
+    println("predicted K = $(X)")
+    println("predicted S = $(S)")
+    println("predicted P = $(P)")
+    # Same but using my more complex function
+    KeQ = Keq(ΔG0,η,ΔGATP,Temp)
+    S, P, X = anstead(m,concs[4],α,δ,η,qm,kr,KS,KeQ,concs[2])
+    println("approximated K = $(X)")
+    println("approximated S = $(S)")
+    println("approximated P = $(P)")
+    # pyplot()
+    # plot(sol'[:,5])
+    # hline!([X])
+    # savefig("Output/test1.png")
+    # plot(sol'[:,3])
+    # hline!([P])
+    # savefig("Output/test2.png")
+    # plot(sol'[:,1])
+    # hline!([S])
+    # savefig("Output/test3.png")
     return(nothing)
 end
 
@@ -379,4 +397,4 @@ end
 # But also this introduces two more parameters ΔG_0 and ΔG_ATP
 # Isn't returning a solution at the moment so seems premature for this
 
-@time anstead()
+@time predict()

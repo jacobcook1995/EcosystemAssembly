@@ -369,6 +369,8 @@ function anstead()
     dX = simplify(dX)
     # Then remove denominator as solving equal to zero
     dX = dX*denom(dX)
+    # Convert expression to a (6th order) polynomial in S
+    dX = sympy.Poly(dX,S) # Needs to be lower case as this is qualifying the containing (python) module
     return(nothing)
 end
 

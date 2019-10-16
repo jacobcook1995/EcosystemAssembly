@@ -309,71 +309,6 @@ function anstead1(sm::Float64,sH::Float64,sα::Float64,sδ::Float64,sη::Float64
     return(S1,P1,X1)
 end
 
-# overload function to look at how obtain more extensive approximate solution
-function anstead2(sm::BigFloat,sH::BigFloat,sα::BigFloat,sδ::BigFloat,sη::BigFloat,sqm::BigFloat,skr::BigFloat,sKS::BigFloat,sKeq::BigFloat,sO2::BigFloat)
-    P, S, X, m, η, δ, α, q = symbols("P S X m eta delta alpha q",positive=true)
-    # Rate of change of substrate
-    dS = -m*X/η - δ*S + α
-    # Rate of change of product
-    dP = 6*m*X/η - δ*P
-    # Solve first expression for S
-    X1 = SymPy.solve(dS,X)
-    # Only one solution so overwrite
-    X1 = X1[1]
-    # Substitute into product rate of change to eliminate X
-    dP = subs(dP,X=>X1)
-    # Then try to solve this expression for P
-    P1 = SymPy.solve(dP,P)
-    # Only one solution so overwrite
-    P1 = P1[1]
-    # Now write out expression for rate of change of X
-    dX = η*q - m
-    # Need a lot more variables to define q
-    qm, R, θ, KS, Q, Keq, kr, O2, H = symbols("qm R theta KS Q Keq kr O2 H",positive=true)
-    # Now define q and sub expression in dX
-    q1 = qm*R*(1-θ)/(KS+R*(1+kr*θ))
-    dX = subs(dX,q=>q1)
-    # Next sub for R
-    R1 = S*O2^6
-    dX = subs(dX,R=>R1)
-    # Then need to define and expand θ and sub in to dX
-    θ1 = Q/Keq
-    Q1 = (P^6)*(H^6)/(S*(O2^6))
-    θ1 = subs(θ1,Q=>Q1)
-    dX = subs(dX,θ=>θ1)
-    # Now sub in expression for to obtain expression in terms of S
-    dX = subs(dX,P=>P1)
-    # Complex expression, first simplify
-    dX = simplify(dX)
-    # Then remove denominator as solving equal to zero
-    dX = dX*denom(dX)
-    # Convert expression to a (6th order) polynomial in S
-    dX = sympy.Poly(dX,S) # Needs to be lower case as this is qualifying the containing (python) module
-    # Now reduce to second order polynomial and solve
-    c0 = dX.coeffs()[7]
-    c1 = dX.coeffs()[6]
-    c2 = dX.coeffs()[5]
-    dX1 = c2*S^2 + c1*S + c0
-    S1 = SymPy.solve(dX1,S)
-    # Then subsitute for the relevant values
-    SA = subs(S1[1],m=>sm,H=>sH,α=>sα,δ=>sδ,η=>sη,qm=>sqm,kr=>skr,KS=>sKS,Keq=>sKeq,O2=>sO2)
-    # And do same for P
-    PA = subs(P1,S=>SA,α=>sα,δ=>sδ)
-    # Now find X
-    XA = subs(X1,S=>SA,α=>sα,δ=>sδ,η=>sη,m=>sm)
-    # And same for second solution
-    SB = subs(S1[2],m=>sm,H=>sH,α=>sα,δ=>sδ,η=>sη,qm=>sqm,kr=>skr,KS=>sKS,Keq=>sKeq,O2=>sO2)
-    # And do same for P
-    PB = subs(P1,S=>SB,α=>sα,δ=>sδ)
-    # Now find X
-    XB = subs(X1,S=>SB,α=>sα,δ=>sδ,η=>sη,m=>sm)
-    # Convert S, P, X back to Float64's
-    S1 = convert(Float64,SA)
-    P1 = convert(Float64,PA)
-    X1 = convert(Float64,XA) # Makes no differnce as imaginary parts
-    return(S1,P1,X1)
-end
-
 # overload function to look at how obtain more extensive (3rd order) approximate solution
 function anstead3(sm::BigFloat,sH::BigFloat,sα::BigFloat,sδ::BigFloat,sη::BigFloat,sqm::BigFloat,skr::BigFloat,sKS::BigFloat,sKeq::BigFloat,sO2::BigFloat)
     P, S, X, m, η, δ, α, q = symbols("P S X m eta delta alpha q",positive=true)
@@ -421,22 +356,17 @@ function anstead3(sm::BigFloat,sH::BigFloat,sα::BigFloat,sδ::BigFloat,sη::Big
     c3 = dX.coeffs()[4]
     dX1 = c3*S^3 + c2*S^2 + c1*S + c0
     S1 = SymPy.solve(dX1,S)
-    println("Solution 1 = $(S1[1])")
-    println("Solution 2 = $(S1[2])")
-    println("Solution 3 = $(S1[3])")
-    println("Solution 4 = $(S1[4])")
-    S1 = S1[1] # Take single solution
-    # Then subsitute for the relevant values
-    S1 = subs(S1,m=>sm,H=>sH,α=>sα,δ=>sδ,η=>sη,qm=>sqm,kr=>skr,KS=>sKS,Keq=>sKeq,O2=>sO2)
+    # Three solutions now, only first a real solution
+    SA = subs(S1[1],m=>sm,H=>sH,α=>sα,δ=>sδ,η=>sη,qm=>sqm,kr=>skr,KS=>sKS,Keq=>sKeq,O2=>sO2)
     # And do same for P
-    P1 = subs(P1,S=>S1,α=>sα,δ=>sδ)
+    PA = subs(P1,S=>SA,α=>sα,δ=>sδ)
     # Now find X
-    X1 = subs(X1,S=>S1,α=>sα,δ=>sδ,η=>sη,m=>sm)
+    XA = subs(X1,S=>SA,α=>sα,δ=>sδ,η=>sη,m=>sm)
     # Convert S, P, X back to Float64's
-    S1 = convert(Float64,S1)
-    P1 = convert(Float64,P1)
-    X1 = convert(Float64,X1)
-    return(S1,P1,X1)
+    SA = convert(Float64,SA)
+    PA = convert(Float64,PA)
+    XA = convert(Float64,XA)
+    return(SA,PA,XA)
 end
 
 # overload function to look at how obtain more extensive (4th order) approximate solution
@@ -487,22 +417,17 @@ function anstead4(sm::BigFloat,sH::BigFloat,sα::BigFloat,sδ::BigFloat,sη::Big
     c4 = dX.coeffs()[3]
     dX1 = c4*S^4 + c3*S^3 + c2*S^2 + c1*S + c0
     S1 = SymPy.solve(dX1,S)
-    println("Solution 1 = $(S1[1])")
-    println("Solution 2 = $(S1[2])")
-    println("Solution 3 = $(S1[3])")
-    println("Solution 4 = $(S1[4])")
-    S1 = S1[1] # Take single solution, there seems to be multiple?
-    # Then subsitute for the relevant values
-    S1 = subs(S1,m=>sm,H=>sH,α=>sα,δ=>sδ,η=>sη,qm=>sqm,kr=>skr,KS=>sKS,Keq=>sKeq,O2=>sO2)
+    # Four solutions now, first two have imaginary parts, fourth gives X and P negative
+    SC = subs(S1[3],m=>sm,H=>sH,α=>sα,δ=>sδ,η=>sη,qm=>sqm,kr=>skr,KS=>sKS,Keq=>sKeq,O2=>sO2)
     # And do same for P
-    P1 = subs(P1,S=>S1,α=>sα,δ=>sδ)
+    PC = subs(P1,S=>SC,α=>sα,δ=>sδ)
     # Now find X
-    X1 = subs(X1,S=>S1,α=>sα,δ=>sδ,η=>sη,m=>sm)
+    XC = subs(X1,S=>SC,α=>sα,δ=>sδ,η=>sη,m=>sm)
     # Convert S, P, X back to Float64's
-    # S1 = convert(Float64,S1)
-    # P1 = convert(Float64,P1)
-    # X1 = convert(Float64,X1)
-    return(S1,P1,X1)
+    SC = convert(Float64,SC)
+    PC = convert(Float64,PC)
+    XC = convert(Float64,XC)
+    return(SC,PC,XC)
 end
 
 # Function to predict steady state populations in non-thermodynamically limited case
@@ -519,7 +444,7 @@ function predict()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η = 41.5 # this is the actual physiological value
+    η = 41.2 # this is the actual physiological value
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     r = 1 # Only reaction
     # Define kinetic parameters explicitly
@@ -586,21 +511,16 @@ function predict()
     KS = convert(BigFloat,KS)
     KeQ = convert(BigFloat,KeQ)
     O2 = convert(BigFloat,concs[2])
-    # Now suitable for the new case
-    S, P, X = anstead2(m,H,α,δ,η,qm,kr,KS,KeQ,O2)
-    println("2nd approximated K = $(X)")
-    println("2nd approximated S = $(S)")
-    println("2nd approximated P = $(P)")
-    # # Now suitable for the 3rd order case
-    # S, P, X = anstead3(m,H,α,δ,η,qm,kr,KS,KeQ,O2)
-    # println("3rd approximated K = $(X)")
-    # println("3rd approximated S = $(S)")
-    # println("3rd approximated P = $(P)")
-    # # Now suitable for the 4th order case
-    # S, P, X = anstead4(m,H,α,δ,η,qm,kr,KS,KeQ,O2)
-    # println("4th approximated K = $(X)")
-    # println("4th approximated S = $(S)")
-    # println("4th approximated P = $(P)")
+    # Now suitable for the 3rd order case
+    S, P, X = anstead3(m,H,α,δ,η,qm,kr,KS,KeQ,O2)
+    println("3rd approximated K = $(X)")
+    println("3rd approximated S = $(S)")
+    println("3rd approximated P = $(P)")
+    # Now suitable for the 4th order case
+    S, P, X = anstead4(m,H,α,δ,η,qm,kr,KS,KeQ,O2)
+    println("4th approximated K = $(X)")
+    println("4th approximated S = $(S)")
+    println("4th approximated P = $(P)")
     # pyplot()
     # plot(sol'[:,5])
     # hline!([X])

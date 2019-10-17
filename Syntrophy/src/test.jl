@@ -253,6 +253,39 @@ function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Fl
     return(S,P,X)
 end
 
+# Function to find an approximate value for
+function apθ(α::Float64,δ::Float64,S::Float64,H::Float64,O2::Float64,Keq::Float64)
+    # Calculate ratio of constant products vs reactants
+    rH = (H/O2)^6
+    # Ratio of variable products vs reactants
+    rS = ((6*((α/δ)-S))^6)/S
+    # Use to calculate conventional form of θ
+    θ = rH*rS/Keq
+    # Print out values of all terms
+    T1 = 6^6*(α/δ)^6
+    θ = rH*T1/(Keq*S)
+    println(θ)
+    T2 = 6*6^6*(α/δ)^5*S
+    T3 = 15*6^6*(α/δ)^4*S^2
+    T4 = 20*6^6*(α/δ)^3*S^3
+    T5 = 15*6^6*(α/δ)^2*S^4
+    T6 = 6*6^6*(α/δ)*S^5
+    T7 = 6^6*(S)^6
+    println("α/δ = $(α/δ)")
+    println("S = $(S)")
+    println("T1 = $(T1)")
+    println(T2)
+    println(T3)
+    println(T4)
+    println(T5)
+    println(T6)
+    println(T7)
+    # sum all terms together
+    sT = T1-T2+T3-T4+T5-T6+T7
+    println("sT = $(sT)")
+    return(θ)
+end
+
 # Function to predict steady state populations in non-thermodynamically limited case
 function predict()
     # Set up for glucose respiration => A lot of these things need changing
@@ -267,7 +300,7 @@ function predict()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η = 41.2 # this is the actual physiological value
+    η = 41.5 # this is the actual physiological value
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     r = 1 # Only reaction
     # Define kinetic parameters explicitly
@@ -319,6 +352,7 @@ function predict()
     println("predicted P = $(P)")
     # Same but using my more complex function
     KeQ = Keq(ΔG0,η,ΔGATP,Temp)
+    θa = apθ(α,δ,S,concs[4],concs[2],KeQ)
     # pyplot()
     # plot(sol'[:,5])
     # hline!([X])

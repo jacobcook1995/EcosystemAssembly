@@ -26,8 +26,8 @@ function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},
     stc = (reacs.↦:stc)[1]
     ΔG0 = (reacs.↦:ΔG0)[1]
     # Now calculate q
-    # p[2] = KS, p[3] = qm, p[4] = ΔGATP, p[5] = Temp
-    q = qrate(u[1:N],p[2],p[3],p[4],ΔG0,p[5],stc,η)
+    # p[2] = KS, p[3] = qm, p[4] = ΔGATP, p[5] = Temp, p[6] = kr
+    q = qrate(u[1:N],p[2],p[3],p[4],ΔG0,p[5],stc,η,p[6])
     # Make vector to store nutrient changes due to consumption
     δX = zeros(N)
     for i = 1:length(stc)
@@ -92,7 +92,8 @@ function maxcosump()
     Y = 2.36*10.0^(13) # yield in cells per mole of ATP
     KS = 2.40*10.0^(-5) # saturation constant (substrate)
     qm = 3.42*10.0^(-18) # maximal rate substrate consumption mol cell s^-1
-    p = [Y,KS,qm,ΔGATP,Temp]
+    kr = 1
+    p = [Y,KS,qm,ΔGATP,Temp,kr]
     u0 = [concs;pops] # u0 and p same for every microbe
     tspan = (0.0,5000000.0)
     stoc = (reac.↦:stc)[1]
@@ -104,7 +105,17 @@ function maxcosump()
     fP = zeros(N)
     fS = zeros(N)
     fX = zeros(N)
+    efP = zeros(N)
+    efS = zeros(N)
+    efX = zeros(N)
+
     for i = 1:N
+        # Step to ensure steady state is reached for slower cases
+        if ηt[i] <= 1.5
+            tspan = (0.0,20000000.0)
+        else
+            tspan = (0.0,5000000.0)
+        end
         settle = false
         # New version of function each time for each microbe
         f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics[i],t)
@@ -131,6 +142,19 @@ function maxcosump()
         fS[i] = sol'[end,1]
         fP[i] = sol'[end,3]
         fX[i] = sol'[end,5]
+        # Save expected values as well
+        if ηc == 0
+            efS[i] = (α/δ)
+            efP[i] = 0.0
+            efX[i] = 0.0
+        else
+            efS[i] = m*KS/((ηc*qm - m)*concs[2]^6)
+            if efS[i] > α/δ # Remove cases that require impossibly high substrate concentrations to be viable
+                efS[i] = α/δ
+            end
+            efP[i] = 6*(α/δ - efS[i])
+            efX[i] = (ηc/m)*(α - δ*efS[i])
+        end
     end
     pyplot(dpi=200)
     width = 800
@@ -150,10 +174,13 @@ function maxcosump()
     savefig("Output/SynPlots/VarEff.png")
     # Quick plots of rougher variables
     plot(ηs,fS,title="S vs eta")
+    plot!(ηs,efS)
     savefig("Output/SynPlots/Substrate.png")
     plot(ηs,fP,title="P vs eta")
+    plot!(ηs,efP)
     savefig("Output/SynPlots/Product.png")
     plot(ηs,fX,title="X vs eta")
+    plot!(ηs,efX)
     savefig("Output/SynPlots/Population.png")
     return(nothing)
 end

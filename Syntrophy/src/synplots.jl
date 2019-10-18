@@ -101,6 +101,9 @@ function maxcosump()
     atpgen = zeros(N)
     ηs = zeros(N)
     θs = zeros(N)
+    fP = zeros(N)
+    fS = zeros(N)
+    fX = zeros(N)
     for i = 1:N
         settle = false
         # New version of function each time for each microbe
@@ -124,6 +127,10 @@ function maxcosump()
         atpgen[i] = sol'[end,5]*ηc*qr # multiply by population to get total rate
         θs[i] = θT(sol'[end,1:4],stoc,ΔGATP,ΔG0,ηc,Temp) # obtain thermodynamic term
         ηs[i] = ηc # save η for later plotting
+        # Save steady state data
+        fS[i] = sol'[end,1]
+        fP[i] = sol'[end,3]
+        fX[i] = sol'[end,5]
     end
     pyplot(dpi=200)
     width = 800
@@ -141,6 +148,13 @@ function maxcosump()
     p2 = annotate!(p2,px,py,text("B",17,:black))
     plot(p1,p2,layout=(1,2),size = (width,height),left_margin=5mm,right_margin=5mm,top_margin=10mm)
     savefig("Output/SynPlots/VarEff.png")
+    # Quick plots of rougher variables
+    plot(ηs,fS,title="S vs eta")
+    savefig("Output/SynPlots/Substrate.png")
+    plot(ηs,fP,title="P vs eta")
+    savefig("Output/SynPlots/Product.png")
+    plot(ηs,fX,title="X vs eta")
+    savefig("Output/SynPlots/Population.png")
     return(nothing)
 end
 
@@ -442,6 +456,6 @@ end
 
 
 # This whole script can stand a lot of improvement
-# @time maxcosump()
+@time maxcosump()
 # @time limunlim()
-@time plotvar()
+# @time plotvar()

@@ -7,6 +7,14 @@ import PyPlot
 
 # This is a script to store the functions that plot the figures shown in my Syntrophy SI
 
+# Function to calulate the value that needs to be exceeded for thermodynamic effects
+# This is stored here as it is a function that has a mainly illustrative purpose
+function Qineq(η::Float64,qm::Float64,m::Float64,kr::Float64,Keq::Float64)
+    x = 0.1 # Starting with 10% as a rough guess
+    Qi = x*Keq*(η*qm - m)/(η*qm + kr*m)
+    return(Qi)
+end
+
 # Function to update population and nutrient concentrations
 # This is run for a single population utilising a single reaction
 function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},nuts::Array{Nut,1},reacs::Array{React,1},
@@ -92,7 +100,7 @@ function maxcosump()
     Y = 2.36*10.0^(13) # yield in cells per mole of ATP
     KS = 2.40*10.0^(-5) # saturation constant (substrate)
     qm = 3.42*10.0^(-18) # maximal rate substrate consumption mol cell s^-1
-    kr = 1
+    kr = 1.0
     p = [Y,KS,qm,ΔGATP,Temp,kr]
     u0 = [concs;pops] # u0 and p same for every microbe
     tspan = (0.0,5000000.0)
@@ -108,6 +116,8 @@ function maxcosump()
     efP = zeros(N)
     efS = zeros(N)
     efX = zeros(N)
+    Qi = zeros(N)
+    Qa = zeros(N)
 
     for i = 1:N
         # Step to ensure steady state is reached for slower cases
@@ -147,6 +157,7 @@ function maxcosump()
             efS[i] = (α/δ)
             efP[i] = 0.0
             efX[i] = 0.0
+            Qi[i] = NaN # Not reasonably defined in this case
         else
             efS[i] = m*KS/((ηc*qm - m)*concs[2]^6)
             if efS[i] > α/δ # Remove cases that require impossibly high substrate concentrations to be viable
@@ -154,6 +165,10 @@ function maxcosump()
             end
             efP[i] = 6*(α/δ - efS[i])
             efX[i] = (ηc/m)*(α - δ*efS[i])
+            # Finally predict minimum value for Q
+            KeQ = Keq(ΔG0,ηc,ΔGATP,Temp)
+            Qi[i] = Qineq(ηc,qm,m,kr,KeQ)
+            Qa[i] = QCoef(sol'[end,1:4],stoc)
         end
     end
     pyplot(dpi=200)
@@ -182,6 +197,9 @@ function maxcosump()
     plot(ηs,fX,title="X vs eta")
     plot!(ηs,efX)
     savefig("Output/SynPlots/Population.png")
+    plot(ηs,log10.(Qi),label="Minimal Q",xaxis=L"\eta\;\;mol_{ATP}\;(mol_{reaction})^{-1}")
+    plot!(ηs,log10.(Qa),label="Actual Q",yaxis=L"\log{(Q)}")
+    savefig("Output/SynPlots/Quotient.png")
     return(nothing)
 end
 

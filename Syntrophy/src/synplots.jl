@@ -274,16 +274,6 @@ function limunlim()
     height = 600
     plot(p1,p2,p3,p4,layout=(2,2),size = (width, height),xlabel="time s",left_margin=5mm,right_margin=5mm,top_margin=10mm)
     savefig("Output/SynPlots/LimUnlim.png")
-    # Now want to calculate θ along length of "trajectory"
-    L = round(Int64,length(sol.t)/6)
-    θs = zeros(L) # Only initial period is interesting
-    for i = 1:length(θs)
-        θs[i] = θT(sol'[i,1:4],stoc,ΔGATP,ΔG0,ηs[2],Temp)
-    end
-    plot(sol.t[1:L],θs)
-    plot!(sol.t[1:L],sol'[1:L,1]/maximum(sol'[1:L,1]))
-    plot!(sol.t[1:L],sol'[1:L,3]/maximum(sol'[1:L,3]))
-    savefig("Output/ThetaWithInhib.png")
     return(nothing)
 end
 

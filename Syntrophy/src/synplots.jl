@@ -235,7 +235,8 @@ function limunlim()
     Y = 2.36*10.0^(13) # yield in cells per mole of ATP
     KS = 2.40*10.0^(-5) # saturation constant (substrate)
     qm = 3.42*10.0^(-18) # maximal rate substrate consumption mol cell s^-1
-    p = [Y,KS,qm,ΔGATP,Temp]
+    kr = 1.0
+    p = [Y,KS,qm,ΔGATP,Temp,kr]
     u0 = [concs;pops]
     tspan = (0.0,5000000.0)
     stoc = (reac.↦:stc)[1]
@@ -273,6 +274,16 @@ function limunlim()
     height = 600
     plot(p1,p2,p3,p4,layout=(2,2),size = (width, height),xlabel="time s",left_margin=5mm,right_margin=5mm,top_margin=10mm)
     savefig("Output/SynPlots/LimUnlim.png")
+    # Now want to calculate θ along length of "trajectory"
+    L = round(Int64,length(sol.t)/6)
+    θs = zeros(L) # Only initial period is interesting
+    for i = 1:length(θs)
+        θs[i] = θT(sol'[i,1:4],stoc,ΔGATP,ΔG0,ηs[2],Temp)
+    end
+    plot(sol.t[1:L],θs)
+    plot!(sol.t[1:L],sol'[1:L,1]/maximum(sol'[1:L,1]))
+    plot!(sol.t[1:L],sol'[1:L,3]/maximum(sol'[1:L,3]))
+    savefig("Output/ThetaWithInhib.png")
     return(nothing)
 end
 
@@ -501,6 +512,6 @@ end
 
 
 # This whole script can stand a lot of improvement
-@time maxcosump()
-# @time limunlim()
+# @time maxcosump()
+@time limunlim()
 # @time plotvar()

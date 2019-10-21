@@ -253,6 +253,13 @@ function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Fl
     return(S,P,X)
 end
 
+# Make a new function to calulate the value that needs to be exceeded for thermodynamic effects
+function Qineq(η::Float64,qm::Float64,m::Float64,kr::Float64,Keq::Float64)
+    x = 0.1 # Starting with 10% as a rough guess
+    Qi = x*Keq*(η*qm - m)/(η*qm + kr*m)
+    return(Qi)
+end
+
 # Function to predict steady state populations in non-thermodynamically limited case
 function predict()
     # Set up for glucose respiration => A lot of these things need changing
@@ -267,7 +274,7 @@ function predict()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η = 41.5 # this is the actual physiological value
+    η = 41.0 # this is the actual physiological value
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     r = 1 # Only reaction
     # Define kinetic parameters explicitly
@@ -319,6 +326,11 @@ function predict()
     println("predicted P = $(P)")
     # Same but using my more complex function
     KeQ = Keq(ΔG0,η,ΔGATP,Temp)
+    # Calculate minium Q required for effect
+    Qi = Qineq(η,qm,m,kr,KeQ)
+    println("Minimal value to have an effect = $(Qi)")
+    Qa = QCoef(sol'[end,1:4],stoc)
+    println("Actual value of Q = $(Qa)")
     # pyplot()
     # plot(sol'[:,5])
     # hline!([X])

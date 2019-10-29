@@ -58,16 +58,6 @@ function gluc()
     return(nothing)
 end
 
-# function to find qm, KS, m, Y based on reference values, kinetic parameters and enzyme concentrations
-function qKmY(k1::Float64,K1::Float64,k2::Float64,K2::Float64,E0::Float64)
-    # Standard formula for qm, KS, KP and kr
-    qm = k2*E0
-    KS = (K1+k2)/(k1)
-    KP = (K1+k2)/(K2)
-    kr = k2/K1
-    return(qm,KS,KP,kr)
-end
-
 # function to return k parameters based on a single k value
 function parak(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
     k1 = 1.17*10.0^(7) # Set default k1 here

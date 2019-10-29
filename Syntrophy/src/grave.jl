@@ -46,18 +46,3 @@ function gluc()
     savefig("Output/Populations$(η1)vs$(η2).png")
     return(nothing)
 end
-
-# This only works as an approximation whilst approximation to zero still works
-# Function to find an approximate value for
-function apθ(α::Float64,δ::Float64,S::Float64,H::Float64,O2::Float64,Keq::Float64)
-    # Calculate ratio of constant products vs reactants
-    rH = (H/O2)^6
-    # Ratio of variable products vs reactants
-    rS = ((6*((α/δ)-S))^6)/S
-    # Use to calculate conventional form of θ
-    θ = rH*rS/Keq
-    # Print out values of all terms
-    T1 = 6^6*(α/δ)^6
-    θ = rH*T1/(Keq*S)
-    return(θ)
-end

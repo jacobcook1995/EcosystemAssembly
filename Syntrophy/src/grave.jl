@@ -2,47 +2,58 @@
 
 function gluc()
     # Nutrient variables
-    α = 3.00*10^(-8)
-    δ = 1.00*10^(-6) # Death rate that doesn't wash out cells
+    α = 5.55*10^(-6)
+    δ = 2.00*10^(-4) # 1.00*10^(-4)
     # make nutrients
     # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
-    nuts = [Nut(1,α,δ),Nut(2,6*α,δ),Nut(3,0,δ),Nut(4,0,δ)]
+    nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
     # Now make reactions
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # microbe variables
-    η1 = 41.2
-    η2 = 41.0
-    # maintainance equal
-    m = 2.16*10^(-19)
-    # both have same substrate and end product
-    r = 1
-    # make microbes
-    mics = [Microbe(η1,m,r,δ),Microbe(η2,m,r,δ)]
+    η = 15.0
+    r = 1 # Only reaction
+    m = 2.16*10^(-19) # maintainance
+    # Considering 1 microbe with no maintaince and no dilution
+    mics = Microbe(η,m,1,0.0)
     # Set intial populations and nutrient concentrations
-    pops = 10.0*ones(length(mics))
+    pops = 100.0
     concs = zeros(length(nuts))
-    concs[1] = 0.3# start with high amount of glucose
-    concs[2] = 0.0018 # WHY NOT JUST FIX O2 and pH?
-    concs[3] = 1.00*10^(-9)
-    concs[4] = 1.00*10^(-7) # pH 7
+    # define initial concentrations
+    concs[1] = 0.0555 # high initial concentration to ensure growth
+    concs[2] = 0.21 # High value so oxegen isn't limiting
+    concs[3] = 0.0 # No initial concentration
+    concs[4] = 1.00*10.0^(-7) # pH 7
     # Define some constants
-    Y = 2.36*10^(13) # biomass yield cells per mol ATP
-    Γ = 1.16*10^(12) # starvation rate cells per mol ATP (deficit)
-    K = 2.00*10^(-10) # Saturation constant mol ml^(−1)
-    qm = 4.44*10^(-13) # Maximal possible growth rate mol cell^(-1) s^(-1)
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     Temp = 312.0 # Temperature that growth is occuring at in Kelvin
-    p = [Y,Γ,K,qm,ΔGATP,Temp]
+    # All other constants require quite a bit of defining
+    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
+    KS = 2.40*10.0^(-5) # saturation constant (substrate)
+    qm = 3.42*10.0^(-18) # maximal rate substrate consumption mol cell s^-1
+    p = [Y,KS,qm,ΔGATP,Temp]
     u0 = [concs;pops]
-    tspan = (0.0,2500000.0)
-    ex = [2,4]
+    tspan = (0.0,5000000.0)
+
     # Make reduced version of function inputting unchanging microbes
-    f(du,u,p,t) = npops(du,u,p,nuts,reac,mics,ex,t)
+    f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
     prob = ODEProblem(f,u0,tspan,p)
-    sol = solve(prob,adaptive=false,dt=2000) # turned dt down to make plots look nicer
+    sol = solve(prob,adaptive=false,dt=500) # turned dt down to make plots look nicer
     # Now do plotting
-    plot(sol.t,sol'[:,5:6],label=["\\eta = $((mics.↦:η)[1])","\\eta = $((mics.↦:η)[2])"])
-    savefig("Output/Populations$(η1)vs$(η2).png")
+    plot(sol.t,sol'[:,1])
+    savefig("Output/$(η)test1.png")
+    plot(sol.t,sol'[:,3])
+    savefig("Output/$(η)test3.png")
+    plot(sol.t,sol'[:,5])
+    savefig("Output/$(η)test5.png")
+    stoc = (reac.↦:stc)[1]
+    # Print final thermodynamic term
+    L = size(sol',1)
+    θs = zeros(L)
+    for i = 1:L
+        θs[i] = θT(sol'[i,1:4],stoc,ΔGATP,ΔG0,η,Temp)
+    end
+    plot(sol.t,θs)
+    savefig("Output/Theta.png")
     return(nothing)
 end

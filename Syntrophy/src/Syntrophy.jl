@@ -144,7 +144,7 @@ end
 
 # function to calculate the rate of substrate consumption q
 function qrate(concs::Array{Float64,1},KS::Float64,qm::Float64,ΔGATP::Float64,ΔG0::Float64,
-                    Temp::Float64,stoc::Array{Int64,1},η::Float64,kr=1.0::Float64)
+                    Temp::Float64,stoc::Array{Int64,1},η::Float64,kr::Float64=1.0)
     # concs => Vector of nutrient concentrations
     # KS => Saturation constant for the substrate
     # qm => Maximal reaction rate for substrate

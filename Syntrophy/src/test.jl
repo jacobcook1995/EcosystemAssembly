@@ -98,8 +98,13 @@ function maxrate(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Flo
     end
     # Find maximum population
     mp = maximum(sol'[:,5])
-    # Then 
-    mr = 0.0 # DELETE
+    # Then need to find actual q rate along trajectory
+    qs = zeros(length(sol.t))
+    for i = 1:length(qs)
+        qs[i] = qrate(sol'[i,1:4],KS,qm,ΔGATP,ΔG0,Temp,[-1,-6,6,6],η,kr)
+    end
+    # Take max of this new vector
+    mr = maximum(qs)
     # return both qm and actual maximal observed rate
     return(qm,mr,mp)
 end
@@ -150,6 +155,10 @@ function testq()
     p14 = L"10^{14}"
     plot(qm*10.0^17,mp*10.0^(-14),xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel="$(Ns) (cells $(p14))")
     savefig("Output/qmvsmp.png")
+    plot(qm*10.0^17,mr*10.0^19,xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel=L"q\;(s^{-1}\,10^{-19})")
+    savefig("Output/qmvsmr.png")
+    plot(mr*10.0^19,mp*10.0^(-14),xlabel=L"q\;(s^{-1}\,10^{-19})",ylabel="$(Ns) (cells $(p14))")
+    savefig("Output/mrvsmp.png")
     return(nothing)
 end
 

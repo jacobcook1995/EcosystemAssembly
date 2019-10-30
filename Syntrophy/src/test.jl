@@ -89,15 +89,15 @@ function maxrate(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Flo
     tspan = (0.0,5000000.0)
     prob = ODEProblem(f,u0,tspan,p)
     # then solve
-    sol = solve(prob,adaptive=false,dt=500)
+    sol = solve(prob,adaptive=false,dt=100) # Very detailed
     # Need a check that population has ceased growing
     # Check if pop has changed more than 0.1% in last 10 time steps
     diff = (sol'[end,5]-sol'[end-10,5])/sol'[end,5]
     if diff > 0.001
         println("Not a stable population!")
     end
-    # Find maximum population
-    mp = maximum(sol'[:,5])
+    # Find final (maximum) population
+    mp = sol'[end,5]
     # Then need to find actual q rate along trajectory
     qs = zeros(length(sol.t))
     for i = 1:length(qs)
@@ -134,7 +134,7 @@ function testq()
     f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
     # Now set initial conditions
     u0 = zeros(5)
-    u0[1] = 0.0555 # high initial concentration to ensure growth
+    u0[1] = 5.55 # high initial concentration to ensure growth near maximum
     u0[2] = 0.21 # High value so oxegen isn't limiting
     u0[3] = 0.0 # No initial concentration
     u0[4] = 1.00*10.0^(-7) # pH 7
@@ -157,8 +157,6 @@ function testq()
     savefig("Output/qmvsmp.png")
     plot(qm*10.0^17,mr*10.0^19,xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel=L"q\;(s^{-1}\,10^{-19})")
     savefig("Output/qmvsmr.png")
-    plot(mr*10.0^19,mp*10.0^(-14),xlabel=L"q\;(s^{-1}\,10^{-19})",ylabel="$(Ns) (cells $(p14))")
-    savefig("Output/mrvsmp.png")
     return(nothing)
 end
 

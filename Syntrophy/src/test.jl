@@ -76,7 +76,26 @@ function parak(k2::Float64,K2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64
     return(k1,k2,K1,K2)
 end
 
-function maxrate(k2::Float64,K2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64,E0::Float64,Y::Float64,f::Function,u0::Array{Float64,1})
+# function to find K2 based on changed value of η
+function newK2(ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
+    k2 = 140.0 # This is what I am defining as my base case
+    K1 = 140.0 # K1 must match value of k2 used for k_R = 1
+    K2 = 1.28*10.0^(8)
+    # Now work out equlibrium constant K in for η = 38
+    Kb = Keq(ΔG0,38.0,ΔGATP,Temp)
+    # Now find equlbrium constant for η we are considering
+    Ka = Keq(ΔG0,η,ΔGATP,Temp)
+    K2 *= (Kb/Ka)
+    return(K2)
+end
+
+function maxrate(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64,E0::Float64,Y::Float64,f::Function,u0::Array{Float64,1})
+    if η != 38.0
+        # First need find new value of K2
+        K2 = newK2(ΔG0,η,ΔGATP,Temp)
+    else
+        K2 = 1.28*10.0^(8) # Fix value of K_2
+    end
     # Calculate other rates to match k
     k1, k2, K1, K2 = parak(k2,K2,ΔG0,η,ΔGATP,Temp)
     # Use rates to obtain required parameters
@@ -104,7 +123,7 @@ function maxrate(k2::Float64,K2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float
     # Take max of this new vector
     mr = maximum(qs)
     # return both qm and actual maximal observed rate
-    return(qm,mr,mp)
+    return(qm,mr,mp,KS)
 end
 
 # function to test whether q_m is a good proxy for maximal growth rate
@@ -141,13 +160,13 @@ function testq()
     qm = zeros(20)
     mr = zeros(length(qm))
     mp = zeros(length(qm))
+    KS = zeros(length(qm))
     # In this case where η = 38 use a preset value of K2
-    K2 = 1.28*10.0^(8) # Fix value of K_2
     # Loop over vectors
     for i = 1:length(qm)
         # We now want to increase k_{+2} to increase q_m
         k2 = 140.0*i
-        qm[i], mr[i], mp[i] = maxrate(k2,K2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
+        qm[i], mr[i], mp[i], KS[i] = maxrate(k2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
     end
     # Switch backends
     pyplot(dpi=200)
@@ -158,54 +177,6 @@ function testq()
     plot(qm*10.0^17,mr*10.0^19,xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel=L"q\;(s^{-1}\,10^{-19})")
     savefig("Output/qmvsmr.png")
     return(nothing)
-end
-
-# function to return k parameters based on a single k value
-function parak2(k2::Float64,K2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
-    K1 = 140.0 # K1 must match value of k2 used for k_R = 1
-    # Now work out equlibrium constant K in order to find final rate
-    K = Keq(ΔG0,η,ΔGATP,Temp)
-    k1 = K*K1*K2/(k2)
-    return(k1,k2,K1,K2)
-end
-
-function maxrate2(k2::Float64,K2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64,E0::Float64,Y::Float64,f::Function,u0::Array{Float64,1})
-    # Calculate other rates to match k
-    k1, k2, K1, K2 = parak(k2,K2,ΔG0,η,ΔGATP,Temp)
-    # Use rates to obtain required parameters
-    qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
-    # Now need to calculate maximal rate mr
-    p = [Y,KS,qm,ΔGATP,Temp,kr] # collect parameters
-    # put parameters into function
-    tspan = (0.0,5000000.0)
-    prob = ODEProblem(f,u0,tspan,p)
-    # then solve
-    sol = solve(prob,adaptive=false,dt=100) # Very detailed
-    # Need a check that population has ceased growing
-    # Check if pop has changed more than 0.1% in last 10 time steps
-    diff = (sol'[end,5]-sol'[end-10,5])/sol'[end,5]
-    if diff > 0.001
-        println("Not a stable population!")
-    end
-    # Find final (maximum) population
-    mp = sol'[end,5]
-    # Then need to find actual q rate along trajectory
-    qs = zeros(length(sol.t))
-    for i = 1:length(qs)
-        qs[i] = qrate(sol'[i,1:4],KS,qm,ΔGATP,ΔG0,Temp,[-1,-6,6,6],η,kr)
-    end
-    # TESTING BIT REMOVE ONCE DONE!
-    # n = round(Int64,k2/140.0)
-    # plot(sol.t,sol'[:,1])
-    # savefig("Output/test1$(n).png")
-    # plot(sol.t,sol'[:,3])
-    # savefig("Output/test3$(n).png")
-    # plot(sol.t,sol'[:,5])
-    # savefig("Output/test$(n).png")
-    # Take max of this new vector
-    mr = maximum(qs)
-    # return both qm and actual maximal observed rate
-    return(qm,mr,mp)
 end
 
 # function to test how the previous tradeoff changes in thermodynamic limit
@@ -221,7 +192,7 @@ function testq2()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # physiological value of η
-    η = 38.0
+    η = 41.25
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     # Following parameters should not be expected to change between microbes
     E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
@@ -242,23 +213,27 @@ function testq2()
     qm = zeros(20)
     mr = zeros(length(qm))
     mp = zeros(length(qm))
+    KS = zeros(length(qm))
+    Nst = zeros(length(qm))
     # Loop over vectors
-    for i = 1#:length(qm)
+    for i = 1:length(qm)
         # We now want to increase k_{+2} to increase q_m
         k2 = 140.0*i
-        qm[i], mr[i], mp[i] = maxrate(k2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
+        qm[i], mr[i], mp[i], KS[i] = maxrate(k2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
+        Nst[i] = (η/m)*(α - δ*m*KS[i]/((η*qm[i] - m)*(u0[2]^6)))
     end
-    println("mr:")
-    println(mr)
-    println("mp:")
-    println(mp)
     # Switch backends
     pyplot(dpi=200)
-    plot(qm*10.0^(17),mp,xlabel=L"q_m\;(s^{-1}\,10^{-17})")
-    savefig("Output/Tqmvsmp.png")
-    plot(qm*10.0^(17),mr,xlabel=L"q_m\;(s^{-1}\,10^{-17})")
+    Ns = L"N^{\ast}"
+    p14 = L"10^{14}"
+    plot(qm*10.0^(17),mp*10.0^(-14),xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel="$(Ns) (cells $(p14))")
+    plot!(qm*10.0^(17),Nst*10.0^(-14))
+    savefig("Output/Tqmvsmp$(η).png")
+    println((Nst.-mp)*10.0^(-14))
+    println((Nst.-mp)./Nst)
+    plot(qm*10.0^(17),mr*10.0^19,xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel=L"q\;(s^{-1}\,10^{-19})")
     savefig("Output/Tqmvsmr.png")
     return(nothing)
 end
 
-@time testq()
+@time testq2()

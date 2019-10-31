@@ -71,7 +71,7 @@ end
 function parak(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
     K1 = 140.0 # K1 must match value of k2 used for k_R = 1
     # which of k_+1 should I change? k_+1 is the intresting tradeoff
-    K2 = 1.28*10.0^(8) # Fix value of K_2
+    K2 = 1.28*10.0^(8) # Fix value of K_2 # This works for η = 38 but needs to be increased as η increases
     # Now work out equlibrium constant K in order to find final rate
     K = Keq(ΔG0,η,ΔGATP,Temp)
     k1 = K*K1*K2/(k2)
@@ -103,6 +103,14 @@ function maxrate(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Flo
     for i = 1:length(qs)
         qs[i] = qrate(sol'[i,1:4],KS,qm,ΔGATP,ΔG0,Temp,[-1,-6,6,6],η,kr)
     end
+    # TESTING BIT REMOVE ONCE DONE!
+    # n = round(Int64,k2/140.0)
+    # plot(sol.t,sol'[:,1])
+    # savefig("Output/test1$(n).png")
+    # plot(sol.t,sol'[:,3])
+    # savefig("Output/test3$(n).png")
+    # plot(sol.t,sol'[:,5])
+    # savefig("Output/test$(n).png")
     # Take max of this new vector
     mr = maximum(qs)
     # return both qm and actual maximal observed rate
@@ -160,4 +168,57 @@ function testq()
     return(nothing)
 end
 
-@time testq()
+# function to test how the previous tradeoff changes in thermodynamic limit
+function testq2()
+    # Nutrient variables
+    α = 5.55*10^(-6)
+    δ = 2.00*10^(-4)
+    Temp = 312.0 # Temperature that growth is occuring at in Kelvin
+    # make nutrients
+    # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
+    nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
+    # Now make reactions
+    ΔG0 = -2843800.0
+    reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
+    # physiological value of η
+    η = 38.0
+    ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
+    # Following parameters should not be expected to change between microbes
+    E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
+    m = 2.16*10.0^(-19) # maintainance
+    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
+    # Considering 1 microbe with maintaince but no dilution
+    mics = Microbe(η,m,1,0.0)
+    # Make reduced version of function inputting unchanging microbes
+    f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
+    # Now set initial conditions
+    u0 = zeros(5)
+    u0[1] = 0.0555 # high initial concentration to ensure growth near maximum
+    u0[2] = 0.21 # High value so oxegen isn't limiting
+    u0[3] = 0.0 # No initial concentration
+    u0[4] = 1.00*10.0^(-7) # pH 7
+    u0[5] = 100.0
+    # Preallocate vectors
+    qm = zeros(20)
+    mr = zeros(length(qm))
+    mp = zeros(length(qm))
+    # Loop over vectors
+    for i = 1#:length(qm)
+        # We now want to increase k_{+2} to increase q_m
+        k2 = 140.0*i
+        qm[i], mr[i], mp[i] = maxrate(k2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
+    end
+    println("mr:")
+    println(mr)
+    println("mp:")
+    println(mp)
+    # Switch backends
+    pyplot(dpi=200)
+    plot(qm*10.0^(17),mp,xlabel=L"q_m\;(s^{-1}\,10^{-17})")
+    savefig("Output/Tqmvsmp.png")
+    plot(qm*10.0^(17),mr,xlabel=L"q_m\;(s^{-1}\,10^{-17})")
+    savefig("Output/Tqmvsmr.png")
+    return(nothing)
+end
+
+@time testq2()

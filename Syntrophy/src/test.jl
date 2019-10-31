@@ -68,19 +68,17 @@ function qKmY(k1::Float64,K1::Float64,k2::Float64,K2::Float64,E0::Float64)
 end
 
 # function to return k parameters based on a single k value
-function parak(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
+function parak(k2::Float64,K2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
     K1 = 140.0 # K1 must match value of k2 used for k_R = 1
-    # which of k_+1 should I change? k_+1 is the intresting tradeoff
-    K2 = 1.28*10.0^(8) # Fix value of K_2 # This works for η = 38 but needs to be increased as η increases
     # Now work out equlibrium constant K in order to find final rate
     K = Keq(ΔG0,η,ΔGATP,Temp)
     k1 = K*K1*K2/(k2)
     return(k1,k2,K1,K2)
 end
 
-function maxrate(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64,E0::Float64,Y::Float64,f::Function,u0::Array{Float64,1})
+function maxrate(k2::Float64,K2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64,E0::Float64,Y::Float64,f::Function,u0::Array{Float64,1})
     # Calculate other rates to match k
-    k1, k2, K1, K2 = parak(k2,ΔG0,η,ΔGATP,Temp)
+    k1, k2, K1, K2 = parak(k2,K2,ΔG0,η,ΔGATP,Temp)
     # Use rates to obtain required parameters
     qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
     # Now need to calculate maximal rate mr
@@ -103,14 +101,6 @@ function maxrate(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Flo
     for i = 1:length(qs)
         qs[i] = qrate(sol'[i,1:4],KS,qm,ΔGATP,ΔG0,Temp,[-1,-6,6,6],η,kr)
     end
-    # TESTING BIT REMOVE ONCE DONE!
-    # n = round(Int64,k2/140.0)
-    # plot(sol.t,sol'[:,1])
-    # savefig("Output/test1$(n).png")
-    # plot(sol.t,sol'[:,3])
-    # savefig("Output/test3$(n).png")
-    # plot(sol.t,sol'[:,5])
-    # savefig("Output/test$(n).png")
     # Take max of this new vector
     mr = maximum(qs)
     # return both qm and actual maximal observed rate
@@ -151,11 +141,13 @@ function testq()
     qm = zeros(20)
     mr = zeros(length(qm))
     mp = zeros(length(qm))
+    # In this case where η = 38 use a preset value of K2
+    K2 = 1.28*10.0^(8) # Fix value of K_2
     # Loop over vectors
     for i = 1:length(qm)
         # We now want to increase k_{+2} to increase q_m
         k2 = 140.0*i
-        qm[i], mr[i], mp[i] = maxrate(k2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
+        qm[i], mr[i], mp[i] = maxrate(k2,K2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
     end
     # Switch backends
     pyplot(dpi=200)
@@ -166,6 +158,54 @@ function testq()
     plot(qm*10.0^17,mr*10.0^19,xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel=L"q\;(s^{-1}\,10^{-19})")
     savefig("Output/qmvsmr.png")
     return(nothing)
+end
+
+# function to return k parameters based on a single k value
+function parak2(k2::Float64,K2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
+    K1 = 140.0 # K1 must match value of k2 used for k_R = 1
+    # Now work out equlibrium constant K in order to find final rate
+    K = Keq(ΔG0,η,ΔGATP,Temp)
+    k1 = K*K1*K2/(k2)
+    return(k1,k2,K1,K2)
+end
+
+function maxrate2(k2::Float64,K2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64,E0::Float64,Y::Float64,f::Function,u0::Array{Float64,1})
+    # Calculate other rates to match k
+    k1, k2, K1, K2 = parak(k2,K2,ΔG0,η,ΔGATP,Temp)
+    # Use rates to obtain required parameters
+    qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
+    # Now need to calculate maximal rate mr
+    p = [Y,KS,qm,ΔGATP,Temp,kr] # collect parameters
+    # put parameters into function
+    tspan = (0.0,5000000.0)
+    prob = ODEProblem(f,u0,tspan,p)
+    # then solve
+    sol = solve(prob,adaptive=false,dt=100) # Very detailed
+    # Need a check that population has ceased growing
+    # Check if pop has changed more than 0.1% in last 10 time steps
+    diff = (sol'[end,5]-sol'[end-10,5])/sol'[end,5]
+    if diff > 0.001
+        println("Not a stable population!")
+    end
+    # Find final (maximum) population
+    mp = sol'[end,5]
+    # Then need to find actual q rate along trajectory
+    qs = zeros(length(sol.t))
+    for i = 1:length(qs)
+        qs[i] = qrate(sol'[i,1:4],KS,qm,ΔGATP,ΔG0,Temp,[-1,-6,6,6],η,kr)
+    end
+    # TESTING BIT REMOVE ONCE DONE!
+    # n = round(Int64,k2/140.0)
+    # plot(sol.t,sol'[:,1])
+    # savefig("Output/test1$(n).png")
+    # plot(sol.t,sol'[:,3])
+    # savefig("Output/test3$(n).png")
+    # plot(sol.t,sol'[:,5])
+    # savefig("Output/test$(n).png")
+    # Take max of this new vector
+    mr = maximum(qs)
+    # return both qm and actual maximal observed rate
+    return(qm,mr,mp)
 end
 
 # function to test how the previous tradeoff changes in thermodynamic limit
@@ -221,4 +261,4 @@ function testq2()
     return(nothing)
 end
 
-@time testq2()
+@time testq()

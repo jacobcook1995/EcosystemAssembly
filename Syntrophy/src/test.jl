@@ -96,17 +96,6 @@ function newK2(ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
     return(K2)
 end
 
-# function to find k1 based on changed value of η
-function newk1(ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64)
-    k1 = 1.17*10.0^(7) # Can ignore other rates as base case has k_R = 1
-    # Now work out equlibrium constant K in for η = 38
-    Kb = Keq(ΔG0,38.0,ΔGATP,Temp)
-    # Now find equlbrium constant for η we are considering
-    Ka = Keq(ΔG0,η,ΔGATP,Temp)
-    k1 *= (Ka/Kb)
-    return(k1)
-end
-
 # Calculate maxrate for direct tradeoff
 function maxrate(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64,E0::Float64,Y::Float64,f::Function,u0::Array{Float64,1})
     if η != 38.0
@@ -147,12 +136,7 @@ end
 
 # Calculate maxrate for indirect thermodynamic (T) tradeoff
 function maxrateT(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Float64,E0::Float64,Y::Float64,f::Function,u0::Array{Float64,1})
-    if η != 38.0
-        # First need find new value of K2
-        k1 = newk1(ΔG0,η,ΔGATP,Temp)
-    else
-        k1 = 1.17*10.0^(7) # Fix value of k_1
-    end
+    k1 = 1.17*10.0^(7) # Fix value of k_1
     # Calculate other rates to match k
     k1, k2, K1, K2 = parakT(k2,k1,ΔG0,η,ΔGATP,Temp)
     # Use rates to obtain required parameters
@@ -305,8 +289,8 @@ function testq3()
     # Now make reactions
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
-    # physiological value of η
-    η = 38.0
+    # physiological value of η = 38.0, change to investigate thermodynamic inhibition
+    η = 41.1 #38.0
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     # Following parameters should not be expected to change between microbes
     E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
@@ -343,10 +327,12 @@ function testq3()
     plot(qm*10.0^(17),mp*10.0^(-14),xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel="$(Ns) (cells $(p14))")
     plot!(qm*10.0^(17),Nst*10.0^(-14))
     savefig("Output/T2qmvsmp$(η).png")
+    println("Difference vs predicted:")
     println((Nst.-mp)*10.0^(-14))
     println((Nst.-mp)./Nst)
     plot(qm*10.0^(17),mr*10.0^19,xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel=L"q\;(s^{-1}\,10^{-19})")
-    savefig("Output/T2qmvsmr.png")
+    savefig("Output/T2qmvsmr$(η).png")
     return(nothing)
 end
+
 @time testq3()

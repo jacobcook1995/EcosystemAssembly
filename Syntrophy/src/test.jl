@@ -163,8 +163,10 @@ function maxrateT(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Fl
     end
     # Take max of this new vector
     mr = maximum(qs)
+    # Find reaction quotient
+    Q = QCoef(sol'[end,1:4],[-1,-6,6,6])
     # return both qm and actual maximal observed rate
-    return(qm,mr,mp,KS)
+    return(qm,mr,mp,KS,kr,Q)
 end
 
 # function to test whether q_m is a good proxy for maximal growth rate
@@ -277,6 +279,14 @@ function testq2()
     return(nothing)
 end
 
+# Function to calulate the value that needs to be exceeded for thermodynamic effects
+# This is stored here as it is a function that has a mainly illustrative purpose
+function Qineq(η::Float64,qm::Float64,m::Float64,kr::Float64,Keq::Float64)
+    x = 0.1 # Starting with 10% as a rough guess
+    Qi = x*Keq*(η*qm - m)/(η*qm + kr*m)
+    return(Qi)
+end
+
 # function to test other tradeoff away from thermodynamic limitation
 function testq3()
     # Nutrient variables
@@ -290,7 +300,7 @@ function testq3()
     ΔG0 = -2843800.0
     reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
     # physiological value of η = 38.0, change to investigate thermodynamic inhibition
-    η = 41.1 #38.0
+    η = 41.1 # 38.0
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     # Following parameters should not be expected to change between microbes
     E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
@@ -312,13 +322,18 @@ function testq3()
     mr = zeros(length(qm))
     mp = zeros(length(qm))
     KS = zeros(length(qm))
+    kr = zeros(length(qm))
     Nst = zeros(length(qm))
+    Qp = zeros(length(qm))
+    Qa = zeros(length(qm))
     # Loop over vectors
     for i = 1:length(qm)
         # We now want to increase k_{+2} to increase q_m
         k2 = 140.0*i
-        qm[i], mr[i], mp[i], KS[i] = maxrateT(k2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
+        qm[i], mr[i], mp[i], KS[i], kr[i], Qa[i] = maxrateT(k2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
         Nst[i] = (η/m)*(α - δ*m*KS[i]/((η*qm[i] - m)*(u0[2]^6)))
+        KeQ = Keq(ΔG0,η,ΔGATP,Temp)
+        Qp[i] = Qineq(η,qm[i],m,kr[i],KeQ)
     end
     # Switch backends
     pyplot(dpi=200)
@@ -326,12 +341,15 @@ function testq3()
     p14 = L"10^{14}"
     plot(qm*10.0^(17),mp*10.0^(-14),xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel="$(Ns) (cells $(p14))")
     plot!(qm*10.0^(17),Nst*10.0^(-14))
-    savefig("Output/T2qmvsmp$(η).png")
+    savefig("Output/RatevsPopT$(η).png")
     println("Difference vs predicted:")
-    println((Nst.-mp)*10.0^(-14))
-    println((Nst.-mp)./Nst)
+    # println((Nst.-mp)*10.0^(-14))
+    # println((Nst.-mp)./Nst)
     plot(qm*10.0^(17),mr*10.0^19,xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel=L"q\;(s^{-1}\,10^{-19})")
-    savefig("Output/T2qmvsmr$(η).png")
+    savefig("Output/ActualvsPredictedRateT$(η).png")
+    plot(qm*10.0^(17),Qp*10.0^41,label="predict")
+    # plot!(qm*10.0^(17),Qa*10.0^41,label="actual")
+    savefig("Output/ActualvsPredictedQ$(η).png")
     return(nothing)
 end
 

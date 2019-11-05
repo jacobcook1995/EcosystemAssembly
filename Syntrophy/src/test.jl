@@ -108,6 +108,10 @@ function maxrate(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Flo
     k1, k2, K1, K2 = parak(k2,K2,ΔG0,η,ΔGATP,Temp)
     # Use rates to obtain required parameters
     qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
+    println("qm = $(qm)")
+    println("KS = $(KS)")
+    println("KP = $(KP)")
+    println("kr = $(kr)")
     # Now need to calculate maximal rate mr
     p = [Y,KS,qm,ΔGATP,Temp,kr] # collect parameters
     # put parameters into function
@@ -272,8 +276,6 @@ function testq2()
     plot(qm*10.0^(17),mp*10.0^(-14),xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel="$(Ns) (cells $(p14))")
     plot!(qm*10.0^(17),Nst*10.0^(-14))
     savefig("Output/Tqmvsmp$(η).png")
-    println((Nst.-mp)*10.0^(-14))
-    println((Nst.-mp)./Nst)
     plot(qm*10.0^(17),mr*10.0^19,xlabel=L"q_m\;(s^{-1}\,10^{-17})",ylabel=L"q\;(s^{-1}\,10^{-19})")
     savefig("Output/Tqmvsmr.png")
     return(nothing)
@@ -328,6 +330,7 @@ function testq3()
     Qa = zeros(length(qm))
     # Loop over vectors
     for i = 1:length(qm)
+        println("Step $(i):")
         # We now want to increase k_{+2} to increase q_m
         k2 = 140.0*i
         qm[i], mr[i], mp[i], KS[i], kr[i], Qa[i] = maxrateT(k2,ΔG0,η,ΔGATP,Temp,E0,Y,f,u0)
@@ -354,3 +357,8 @@ function testq3()
 end
 
 @time testq3()
+
+# New stuff to write
+# Script to find parameters sets for each tradeoff
+# Then function that takes parameter sets for each tradeoff and simulates and makes graphs of tradeoff
+# Then loop over for the seven tradeoffs

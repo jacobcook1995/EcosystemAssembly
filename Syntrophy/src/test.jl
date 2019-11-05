@@ -108,10 +108,6 @@ function maxrate(k2::Float64,ΔG0::Float64,η::Float64,ΔGATP::Float64,Temp::Flo
     k1, k2, K1, K2 = parak(k2,K2,ΔG0,η,ΔGATP,Temp)
     # Use rates to obtain required parameters
     qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
-    println("qm = $(qm)")
-    println("KS = $(KS)")
-    println("KP = $(KP)")
-    println("kr = $(kr)")
     # Now need to calculate maximal rate mr
     p = [Y,KS,qm,ΔGATP,Temp,kr] # collect parameters
     # put parameters into function
@@ -356,9 +352,81 @@ function testq3()
     return(nothing)
 end
 
-@time testq3()
+# Quick test function to test my other tradeoffs
+function test()
+    # Nutrient variables
+    α = 5.55*10^(-6)
+    δ = 2.00*10^(-4)
+    Temp = 312.0 # Temperature that growth is occuring at in Kelvin
+    # make nutrients
+    # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
+    nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
+    # Now make reactions
+    ΔG0 = -2843800.0
+    reac = [React(1,[1,2,3,4],[-1,-6,6,6],ΔG0)]
+    # physiological value of η = 38.0, change to investigate thermodynamic inhibition
+    η = 38.0
+    ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
+    # Following parameters should not be expected to change between microbes
+    E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
+    m = 2.16*10.0^(-19) # maintainance
+    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
+    # Considering 1 microbe with maintaince but no dilution
+    mics = Microbe(η,m,1,0.0)
+    # Make reduced version of function inputting unchanging microbes
+    f(du,u,p,t) = singlepop(du,u,p,nuts,reac,mics,t)
+    # Now set initial conditions
+    u0 = zeros(5)
+    u0[1] = 0.0555 # high initial concentration to ensure growth near maximum
+    u0[2] = 0.21 # High value so oxegen isn't limiting
+    u0[3] = 0.0 # No initial concentration
+    u0[4] = 1.00*10.0^(-7) # pH 7
+    u0[5] = 100.0
+    # Define parameters by hand
+    K1 = 140.0
+    k2 = 140.0
+    k1 = 1.17e15
+    K2 = 1.28e16
+    # Use to calculate parameters
+    qm, KS, KP, kr = qKmY(k1,K1,k2,K2,E0)
+    p = [Y,KS,qm,ΔGATP,Temp,kr] # collect parameters
+    println("qm = $(qm)")
+    println("KS = $(KS)")
+    println("KP = $(KP)")
+    println("kr = $(kr)")
+    # put parameters into function
+    tspan = (0.0,75000.0)
+    prob = ODEProblem(f,u0,tspan,p)
+    # then solve
+    sol = solve(prob,alg_hints=[:stiff],isoutofdomain=(u,p,t) -> any(x -> x < 0, u),maxiters=4e5) # Very detailed
+    # Find final (maximum) population
+    mp = sol'[end,5]
+    println(sol.t[end])
+    # Then need to find actual q rate along trajectory
+    qs = zeros(length(sol.t))
+    for i = 1:length(qs)
+        qs[i] = qrate(sol'[i,1:4],KS,qm,ΔGATP,ΔG0,Temp,[-1,-6,6,6],η,kr)
+    end
+    # Take max of this new vector
+    mr = maximum(qs)
+    # Now output data
+    println("Max pop = $(mp)")
+    println("Max rate = $(mr)")
+    # Need to also do some plotting now
+    plot(sol.t,sol'[:,5])
+    savefig("Output/test1.png")
+    plot(sol.t,sol'[:,1])
+    savefig("Output/test2.png")
+    plot(sol.t,sol'[:,3])
+    savefig("Output/test3.png")
+end
+
+@time test()
+
 
 # New stuff to write
 # Script to find parameters sets for each tradeoff
 # Then function that takes parameter sets for each tradeoff and simulates and makes graphs of tradeoff
 # Then loop over for the seven tradeoffs
+# From now on use e notation for
+# Why not use steady states as initial values => should shift to real value if not

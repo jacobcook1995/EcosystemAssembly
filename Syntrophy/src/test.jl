@@ -88,12 +88,138 @@ function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Fl
     return(S,P,X)
 end
 
+# Increase all rates simulatanously
+function rateincrease(set::Array{Float64,2})
+    # Find length of parameter set
+    L = size(set,1)
+    # check that the initial parameter set is defined
+    if set[1,1] <= 0.0 || set[1,2] <= 0.0 || set[1,3] <= 0.0 || set[1,4] <= 0.0
+        println("Error: Initial parameter set provided incorrectly.")
+    end
+    # Now fill in remainder of parameter set
+    for i = 2:L
+        set[i,1] = i*set[1,1]
+        set[i,2] = i*set[1,2]
+        set[i,3] = i*set[1,3]
+        set[i,4] = i*set[1,4]
+    end
+    return(set)
+end
+
+# Increase rate of S binding and unbinding
+function step1increase(set::Array{Float64,2})
+    # Find length of parameter set
+    L = size(set,1)
+    # check that the initial parameter set is defined
+    if set[1,1] <= 0.0 || set[1,2] <= 0.0 || set[1,3] <= 0.0 || set[1,4] <= 0.0
+        println("Error: Initial parameter set provided incorrectly.")
+    end
+    # Now fill in remainder of parameter set
+    for i = 2:L
+        set[i,1] = i*set[1,1]
+        set[i,2] = set[1,2]
+        set[i,3] = i*set[1,3]
+        set[i,4] = set[1,4]
+    end
+    return(set)
+end
+
+# Increase rate of P unbinding and binding
+function step2increase(set::Array{Float64,2})
+    # Find length of parameter set
+    L = size(set,1)
+    # check that the initial parameter set is defined
+    if set[1,1] <= 0.0 || set[1,2] <= 0.0 || set[1,3] <= 0.0 || set[1,4] <= 0.0
+        println("Error: Initial parameter set provided incorrectly.")
+    end
+    # Now fill in remainder of parameter set
+    for i = 2:L
+        set[i,1] = set[1,1]
+        set[i,2] = i*set[1,2]
+        set[i,3] = set[1,3]
+        set[i,4] = i*set[1,4]
+    end
+    return(set)
+end
+
+# Increase both binding rates
+function bindincrease(set::Array{Float64,2})
+    # Find length of parameter set
+    L = size(set,1)
+    # check that the initial parameter set is defined
+    if set[1,1] <= 0.0 || set[1,2] <= 0.0 || set[1,3] <= 0.0 || set[1,4] <= 0.0
+        println("Error: Initial parameter set provided incorrectly.")
+    end
+    # Now fill in remainder of parameter set
+    for i = 2:L
+        set[i,1] = i*set[1,1]
+        set[i,2] = set[1,2]
+        set[i,3] = set[1,3]
+        set[i,4] = i*set[1,4]
+    end
+    return(set)
+end
+
+# Increase both unbinding rates
+function unbindincrease(set::Array{Float64,2})
+    # Find length of parameter set
+    L = size(set,1)
+    # check that the initial parameter set is defined
+    if set[1,1] <= 0.0 || set[1,2] <= 0.0 || set[1,3] <= 0.0 || set[1,4] <= 0.0
+        println("Error: Initial parameter set provided incorrectly.")
+    end
+    # Now fill in remainder of parameter set
+    for i = 2:L
+        set[i,1] = set[1,1]
+        set[i,2] = i*set[1,2]
+        set[i,3] = i*set[1,3]
+        set[i,4] = set[1,4]
+    end
+    return(set)
+end
+
+# One of two actual tradeoffs, increase substrate binding decrease product unbinding
+function rvsKtrade(set::Array{Float64,2})
+    # Find length of parameter set
+    L = size(set,1)
+    # check that the initial parameter set is defined
+    if set[1,1] <= 0.0 || set[1,2] <= 0.0 || set[1,3] <= 0.0 || set[1,4] <= 0.0
+        println("Error: Initial parameter set provided incorrectly.")
+    end
+    # Now fill in remainder of parameter set
+    for i = 2:L
+        set[i,1] = i*set[1,1]
+        set[i,2] = set[1,2]/i
+        set[i,3] = set[1,3]
+        set[i,4] = set[1,4]
+    end
+    return(set)
+end
+
+# Other actual tradeoff, increase substrate unbinding decrease product binding
+function Kvsθtrade(set::Array{Float64,2})
+    # Find length of parameter set
+    L = size(set,1)
+    # check that the initial parameter set is defined
+    if set[1,1] <= 0.0 || set[1,2] <= 0.0 || set[1,3] <= 0.0 || set[1,4] <= 0.0
+        println("Error: Initial parameter set provided incorrectly.")
+    end
+    # Now fill in remainder of parameter set
+    for i = 2:L
+        set[i,1] = set[1,1]
+        set[i,2] = set[1,2]
+        set[i,3] = i*set[1,3]
+        set[i,4] = set[1,4]/i
+    end
+    return(set)
+end
+
 # Function to demonstrate all 7 tradeoffs
 function tradeoffs()
     # This is the parameterisation I used initially want to check that these values of q_m and KS are the same
     # Nutrient variables
     α = 5.55e-6
-    δ = 2.00e-4 # 1.00*10^(-4)
+    δ = 2.00e-4
     # make nutrients
     # 1 = glucose, 2 = oxegen, 3 = bicarbonate, 4 = hydrogen ion
     nuts = [Nut(1,false,α,δ),Nut(2,true,0,0),Nut(3,false,0,δ),Nut(4,true,0,0)]
@@ -103,9 +229,9 @@ function tradeoffs()
     # microbe variables
     η = 38.0
     r = 1 # Only reaction
-    m = 2.16*10^(-19) # maintainance
-    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
-    E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
+    m = 2.16e-19 # maintainance
+    Y = 2.36e13 # yield in cells per mole of ATP
+    E0 = 2.5e-20 # Somewhat fudged should be right order of magnitude
     # Considering 1 microbe with no maintaince and no dilution
     mics = [Microbe(η,m,r,0.0)]
     # Set intial populations and nutrient concentrations
@@ -114,7 +240,7 @@ function tradeoffs()
     u0[1] = 0.0555 # high initial concentration to ensure growth
     u0[2] = 0.21 # High value so oxegen isn't limiting
     u0[3] = 0.0 # No initial concentration
-    u0[4] = 1.00*10.0^(-7) # pH 7
+    u0[4] = 1.00e-7 # pH 7
     u0[5] = 100.0 # 100 hundred initial cells
     # Define other thermodynamically relevant constants
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
@@ -124,25 +250,28 @@ function tradeoffs()
     k2 = 140.0
     k1 = 1.17e7
     # Defining three above parameters fix q_m, k_r and K_S
-    K2 = 1.28e8
-    println("old K2 = $(K2)")
     # Now set the 4th rate K2 (and thus K_P) to ensure thermodynamic consistency
     KeQ = Keq(ΔG0,η,ΔGATP,Temp)
     K2 = k1*k2/(KeQ*K1)
-    println("new K2 = $(K2)")
-    # Need to check that these parameters are thermodynamically valid for the base case
-    println("Equlibrium constant K = $(KeQ)")
-    println("My rates correspond to K = $(k1*k2/(K1*K2))")
-    # Only correct to 2 sf
-    # Need to improve
+    # Group these initial parameters together
+    ki = [k1,k2,K1,K2]
+    # Now want to define 7 types of changes
+    ps = zeros(7,20,4)
+    # Asign these parameters as first parameters for each tradeoff
+    for i = 1:7
+        ps[i,1,1:4] = ki
+    end
+    # Now fill out parameter sets by providing to a function for each tradeoff
+    ps[1,:,:] = rateincrease(ps[1,:,:])
+    ps[2,:,:] = step1increase(ps[2,:,:])
+    ps[3,:,:] = step2increase(ps[3,:,:])
+    ps[4,:,:] = bindincrease(ps[4,:,:])
+    ps[5,:,:] = unbindincrease(ps[5,:,:])
+    ps[6,:,:] = rvsKtrade(ps[6,:,:])
+    ps[7,:,:] = Kvsθtrade(ps[7,:,:])
     return(nothing)
 end
-
-@time tradeoffs()
-
-# New stuff to write
-# Script to find parameters sets for each tradeoff
 # Then function that takes parameter sets for each tradeoff and simulates and makes graphs of tradeoff
 # Then loop over for the seven tradeoffs
-# From now on use e notation for
-# Why not use steady states as initial values => should shift to real value if not
+
+@time tradeoffs()

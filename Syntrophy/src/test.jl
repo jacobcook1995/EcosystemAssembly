@@ -104,8 +104,10 @@ function tradeoffs()
     η = 38.0
     r = 1 # Only reaction
     m = 2.16*10^(-19) # maintainance
+    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
+    E0 = 2.5*10.0^(-20) # Somewhat fudged should be right order of magnitude
     # Considering 1 microbe with no maintaince and no dilution
-    mics = Microbe(η,m,r,0.0)
+    mics = [Microbe(η,m,r,0.0)]
     # Set intial populations and nutrient concentrations
     u0 = zeros(length(nuts)+length(mics)) # make vector of initial conditions
     # define initial concentrations
@@ -114,25 +116,25 @@ function tradeoffs()
     u0[3] = 0.0 # No initial concentration
     u0[4] = 1.00*10.0^(-7) # pH 7
     u0[5] = 100.0 # 100 hundred initial cells
-    # Define some constants
+    # Define other thermodynamically relevant constants
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     Temp = 312.0 # Temperature that growth is occuring at in Kelvin
-    # All other constants require quite a bit of defining
-    Y = 2.36*10.0^(13) # yield in cells per mole of ATP
-    KS = 2.40*10.0^(-5) # saturation constant (substrate)
-    qm = 3.42*10.0^(-18) # maximal rate substrate consumption mol cell s^-1
-    println("Old qm = $(qm)")
-    println("Old KS = $(KS)")
     # New parameters for base case
     K1 = 140.0
     k2 = 140.0
     k1 = 1.17e7
+    # Defining three above parameters fix q_m, k_r and K_S
     K2 = 1.28e8
-    qm, KS, KP, kr =  qKmY(k1,K1,k2,K2,E0)
-    println("New qm = $(qm)")
-    println("New KS = $(KS)")
-    println("KP = $(KP)")
-    println("kr = $(kr)")
+    println("old K2 = $(K2)")
+    # Now set the 4th rate K2 (and thus K_P) to ensure thermodynamic consistency
+    KeQ = Keq(ΔG0,η,ΔGATP,Temp)
+    K2 = k1*k2/(KeQ*K1)
+    println("new K2 = $(K2)")
+    # Need to check that these parameters are thermodynamically valid for the base case
+    println("Equlibrium constant K = $(KeQ)")
+    println("My rates correspond to K = $(k1*k2/(K1*K2))")
+    # Only correct to 2 sf
+    # Need to improve
     return(nothing)
 end
 

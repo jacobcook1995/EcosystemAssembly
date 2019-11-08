@@ -75,6 +75,13 @@ function Qineq(η::Float64,qm::Float64,m::Float64,kr::Float64,Keq::Float64)
     return(Qi)
 end
 
+# Maybe just use a function to find threshold θ instead if we're just intrested in showing the tradeoff
+function θineq(η::Float64,qm::Float64,m::Float64,kr::Float64)
+    x = 0.1 # Starting with 10% as a rough guess
+    θi = x*(η*qm - m)/(η*qm + kr*m)
+    return(θi)
+end
+
 # function to find steady state of case without thermodynamic limitation
 function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64,θ::Float64)
     # Calulate R
@@ -214,6 +221,28 @@ function Kvsθtrade(set::Array{Float64,2})
     return(set)
 end
 
+# function to find maximum rate r, maximum population N and threshold for thermodynamic inhibition θt
+function maximas(set::Array{Float64,2},E0::Float64,η::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64)
+    # Find length of parameter set
+    L = size(set,1)
+    # make vectors to store quantities
+    r = zeros(L)
+    KS = zeros(L)
+    kr = zeros(L)
+    N = zeros(L)
+    θt = zeros(L)
+    # Now find the various two maxima and the trheshold
+    for i = 1:L
+        # Normal method of finding parameters
+        r[i], KS[i], _, kr[i] = qKmY(set[i,1],set[i,3],set[i,2],set[i,4],E0)
+        # θ = 0 as want max without thermodynamic inhibition
+        _, _, N[i] = stead(KS[i],kr[i],η,r[i],m,CO,α,δ,0.0)
+        # Now find threhold for thermodynamic inhibition
+        θt[i] = θineq(η,r[i],m,kr[i])
+    end
+    return(r,N,θt)
+end
+
 # Function to demonstrate all 7 tradeoffs
 function tradeoffs()
     # This is the parameterisation I used initially want to check that these values of q_m and KS are the same
@@ -269,6 +298,24 @@ function tradeoffs()
     ps[5,:,:] = unbindincrease(ps[5,:,:])
     ps[6,:,:] = rvsKtrade(ps[6,:,:])
     ps[7,:,:] = Kvsθtrade(ps[7,:,:])
+    # For now just want data on max growth rate, max population (without thermodynamic inhibition),
+    # and threshold for thermodynamic inhibition
+    r = zeros(size(ps,1),size(ps,2)) # maximal rate
+    N = zeros(size(ps,1),size(ps,2)) # maximal populations
+    θt = zeros(size(ps,1),size(ps,2)) # threshold θ for thermodynamic inhibition
+    for i = 1:size(ps,1)
+        r[i,:], N[i,:], θt[i,:] = maximas(ps[i,:,:],E0,η,m,u0[2],α,δ)
+    end
+    # Now plot these tradeoffs so that they can be seen
+    pyplot(dpi=200)
+    plot(r[6,:]*1.0e17,N[6,:])
+    savefig("Output/rvsK.png")
+    plot(r[6,:]*1.0e17,θt[6,:])
+    savefig("Output/rvsKT.png")
+    plot(N[7,:],r[7,:]*1.0e18)
+    savefig("Output/θvsKrate.png")
+    plot(N[7,:],θt[7,:])
+    savefig("Output/θvsK.png")
     return(nothing)
 end
 # Then function that takes parameter sets for each tradeoff and simulates and makes graphs of tradeoff

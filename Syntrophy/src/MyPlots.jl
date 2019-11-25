@@ -53,3 +53,45 @@ function corrparr(xdata::Array{Float64,1},ydata::Array{Float64,1},p0::Array{Floa
     r = a/sqrt(b*c)
     return(yint,slop,intlow,intup,r)
 end
+
+# Overload corrparr function so that errors can be provided
+# This returns the fit, the correlation coefficient, and the confidence interval
+function corrparr(xdata::Array{Float64,1},ydata::Array{Float64,1},weig::Array{Float64,1},p0::Array{Float64,1},xran::AbstractRange)
+    # p0 is the initial parameter guess
+    # xran is the range to calculate over
+    # weig is the weight given to each point
+
+    # First define model
+    @. model(x,p) = p[1] + p[2]*x
+    # Fit data to this model
+    fit = curve_fit(model,xdata,ydata,weig,p0)
+    yint = coef(fit)[1]
+    slop = coef(fit)[2]
+    # Then find confidence interval
+    con = confidence_interval(fit, 0.05)
+    vyint = con[1]
+    vslop = con[2]
+    # Calculate intervals for the range given
+    intlow = abs.(model(xran,[yint,slop]) .- model(xran,[vyint[2],vslop[2]]))
+    intup = abs.(model(xran,[yint,slop]) .- model(xran,[vyint[1],vslop[1]]))
+    # Now calculate Pearson correlation coefficient
+    xbar = sum(xdata)/length(xdata)
+    ybar = sum(ydata)/length(ydata)
+    a = 0
+    b = 0
+    c = 0
+    for i = 1:length(xdata)
+        a += (xdata[i] - xbar)*(ydata[i] - ybar)
+        b += (xdata[i] - xbar)^2
+        c += (ydata[i] - ybar)^2
+    end
+    r = a/sqrt(b*c)
+    # And could do a weighted correlation
+    wxbar = sum(weig.*xdata)/(length(xdata)*sum(weig))
+    wybar = sum(weig.*ydata)/(length(ydata)*sum(weig))
+    wcovxy = sum(weig.*(xdata.-wxbar).*(ydata.-wybar))/sum(weig)
+    wcovxx = sum(weig.*(xdata.-wxbar).*(xdata.-wxbar))/sum(weig)
+    wcovyy = sum(weig.*(ydata.-wybar).*(ydata.-wybar))/sum(weig)
+    wr = wcovxy/sqrt(wcovxx*wcovyy)
+    return(yint,slop,intlow,intup,r,wr)
+ end

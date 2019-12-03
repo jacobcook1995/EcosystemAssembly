@@ -4,7 +4,7 @@ using LsqFit
 # THIS IS MY BEST GUESS FOR WHERE TO PUT THIS BUT MIGHT NEED TO BE MOVED IN FUTURE
 
 # Export functions that are useful externally
-export annpos corrparr
+export annpos, corrparr
 
 # A function to return positions for labels
 function annpos(datax::Array{Float64,1},datay::Array{Float64,1},δx=0.15::Float64,δy=0.125::Float64)

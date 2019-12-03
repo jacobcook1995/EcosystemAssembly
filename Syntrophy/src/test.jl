@@ -221,6 +221,24 @@ function Kvsθtrade(set::Array{Float64,2})
     return(set)
 end
 
+# Combination of the two tradeoff's to see what happens
+function combtrade(set::Array{Float64,2})
+    # Find length of parameter set
+    L = size(set,1)
+    # check that the initial parameter set is defined
+    if set[1,1] <= 0.0 || set[1,2] <= 0.0 || set[1,3] <= 0.0 || set[1,4] <= 0.0
+        println("Error: Initial parameter set provided incorrectly.")
+    end
+    # Now fill in remainder of parameter set
+    for i = 2:L
+        set[i,1] = set[1,1]/i
+        set[i,2] = i*set[1,2]
+        set[i,3] = set[1,3]/i
+        set[i,4] = i*set[1,4]
+    end
+    return(set)
+end
+
 # function to find maximum rate r, maximum population N and threshold for thermodynamic inhibition θt
 function maximas(set::Array{Float64,2},E0::Float64,η::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64)
     # Find length of parameter set
@@ -285,9 +303,9 @@ function tradeoffs()
     # Group these initial parameters together
     ki = [k1,k2,K1,K2]
     # Now want to define 7 types of changes
-    ps = zeros(7,20,4)
+    ps = zeros(8,20,4)
     # Asign these parameters as first parameters for each tradeoff
-    for i = 1:7
+    for i = 1:size(ps,1)
         ps[i,1,1:4] = ki
     end
     # Now fill out parameter sets by providing to a function for each tradeoff
@@ -298,6 +316,7 @@ function tradeoffs()
     ps[5,:,:] = unbindincrease(ps[5,:,:])
     ps[6,:,:] = rvsKtrade(ps[6,:,:])
     ps[7,:,:] = Kvsθtrade(ps[7,:,:])
+    ps[8,:,:] = combtrade(ps[8,:,:])
     # For now just want data on max growth rate, max population (without thermodynamic inhibition),
     # and threshold for thermodynamic inhibition
     r = zeros(size(ps,1),size(ps,2)) # maximal rate
@@ -316,6 +335,12 @@ function tradeoffs()
     savefig("Output/θvsKrate.png")
     plot(N[7,:],θt[7,:])
     savefig("Output/θvsK.png")
+    plot(r[8,:]*1.0e17,N[8,:])
+    savefig("Output/CombrvsK.png")
+    plot(r[8,:]*1.0e17,θt[8,:])
+    savefig("Output/Combrvsθ.png")
+    plot(N[8,:],θt[8,:])
+    savefig("Output/CombKvsθ.png")
     return(nothing)
 end
 # Then function that takes parameter sets for each tradeoff and simulates and makes graphs of tradeoff

@@ -50,32 +50,11 @@ function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},
     return(du)
 end
 
-# Function to calulate the value that needs to be exceeded for thermodynamic effects
-# This is stored here as it is a function that has a mainly illustrative purpose
-function Qineq(η::Float64,qm::Float64,m::Float64,kr::Float64,Keq::Float64)
-    x = 0.1 # Starting with 10% as a rough guess
-    Qi = x*Keq*(η*qm - m)/(η*qm + kr*m)
-    return(Qi)
-end
-
 # Maybe just use a function to find threshold θ instead if we're just intrested in showing the tradeoff
 function θineq(η::Float64,qm::Float64,m::Float64,kr::Float64)
     x = 0.1 # Starting with 10% as a rough guess
     θi = x*(η*qm - m)/(η*qm + kr*m)
     return(θi)
-end
-
-# function to find steady state of case without thermodynamic limitation
-function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Float64,α::Float64,δ::Float64,θ::Float64)
-    # Calulate R
-    R = m*KS/(η*qm*(1-θ)-m*(1+kr*θ))
-    # Then find fractional contribution from S
-    S = R/((CO)^6)
-    # Then calculate X
-    X = (η/m)*(α-δ*S)
-    # Then calulate P
-    P = 6*m*X/(δ*η)
-    return(S,P,X)
 end
 
 # Increase all rates simulatanously

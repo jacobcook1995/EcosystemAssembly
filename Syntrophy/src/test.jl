@@ -70,7 +70,7 @@ function tradeinvest()
         n1 = ceil(i/6)
         k1[i] = 10.0^(2+n1)
         n2 = (i-1) % 6
-        K1[i] = 10.0^(3+n2)
+        K1[i] = 10.0^(n2)
         K2[i] = K1[i]/(k1[i]*k2*KeQ)
     end
     # Now make vectors of kinetic parameters
@@ -82,10 +82,13 @@ function tradeinvest()
     for i = 1:N
         qm[i], KS[i], _, kr[i] = qKmY(k1[i],K1[i],k2,K2[i],E0)
         # Next find threshold
-        QT[i] = Qineq(η,qm[i],m,kr[i],Keq)
+        QT[i] = Qineq(η,qm[i],m,kr[i],KeQ)
         # And maximum population
         _, _, Ns[i] = stead(KS[i],kr[i],η,qm[i],m,CO,α,δ,θ)
     end
+    # Remove zero elements
+    QT[Ns.<0.0] .= NaN
+    Ns[Ns.<0.0] .= NaN
     # Start plotting
     pyplot(dpi=200)
     scatter(QT,Ns)

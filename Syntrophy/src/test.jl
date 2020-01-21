@@ -60,39 +60,20 @@ function tradeinvest()
     # Now choose k2
     k2 = 140.0 # This is what we had before
     maxr = 1.0e10 # Maximum possible rate
-    # Need to generate parameter sets with two other rates fixed
-    N = 36 # Number of parameter sets
-    k1 = zeros(N) # These two can be varied
-    K1 = zeros(N)
-    K2 = zeros(N) # This one just needed for therodynamic consistency
-    # Make parameter sets
-    for i = 1:N
-        n1 = ceil(i/6)
-        k1[i] = 10.0^(2+n1)
-        n2 = (i-1) % 6
-        K1[i] = 10.0^(n2)
-        K2[i] = (k1[i]*k2)/(K1[i]*KeQ)
-    end
-    # Now make vectors of kinetic parameters
-    KS = zeros(N)
-    qm = zeros(N)
-    kr = zeros(N)
-    QT = zeros(N)
-    Ns = zeros(N)
-    for i = 1:N
-        qm[i], KS[i], _, kr[i] = qKmY(k1[i],K1[i],k2,K2[i],E0)
-        # Next find threshold
-        QT[i] = Qineq(η,qm[i],m,kr[i],KeQ)
-        # And maximum population
-        _, _, Ns[i] = stead(KS[i],kr[i],η,qm[i],m,CO,α,δ,θ)
-    end
-    # Remove zero elements
-    QT[Ns.<0.0] .= NaN
-    Ns[Ns.<0.0] .= NaN
-    # Start plotting
-    pyplot(dpi=200)
-    scatter(QT,Ns)
-    savefig("Output/test.png")
+    k1 = maxr
+    K1 = 1.00e-5
+    K2 = (k1*k2)/(K1*KeQ)
+    println(K2)
+    qm, KS, _, kr = qKmY(k1,K1,k2,K2,E0)
+    # Next find threshold
+    QT = Qineq(η,qm,m,kr,KeQ)
+    # And maximum population
+    _, _, Ns = stead(KS,kr,η,qm,m,CO,α,δ,θ)
+    println(qm)
+    println(KS)
+    println(kr)
+    println(QT)
+    println(Ns)
     return(nothing)
 end
 

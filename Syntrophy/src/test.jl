@@ -63,17 +63,13 @@ function tradeinvest()
     k1 = maxr
     K1 = 1.00e-5
     K2 = (k1*k2)/(K1*KeQ)
-    println(K2)
     qm, KS, _, kr = qKmY(k1,K1,k2,K2,E0)
     # Next find threshold
     QT = Qineq(η,qm,m,kr,KeQ)
     # And maximum population
     _, _, Ns = stead(KS,kr,η,qm,m,CO,α,δ,θ)
-    println(qm)
-    println(KS)
-    println(kr)
-    println(QT)
     println(Ns)
+    println(η*α/m)
     return(nothing)
 end
 

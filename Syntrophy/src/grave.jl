@@ -50,16 +50,6 @@ function singlepop(du::Array{Float64,1},u::Array{Float64,1},p::Array{Float64,1},
     return(du)
 end
 
-# function to find qm, KS, m, Y based on reference values, kinetic parameters and enzyme concentrations
-function qKmY(k1::Float64,K1::Float64,k2::Float64,K2::Float64,E0::Float64)
-    # Standard formula for qm, KS, KP and kr
-    qm = k2*E0
-    KS = (K1+k2)/(k1)
-    KP = (K1+k2)/(K2)
-    kr = k2/K1
-    return(qm,KS,KP,kr)
-end
-
 # Function to calulate the value that needs to be exceeded for thermodynamic effects
 # This is stored here as it is a function that has a mainly illustrative purpose
 function Qineq(η::Float64,qm::Float64,m::Float64,kr::Float64,Keq::Float64)

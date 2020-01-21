@@ -71,7 +71,7 @@ function tradeinvest()
         k1[i] = 10.0^(2+n1)
         n2 = (i-1) % 6
         K1[i] = 10.0^(n2)
-        K2[i] = K1[i]/(k1[i]*k2*KeQ)
+        K2[i] = (k1[i]*k2)/(K1[i]*KeQ)
     end
     # Now make vectors of kinetic parameters
     KS = zeros(N)

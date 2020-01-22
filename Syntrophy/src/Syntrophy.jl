@@ -6,7 +6,7 @@ module Syntrophy
 include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available
 
 # Export complicated functions
-export GFree, θT, netE, SCoef, QCoef, qrate, Keq
+export GFree, θT, netE, SCoef, QCoef, qrate, Keq, satK
 # export all my objects
 export Nut, React, Microbe
 # export very simple functions
@@ -182,6 +182,12 @@ function Keq(ΔG0::Float64,η::Float64,ΔGATP::Float64,T::Float64)
     # Then find equilbrium constant
     K = exp(-(ΔG0+η*ΔGATP)/RT)
     return(K)
+end
+
+# function that returns a value of KS based on the three relevant rates
+function satK(k1::Float64,k2::Float64,K1::Float64)
+    KS = (K1+k2)/k1
+    return(KS)
 end
 
 end # module

@@ -94,7 +94,7 @@ function maxK(k2::Float64,maxr::Float64,KeQ::Float64)
     k1 = 1.00e3
     K1 = 1.00e3
     # factor to increase/decrease by
-    h = 1.25
+    h = 1.05#25
     # Make array to store parameters
     N = 9 # testing 8+1 parameter sets
     kset = fill(Inf,(N,4))
@@ -158,17 +158,20 @@ function tradeinvest()
     KeQ = Keq(ΔG0,η,ΔGATP,Temp)
     maxr = 1.0e10 # Maximum possible rate
     # Now want to choose maximum populations for a range of k values
-    k2s = [1e-3,1,1e-2,1e-1,1.0,10.0,100.0,1000.0,1e5,1e6,1e7,1e8,1e9]
+    k2s = [1.0,10.0,100.0,1000.0]
     for i = 1:length(k2s)
         k2 = k2s[i]
-        k1, K1, K2 = maxK(k2s[i],maxr,KeQ)
-        println("$(k1),$(k2),$(K1),$(K2)")
+        k1, K1, K2 = maxK(k2,maxr,KeQ)
         qm, KS, _, kr = qKmY(k1,K1,k2,K2,E0)
+        println("Set $(i):")
+        println(k2s[i])
+        println(η*qm)
+        println(m)
+        println("S*=$(m*KS/(η*qm-m))")
         QT = Qineq(η,qm,m,kr,KeQ)
-        println(QT)
         _, _, Ns = stead(KS,kr,η,qm,m,CO,α,δ,θ)
-        println(Ns)
     end
+    println(KeQ*0.1)
     return(nothing)
 end
 

@@ -40,13 +40,52 @@ end
 # Function to find K2 from three other rates plus the equilbrium constant, plus checks if reasonable
 function findK2(k1::Float64,k2::Float64,K1::Float64,KeQ::Float64,maxr::Float64)
     K2 = (k1*k2)/(K1*KeQ)
-    # Test if K2 is a reasonable rate and if not return NaN
+    # Test if K2 is a reasonable rate and if not return Inf
     if K2 >= maxr
-        return(NaN)
+        return(Inf)
     else
         return(K2)
     end
     return(K2)
+end
+
+# function to create alternate parameters from an initial parameter set stored as first row
+function shiftks(kset::Array{Float64,2},N::Int64,h::Float64,maxr::Float64)
+    # Check if array is appropriate size
+    if size(kset,1) != N
+        println("Error: Parameter array is too small. Expected $(N) rows and got $(size(kset,1)).")
+        error()
+    end
+    # Generates parameters set at various angles
+    for i = 2:N
+        # One parameter
+        c1 = cos(2*(i-1)*pi/(N-1))
+        mc1 = abs(c1)
+        dc1 = sign(c1)
+        if dc1 == 1.0
+            # The 1+mc1*(h-1) keeps the scaling sensible
+            kset[i,1] = kset[1,1]*(1+mc1*(h-1))
+        else
+            kset[i,1] = kset[1,1]/(1+mc1*(h-1))
+        end
+        # And then the other
+        c2 = sin(2*(i-1)*pi/(N-1))
+        mc2 = abs(c2)
+        dc2 = sign(c2)
+        if dc2 == 1.0
+            kset[i,3] = kset[1,3]*(1+mc2*(h-1))
+        else
+            kset[i,3] = kset[1,3]/(1+mc2*(h-1))
+        end
+        # overwrite rates if greater than maxrate
+        if kset[i,1] > maxr
+            kset[i,1] = maxr
+        end
+        if kset[i,3] > maxr
+            kset[i,3] = maxr
+        end
+    end
+    return(kset)
 end
 
 # function to find the value of KS that maximises
@@ -57,43 +96,33 @@ function maxK(k2::Float64,maxr::Float64,KeQ::Float64)
     # factor to increase/decrease by
     h = 1.25
     # Make array to store parameters
-    kset = fill(NaN,(5,4))
+    N = 9 # testing 8+1 parameter sets
+    kset = fill(Inf,(N,4))
     kset[:,2] .= k2
     kset[1,1] = k1
     kset[1,3] = K1
-    KS = fill(NaN,5)
+    KS = fill(Inf,N)
     # Now start while loop
     fsh = false
     while fsh == false
         # Use first row of parameter set to generate other rows
-        kset[2,1] = h*kset[1,1]
-        kset[2,3] = kset[1,3]
-        kset[3,1] = kset[1,1]
-        kset[3,3] = h*kset[1,3]
-        kset[4,1] = kset[1,1]/h
-        kset[4,3] = kset[1,3]
-        kset[5,1] = kset[1,1]
-        kset[5,3] = kset[1,3]/h
+        kset = shiftks(kset,N,h,maxr)
         # Find and add K2 values
-        for i = 1:5
+        for i = 1:N
             kset[i,4] = findK2(kset[i,1],kset[i,2],kset[i,3],KeQ,maxr)
         end
         # Calculate KS values for the sets
-        for i = 1:5
-            if ~isnan(kset[i,4])
+        for i = 1:N
+            if isfinite(kset[i,4])
                 # Then calculate values for KS
                 KS[i] = satK(kset[i,1],kset[i,2],kset[i,3])
             else
-                # If K2 value is NaN then ignore set
-                KS[i] = NaN
+                # If K2 value is set Inf then ignore set
+                KS[i] = Inf
             end
         end
         # Choose smallest value and make this the new parameter set
-        I = argmin(filter(!isnan,KS))
-        # TEST TEST TEST TEST
-        println(kset)
-        println(KS)
-        println(I)
+        I = argmin(KS)
         # Now overwrite
         kset[1,:] .= kset[I,:]
         # Stop while loop if best parameter set is self
@@ -129,15 +158,16 @@ function tradeinvest()
     KeQ = Keq(ΔG0,η,ΔGATP,Temp)
     maxr = 1.0e10 # Maximum possible rate
     # Now want to choose maximum populations for a range of k values
-    # STUPID TEST CASE AT MOMENT DELETE LATER
-    N=1
-    k2s = [140.0]
-    for i = 1:N
+    k2s = [1e-3,1,1e-2,1e-1,1.0,10.0,100.0,1000.0,1e5,1e6,1e7,1e8,1e9]
+    for i = 1:length(k2s)
         k2 = k2s[i]
         k1, K1, K2 = maxK(k2s[i],maxr,KeQ)
-        # qm, KS, _, kr = qKmY(k1,K1,k2,K2,E0)
-        # QT = Qineq(η,qm,m,kr,KeQ)
-        # _, _, Ns = stead(KS,kr,η,qm,m,CO,α,δ,θ)
+        println("$(k1),$(k2),$(K1),$(K2)")
+        qm, KS, _, kr = qKmY(k1,K1,k2,K2,E0)
+        QT = Qineq(η,qm,m,kr,KeQ)
+        println(QT)
+        _, _, Ns = stead(KS,kr,η,qm,m,CO,α,δ,θ)
+        println(Ns)
     end
     return(nothing)
 end

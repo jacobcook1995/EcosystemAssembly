@@ -305,3 +305,43 @@ function tradeoffs()
     savefig("Output/CombKvsθ.png")
     return(nothing)
 end
+
+# This is a nice function that took me a bit of time to write so I want to keep
+# function to create alternate parameters from an initial parameter set stored as first row
+function shiftks(kset::Array{Float64,2},N::Int64,h::Float64,maxr::Float64)
+    # Check if array is appropriate size
+    if size(kset,1) != N
+        println("Error: Parameter array is too small. Expected $(N) rows and got $(size(kset,1)).")
+        error()
+    end
+    # Generates parameters set at various angles
+    for i = 2:N
+        # One parameter
+        c1 = cos(2*(i-1)*pi/(N-1))
+        mc1 = abs(c1)
+        dc1 = sign(c1)
+        if dc1 == 1.0
+            # The 1+mc1*(h-1) keeps the scaling sensible
+            kset[i,1] = kset[1,1]*(1+mc1*(h-1))
+        else
+            kset[i,1] = kset[1,1]/(1+mc1*(h-1))
+        end
+        # And then the other
+        c2 = sin(2*(i-1)*pi/(N-1))
+        mc2 = abs(c2)
+        dc2 = sign(c2)
+        if dc2 == 1.0
+            kset[i,3] = kset[1,3]*(1+mc2*(h-1))
+        else
+            kset[i,3] = kset[1,3]/(1+mc2*(h-1))
+        end
+        # overwrite rates if greater than maxrate
+        if kset[i,1] > maxr
+            kset[i,1] = maxr
+        end
+        if kset[i,3] > maxr
+            kset[i,3] = maxr
+        end
+    end
+    return(kset)
+end

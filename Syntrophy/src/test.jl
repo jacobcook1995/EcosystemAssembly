@@ -50,63 +50,31 @@ function findK2(k1::Float64,k2::Float64,K1::Float64,KeQ::Float64,maxr::Float64)
 end
 
 # function to create alternate parameters from an initial parameter set stored as first row
-function shiftks(kset::Array{Float64,2},N::Int64,h::Float64,maxr::Float64)
-    # Check if array is appropriate size
-    if size(kset,1) != N
-        println("Error: Parameter array is too small. Expected $(N) rows and got $(size(kset,1)).")
-        error()
-    end
-    # Generates parameters set at various angles
-    for i = 2:N
-        # One parameter
-        c1 = cos(2*(i-1)*pi/(N-1))
-        mc1 = abs(c1)
-        dc1 = sign(c1)
-        if dc1 == 1.0
-            # The 1+mc1*(h-1) keeps the scaling sensible
-            kset[i,1] = kset[1,1]*(1+mc1*(h-1))
-        else
-            kset[i,1] = kset[1,1]/(1+mc1*(h-1))
-        end
-        # And then the other
-        c2 = sin(2*(i-1)*pi/(N-1))
-        mc2 = abs(c2)
-        dc2 = sign(c2)
-        if dc2 == 1.0
-            kset[i,3] = kset[1,3]*(1+mc2*(h-1))
-        else
-            kset[i,3] = kset[1,3]/(1+mc2*(h-1))
-        end
-        # overwrite rates if greater than maxrate
-        if kset[i,1] > maxr
-            kset[i,1] = maxr
-        end
-        if kset[i,3] > maxr
-            kset[i,3] = maxr
-        end
-    end
+function shiftks(kset::Array{Float64,2},h::Float64)
+    # Don't change first line, just use to update the second and third lines
+    kset[2,3] = h*kset[1,3]
+    kset[3,3] = kset[1,3]/h
     return(kset)
 end
 
 # function to find the value of KS that maximises
-function maxK(k2::Float64,maxr::Float64,KeQ::Float64)
+function maxK(k1::Float64,k2::Float64,KeQ::Float64,maxr::Float64)
     # Starting values of rates
-    k1 = 1.00e3
     K1 = 1.00e3
     # factor to increase/decrease by
-    h = 1.05#25
+    h = 1.05
     # Make array to store parameters
-    N = 9 # testing 8+1 parameter sets
+    N = 3 # testing 8+1 parameter sets
     kset = fill(Inf,(N,4))
     kset[:,2] .= k2
-    kset[1,1] = k1
+    kset[:,1] .= k1
     kset[1,3] = K1
     KS = fill(Inf,N)
     # Now start while loop
     fsh = false
     while fsh == false
         # Use first row of parameter set to generate other rows
-        kset = shiftks(kset,N,h,maxr)
+        kset = shiftks(kset,h)
         # Find and add K2 values
         for i = 1:N
             kset[i,4] = findK2(kset[i,1],kset[i,2],kset[i,3],KeQ,maxr)
@@ -130,10 +98,9 @@ function maxK(k2::Float64,maxr::Float64,KeQ::Float64)
             fsh = true
         end
     end
-    k1 = kset[1,1]
     K1 = kset[1,3]
     K2 = kset[1,4]
-    return(k1,K1,K2)
+    return(K1,K2)
 end
 
 # Function to do some vague investigating into the tradeoffs
@@ -156,22 +123,23 @@ function tradeinvest()
     Temp = 312.0 # Temperature that growth is occuring at in Kelvin
     # Use to find equilbrium constant
     KeQ = Keq(ΔG0,η,ΔGATP,Temp)
-    maxr = 1.0e10 # Maximum possible rate
     # Now want to choose maximum populations for a range of k values
-    k2s = [1.0,10.0,100.0,1000.0]
+    k2s = [10.0,25.0,50.0,75.0,100.0,250.0,500.0,750.0,1000.0]
+    maxr = 1.00e6
+    k1 = 1000.0 # Now a fixed quantity, should be carefully chosen
     for i = 1:length(k2s)
         k2 = k2s[i]
-        k1, K1, K2 = maxK(k2,maxr,KeQ)
+        K1, K2 = maxK(k1,k2,KeQ,maxr)
+        println("$(k1),$(k2),$(K1),$(K2)")
         qm, KS, _, kr = qKmY(k1,K1,k2,K2,E0)
-        println("Set $(i):")
-        println(k2s[i])
-        println(η*qm)
-        println(m)
-        println("S*=$(m*KS/(η*qm-m))")
         QT = Qineq(η,qm,m,kr,KeQ)
         _, _, Ns = stead(KS,kr,η,qm,m,CO,α,δ,θ)
+        println("qm = $(qm)")
+        println("KS = $(KS)")
+        println("kr = $(kr)")
+        println("QT = $(QT)")
+        println("Ns = $(Ns)")
     end
-    println(KeQ*0.1)
     return(nothing)
 end
 

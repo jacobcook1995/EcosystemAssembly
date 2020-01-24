@@ -62,7 +62,7 @@ function maxK(k1::Float64,k2::Float64,KeQ::Float64,maxr::Float64)
     # Starting values of rates
     K1 = 1.00e3
     # factor to increase/decrease by
-    h = 1.05
+    h = 1.001
     # Make array to store parameters
     N = 3 # testing 8+1 parameter sets
     kset = fill(Inf,(N,4))
@@ -108,7 +108,7 @@ function tradeinvest()
     # First need to define some basic parameters
     # Bunch of assumptions about the environment
     α = 5.55e-6 # These two rates can be changed
-    δ = 2.00e-4
+    δ = 1.00e-5
     θ = 0.0 # Thermodynamic inhibition not reached
     CO = 0.21 # High value so oxegen isn't limiting
     # Will consider glucose to begin with and then move onto lower free energy changes
@@ -124,22 +124,31 @@ function tradeinvest()
     # Use to find equilbrium constant
     KeQ = Keq(ΔG0,η,ΔGATP,Temp)
     # Now want to choose maximum populations for a range of k values
-    k2s = [10.0,25.0,50.0,75.0,100.0,250.0,500.0,750.0,1000.0]
+    k2s = collect(10.0:10.0:1000.0)
+    qm = zeros(length(k2s))
+    KS = zeros(length(k2s))
+    kr = zeros(length(k2s))
+    QT = zeros(length(k2s))
+    Ns = zeros(length(k2s))
     maxr = 1.00e6
-    k1 = 1000.0 # Now a fixed quantity, should be carefully chosen
+    k1 = 1.00e4 # Now a fixed quantity, should be carefully chosen
     for i = 1:length(k2s)
         k2 = k2s[i]
         K1, K2 = maxK(k1,k2,KeQ,maxr)
-        println("$(k1),$(k2),$(K1),$(K2)")
-        qm, KS, _, kr = qKmY(k1,K1,k2,K2,E0)
-        QT = Qineq(η,qm,m,kr,KeQ)
-        _, _, Ns = stead(KS,kr,η,qm,m,CO,α,δ,θ)
-        println("qm = $(qm)")
-        println("KS = $(KS)")
-        println("kr = $(kr)")
-        println("QT = $(QT)")
-        println("Ns = $(Ns)")
+        qm[i], KS[i], _, kr[i] = qKmY(k1,K1,k2,K2,E0)
+        QT[i] = Qineq(η,qm[i],m,kr[i],KeQ)
+        _, _, Ns[i] = stead(KS[i],kr[i],η,qm[i],m,CO,α,δ,θ)
     end
+    pyplot(dpi=200)
+    Lqm = L"q_m"
+    plot(qm*1e18,KS,xlabel="$(Lqm) (10^-18)")
+    savefig("Output/qmvsKS.png")
+    plot(qm*1e18,kr,xlabel="$(Lqm) (10^-18)")
+    savefig("Output/qmvskr.png")
+    plot(qm*1e18,Ns,xlabel="$(Lqm) (10^-18)")
+    savefig("Output/qmvsNs.png")
+    plot(qm*1e18,QT,xlabel="$(Lqm) (10^-18)")
+    savefig("Output/qmvsQT.png")
     return(nothing)
 end
 

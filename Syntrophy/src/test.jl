@@ -37,78 +37,23 @@ function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Fl
     return(S,P,X)
 end
 
-# Function to find K2 from three other rates plus the equilbrium constant, plus checks if reasonable
-function findK2(k1::Float64,k2::Float64,K1::Float64,KeQ::Float64,maxr::Float64)
-    K2 = (k1*k2)/(K1*KeQ)
-    # Test if K2 is a reasonable rate and if not return Inf
-    if K2 >= maxr
-        return(Inf)
-    else
-        return(K2)
-    end
-    return(K2)
+# function to find krates based on max rates, and combined value of K1K2
+function krates(maxrate::Float64,K1K2::Float64,k2::Float64,KeQ::Float64)
+    # Find relative value of forward rates
+    k1k2 = K1K2*KeQ
+    k1 = k1k2/k2
+    # maximise one reverse rate
+    K1 = maxrate
+    K2 = K1K2/K1
+    return(k1,K1,K2)
 end
 
-# function to create alternate parameters from an initial parameter set stored as first row
-function shiftks(kset::Array{Float64,2},h::Float64)
-    # Don't change first line, just use to update the second and third lines
-    kset[2,3] = h*kset[1,3]
-    kset[3,3] = kset[1,3]/h
-    return(kset)
-end
-
-# function to find the value of KS that maximises
-function maxK(k1::Float64,k2::Float64,KeQ::Float64,maxr::Float64)
-    # Starting values of rates
-    K1 = 1.00e3
-    # factor to increase/decrease by
-    h = 1.001
-    # Make array to store parameters
-    N = 3 # testing 8+1 parameter sets
-    kset = fill(Inf,(N,4))
-    kset[:,2] .= k2
-    kset[:,1] .= k1
-    kset[1,3] = K1
-    KS = fill(Inf,N)
-    # Now start while loop
-    fsh = false
-    while fsh == false
-        # Use first row of parameter set to generate other rows
-        kset = shiftks(kset,h)
-        # Find and add K2 values
-        for i = 1:N
-            kset[i,4] = findK2(kset[i,1],kset[i,2],kset[i,3],KeQ,maxr)
-        end
-        # Calculate KS values for the sets
-        for i = 1:N
-            if isfinite(kset[i,4])
-                # Then calculate values for KS
-                KS[i] = satK(kset[i,1],kset[i,2],kset[i,3])
-            else
-                # If K2 value is set Inf then ignore set
-                KS[i] = Inf
-            end
-        end
-        # Choose smallest value and make this the new parameter set
-        I = argmin(KS)
-        # Now overwrite
-        kset[1,:] .= kset[I,:]
-        # Stop while loop if best parameter set is self
-        if I == 1
-            fsh = true
-        end
-    end
-    K1 = kset[1,3]
-    K2 = kset[1,4]
-    return(K1,K2)
-end
-
-# Function to do some vague investigating into the tradeoffs
-function tradeinvest()
+# Function to test simple idea
+function fixK1K2()
     # First need to define some basic parameters
     # Bunch of assumptions about the environment
-    α = 5.55e-6 # These two rates can be changed
-    δ = 1.00e-5
+    α = 5.55e-4 # These two rates can be changed
+    δ = 1.00e-4
     θ = 0.0 # Thermodynamic inhibition not reached
     CO = 0.21 # High value so oxegen isn't limiting
     # Will consider glucose to begin with and then move onto lower free energy changes
@@ -123,19 +68,23 @@ function tradeinvest()
     Temp = 312.0 # Temperature that growth is occuring at in Kelvin
     # Use to find equilbrium constant
     KeQ = Keq(ΔG0,η,ΔGATP,Temp)
-    # Now want to choose maximum populations for a range of k values
-    k2s = collect(10.0:10.0:1000.0)
-    qm = zeros(length(k2s))
-    KS = zeros(length(k2s))
-    kr = zeros(length(k2s))
-    QT = zeros(length(k2s))
-    Ns = zeros(length(k2s))
-    maxr = 1.00e6
-    k1 = 1.00e4 # Now a fixed quantity, should be carefully chosen
-    for i = 1:length(k2s)
-        k2 = k2s[i]
-        K1, K2 = maxK(k1,k2,KeQ,maxr)
-        qm[i], KS[i], _, kr[i] = qKmY(k1,K1,k2,K2,E0)
+    # Setup max rates etc
+    maxrate = 1.0e6
+    K1K2 = 1.0e8
+    # Make vector of k2's to test
+    k2 = collect(10.0:10.0:10000.0)
+    k1 = zeros(length(k2))
+    K1 = zeros(length(k2))
+    K2 = zeros(length(k2))
+    KS = zeros(length(k2))
+    qm = zeros(length(k2))
+    kr = zeros(length(k2))
+    QT = zeros(length(k2))
+    Ns = zeros(length(k2))
+    for i = 1:length(k2)
+        # Find k rates from function
+        k1[i], K1[i], K2[i] = krates(maxrate,K1K2,k2[i],KeQ)
+        qm[i], KS[i], _, kr[i] = qKmY(k1[i],K1[i],k2[i],K2[i],E0)
         QT[i] = Qineq(η,qm[i],m,kr[i],KeQ)
         _, _, Ns[i] = stead(KS[i],kr[i],η,qm[i],m,CO,α,δ,θ)
     end
@@ -152,4 +101,4 @@ function tradeinvest()
     return(nothing)
 end
 
-@time tradeinvest()
+@time fixK1K2()

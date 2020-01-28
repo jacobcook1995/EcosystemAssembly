@@ -10,10 +10,10 @@ import PyPlot
 # function to find qm, KS, m, Y based on reference values, kinetic parameters and enzyme concentrations
 function qKmY(k1::Float64,K1::Float64,k2::Float64,K2::Float64,E0::Float64)
     # Standard formula for qm, KS, KP and kr
-    qm = k2*E0
+    qm = maxq(k2,E0)
     KS = satK(k1,k2,K1)
     KP = (K1+k2)/(K2)
-    kr = k2/K1
+    kr = krev(k2,K1)
     return(qm,KS,KP,kr)
 end
 
@@ -37,14 +37,42 @@ function stead(KS::Float64,kr::Float64,η::Float64,qm::Float64,m::Float64,CO::Fl
     return(S,P,X)
 end
 
+# function to find the choice of rates that lead to a maximum QT
+function maxQT(k2::Float64,maxrate::Float64,K1K2::Float64,E0::Float64,m::Float64,Keq::Float64,η::Float64)
+    # Set number of increments to find
+    N = 5000
+    # Fraction of maximum QT that is acceptable
+    f = 0.001
+    # First calculate value for qm (max rate)
+    qm = maxq(k2,E0)
+    # As starting value use maxrate, make it a logaritmic range
+    K2s = exp10.(collect(range(log10(maxrate),stop=log10(K1K2/maxrate),length=N)))
+    QT = zeros(N)
+    # Loop over each possible K2 value
+    for i = 1:N
+        # Find corresponding value for K1
+        K1 = K1K2/K2s[i]
+        # Find reverse rate and use to calculate threshold.
+        kr = krev(k2,K1)
+        QT[i] = Qineq(η,qm,m,kr,Keq)
+    end
+    # find maximum value of QT
+    mQT = maximum(QT)
+    # find first QT within f of it
+    I = findfirst(QT .>= mQT-f*mQT)
+    # Choose K2 value from the vector
+    K2 = K2s[I]
+    return(K2)
+end
+
 # function to find krates based on max rates, and combined value of K1K2
-function krates(maxrate::Float64,K1K2::Float64,k2::Float64,KeQ::Float64)
+function krates(maxrate::Float64,K1K2::Float64,k2::Float64,KeQ::Float64,E0::Float64,m::Float64,η::Float64)
     # Find relative value of forward rates
     k1k2 = K1K2*KeQ
     k1 = k1k2/k2
-    # maximise one reverse rate
-    K1 = maxrate
-    K2 = K1K2/K1
+    # Find value of K2 that gives maximum threshold
+    K2 = maxQT(k2,maxrate,K1K2,E0,m,KeQ,η)
+    K1 = K1K2/K2
     return(k1,K1,K2)
 end
 
@@ -70,9 +98,9 @@ function fixK1K2()
     KeQ = Keq(ΔG0,η,ΔGATP,Temp)
     # Setup max rates etc
     maxrate = 1.0e6
-    K1K2 = 1.0e8
+    K1K2 = 1.0e6
     # Make vector of k2's to test
-    k2 = collect(10.0:10.0:10000.0)
+    k2 = [collect(0.3:0.1:0.9);collect(1.0:1.0:9.0);collect(10.0:10.0:90.0);collect(100.0:100.0:1000.0)]
     k1 = zeros(length(k2))
     K1 = zeros(length(k2))
     K2 = zeros(length(k2))
@@ -83,7 +111,7 @@ function fixK1K2()
     Ns = zeros(length(k2))
     for i = 1:length(k2)
         # Find k rates from function
-        k1[i], K1[i], K2[i] = krates(maxrate,K1K2,k2[i],KeQ)
+        k1[i], K1[i], K2[i] = krates(maxrate,K1K2,k2[i],KeQ,E0,m,η)
         qm[i], KS[i], _, kr[i] = qKmY(k1[i],K1[i],k2[i],K2[i],E0)
         QT[i] = Qineq(η,qm[i],m,kr[i],KeQ)
         _, _, Ns[i] = stead(KS[i],kr[i],η,qm[i],m,CO,α,δ,θ)

@@ -6,7 +6,9 @@ module Syntrophy
 include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available
 
 # Export complicated functions
-export GFree, θT, netE, SCoef, QCoef, qrate, Keq, satK
+export GFree, θT, netE, SCoef, QCoef, qrate, Keq
+# Export my elementary functions
+export satK, krev, maxq
 # export all my objects
 export Nut, React, Microbe
 # export very simple functions
@@ -186,8 +188,36 @@ end
 
 # function that returns a value of KS based on the three relevant rates
 function satK(k1::Float64,k2::Float64,K1::Float64)
+    # k1 => substrate binding rate
+    # k2 => product unbinding rate
+    # K1 => substrate unbinding rate
+    ############ START OF FUNCTION ###################
+
+    # Calculate value
     KS = (K1+k2)/k1
     return(KS)
+end
+
+# function that returns a value of kr based on the two relevant rates
+function krev(k2::Float64,K1::Float64)
+    # k2 => product unbinding rate
+    # K1 => substrate unbinging rate
+    ############ START OF FUNCTION ###################
+
+    # Calculate value
+    kr = k2/K1
+    return(kr)
+end
+
+# function that returns a value of qm based on the relevant rate and the per cell amount of enzyme
+function maxq(k2::Float64,E0::Float64)
+    # k2 => product unbinding rate
+    # E0 => amount of enzyme moles per cell
+    ############ START OF FUNCTION ###################
+
+    # Calculate value
+    qm = k2*E0
+    return(qm)
 end
 
 end # module

@@ -94,37 +94,39 @@ function fixK1K2()
     # Define other thermodynamically relevant constants
     ΔGATP = 75000.0 # Gibbs free energy of formation of ATP in a standard cell
     Temp = 312.0 # Temperature that growth is occuring at in Kelvin
-    # Use to find equilbrium constant
-    KeQ = Keq(ΔG0,η,ΔGATP,Temp)
+    # Make vector of Temps to look at
+    Temps = collect(Temp-50.0:10.0:Temp+50.0)
     # Setup max rates etc
     maxrate = 1.0e6
-    K1K2 = 1.0e6
+    K1K2 = 1.0e7
     # Make vector of k2's to test
     k2 = [collect(0.3:0.1:0.9);collect(1.0:1.0:9.0);collect(10.0:10.0:90.0);collect(100.0:100.0:1000.0)]
-    k1 = zeros(length(k2))
-    K1 = zeros(length(k2))
-    K2 = zeros(length(k2))
-    KS = zeros(length(k2))
-    qm = zeros(length(k2))
-    kr = zeros(length(k2))
-    QT = zeros(length(k2))
-    Ns = zeros(length(k2))
-    for i = 1:length(k2)
-        # Find k rates from function
-        k1[i], K1[i], K2[i] = krates(maxrate,K1K2,k2[i],KeQ,E0,m,η)
-        qm[i], KS[i], _, kr[i] = qKmY(k1[i],K1[i],k2[i],K2[i],E0)
-        QT[i] = Qineq(η,qm[i],m,kr[i],KeQ)
-        _, _, Ns[i] = stead(KS[i],kr[i],η,qm[i],m,CO,α,δ,θ)
+    KS = zeros(length(k2),length(Temps))
+    qm = zeros(length(k2),length(Temps))
+    kr = zeros(length(k2),length(Temps))
+    QT = zeros(length(k2),length(Temps))
+    Ns = zeros(length(k2),length(Temps))
+    KeQ = zeros(length(Temps))
+    for j = 1:length(Temps)
+        # Calculate equilbrium constant
+        KeQ[j] = Keq(ΔG0,η,ΔGATP,Temps[j])
+        for i = 1:length(k2)
+            # Find k rates from function
+            k1, K1, K2 = krates(maxrate,K1K2,k2[i],KeQ[j],E0,m,η)
+            qm[i,j], KS[i,j], _, kr[i,j] = qKmY(k1,K1,k2[i],K2,E0)
+            QT[i,j] = Qineq(η,qm[i,j],m,kr[i,j],KeQ[j])
+            _, _, Ns[i,j] = stead(KS[i,j],kr[i,j],η,qm[i,j],m,CO,α,δ,θ)
+        end
     end
     pyplot(dpi=200)
     Lqm = L"q_m"
-    plot(qm*1e18,KS,xlabel="$(Lqm) (10^-18)")
+    plot(qm*1e17,KS,xlabel="$(Lqm) (10^-17)")
     savefig("Output/qmvsKS.png")
-    plot(qm*1e18,kr,xlabel="$(Lqm) (10^-18)")
+    plot(qm*1e17,kr,xlabel="$(Lqm) (10^-17)")
     savefig("Output/qmvskr.png")
-    plot(qm*1e18,Ns,xlabel="$(Lqm) (10^-18)")
+    plot(qm*1e17,Ns,xlabel="$(Lqm) (10^-17)")
     savefig("Output/qmvsNs.png")
-    plot(qm*1e18,QT,xlabel="$(Lqm) (10^-18)")
+    plot(qm*1e17,QT,xlabel="$(Lqm) (10^-17)")
     savefig("Output/qmvsQT.png")
     return(nothing)
 end

@@ -1,0 +1,4 @@
+name = "Assembly"
+uuid = "3fa183f5-58d2-4405-a73a-112023f4ccbb"
+authors = ["Jacob Cook <jc2017@ic.ac.uk>"]
+version = "0.1.0"

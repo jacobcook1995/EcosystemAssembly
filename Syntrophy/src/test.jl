@@ -147,7 +147,7 @@ function tradeoff()
     # Then sub them in
     sdQdN = subs(dQdN,(kp,k),(ΔμATP,ΔGATP),(Δμ0,-ΔG0))
     # Now plot this for a range of N values
-    Ns = collect(0.1:0.1:38.0)
+    Ns = collect(30.0:0.01:37.92)
     dQ = zeros(length(Ns))
     for i = 1:length(Ns)
         dQ[i] = subs(sdQdN,N,Ns[i]) |> float
@@ -155,9 +155,17 @@ function tradeoff()
     pyplot(dpi=200)
     plot(Ns,dQ)
     savefig("Output/test.png")
-    # Then solve for N
-    Nm = SymPy.solve(dQdN,N)
-    println(Nm)
+    # Do the same for Q
+    sQ = subs(Q,(kp,k),(ΔμATP,ΔGATP),(Δμ0,-ΔG0))
+    Qs = zeros(length(Ns))
+    for i = 1:length(Ns)
+        Qs[i] = subs(sQ,N,Ns[i]) |> float
+    end
+    plot(Ns,Qs)
+    savefig("Output/test2.png")
+    # # Then solve for N
+    # Nm = SymPy.solve(dQdN,N)
+    # println(Nm)
     return(nothing)
 end
 

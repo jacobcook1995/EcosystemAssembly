@@ -2,6 +2,7 @@ using Syntrophy
 using Plots
 using DifferentialEquations
 using LaTeXStrings
+using SymPy
 import PyPlot
 
 # This is a script to write my testing code into
@@ -131,4 +132,33 @@ function fixK1K2()
     return(nothing)
 end
 
-@time fixK1K2()
+# function to test rate yield tradeoff that Robert suggested
+function tradeoff()
+    # Define relevant symbols
+    N, kp, Δμ0, ΔμATP = symbols("N kp Dm0 DATP")
+    # Enter the initial equation
+    Q = N*kp*(1-ℯ^(ΔμATP-(Δμ0/N)))
+    # Find the differential of this equation
+    dQdN = diff(Q,N)
+    # Define variables to sub in
+    ΔGATP = 75000.0
+    ΔG0 = -2843800.0
+    k = 1
+    # Then sub them in
+    sdQdN = subs(dQdN,(kp,k),(ΔμATP,ΔGATP),(Δμ0,-ΔG0))
+    # Now plot this for a range of N values
+    Ns = collect(0.1:0.1:38.0)
+    dQ = zeros(length(Ns))
+    for i = 1:length(Ns)
+        dQ[i] = subs(sdQdN,N,Ns[i]) |> float
+    end
+    pyplot(dpi=200)
+    plot(Ns,dQ)
+    savefig("Output/test.png")
+    # Then solve for N
+    Nm = SymPy.solve(dQdN,N)
+    println(Nm)
+    return(nothing)
+end
+
+@time tradeoff()

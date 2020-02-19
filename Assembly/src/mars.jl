@@ -67,15 +67,15 @@ end
 # function to construct vector of metabolite types, very simple at momet but can tweak it if I wish
 function Mtypes(M::Int64,Nt::Int64)
     # Simple error message here to avoid negative occurances of metabolite types
-    @assert round(M/4) + Nt <= M "Cannot have more metabolite types than metabolites"
+    @assert round(M/4) + (Nt-1) <= M "Cannot have more metabolite types than metabolites"
     # Initialise the vectors
     Ms = zeros(Int64,M)
-    cM = zeros(Int64,1+Nt)
+    cM = zeros(Int64,Nt)
     # One in four metabolities are of prefered byproduct type
     cM[1] = round(M/4)
     # Otherwise divided evenly between byproduct types
     for i = 2:length(cM)-1
-        cM[i] = round(3*M/(4*Nt))
+        cM[i] = round(3*M/(4*(Nt-1)))
     end
     # This adjusts for the rounding => Final catagory can often be bigger
     cM[end] = M - sum(cM[1:end-1])
@@ -121,10 +121,68 @@ function Dmatrix(M::Int64,fc::Float64,fs::Float64,d0::Float64,Ms::Array{Int64,1}
     return(D)
 end
 
+# function to find the specialism of the consumers
+function special(N::Int64,Nt::Int64)
+    # Initialise the vectors
+    Mp = zeros(Int64,N)
+    # One more entry than number of metabolities types
+    # [1] => generalist, [2] => specialist for metabolite etc
+    cMp = zeros(Int64,1+Nt)
+    # Half the species are generalists
+    cMp[1] = round(N/2)
+    # Randomly assign the remaining consumers generalisms
+    for i = cMp[1]+1:N
+        Mp[i] = rand(1:Nt)
+    end
+    # Then sort so that it is easier to read
+    Mp = sort(Mp)
+    # Count these and add them to the vector
+    for i = 1:Nt
+        cMp[i+1] = count(x->x==i,Mp)
+    end
+    return(Mp,cMp)
+end
+
+# function to construct the matrix of consumer preferences
+function cmatrix(N::Int64,M::Int64,Mp::Array{Int64,1},cM::Array{Int64,1},Ms::Array{Int64,1},c0::Float64,c1::Float64,μc::Float64,qA::Float64)
+    @assert qA >= 0.0 "Consumer preference strength parameter cannot be negative"
+    @assert c0 >= 0.0 && c1 >= 0.0 "Cannot have negative preference coefficients"
+    # Initialise matrix
+    c = zeros(N,M)
+    # Determine low value and high values
+    l = c0/M
+    h = c0/M + c1
+    # Loop over all metabolites and all consumers
+    for j = 1:M
+        for i = 1:N
+            # Check if species is a generalist
+            if Mp[i] == 0
+                p = μc/(M*c1)
+                println("General p = $p")
+            # Or a specialist-specialism pair
+            elseif Mp[i] == Ms[j]
+                p = (μc/(M*c1))*(1+qA*((M-cM[Mp[i]])/cM[Mp[i]]))
+                println("1st special p = $p")
+            else
+                p = μc/(M*c1)*(1-qA)
+                println("2nd special p = $p")
+            end
+            # Draw random number if less than p then set peference high
+            r = rand()
+            if r <= p
+                c[i,j] = h
+            else
+                c[i,j] = l
+            end
+        end
+    end
+    return(c)
+end
+
 # function to run simulation of the Marsland model
 function simulate()
     # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
-    N = 5
+    N = 6
     M = 20
     # All metabolities have the same value for simplicity
     w = ones(M)
@@ -140,14 +198,24 @@ function simulate()
     δi = 1.0
     δ = δi*ones(M)
     # Find M types so that I can define c and D
-    Nt = 3 # Number of additional types
+    Nt = 4 # Number of metabolite types
     Ms, cM = Mtypes(M,Nt)
     # Find D using a function that samples from the Dirichlet distribution
     fc = 0.3 # These fractions are parameters that could be changed
     fs = 0.3
     d0 = 0.5 # Stochasticity parameter, worth fiddling with
     D = Dmatrix(M,fc,fs,d0,Ms,cM)
-    # c is a bit more fiddly => Needs a function
+    # Find generalism or specialism of consumers so that c can be found
+    Mp, cMp = special(N,Nt)
+    # Find c using a function that samples from a binary probability distribution
+    c0 = 0.01*(100) # 100 metabolites used in paper => c0/M = 0.01
+    c1 = 1.00-(c0/M) # Low + high = 1.00
+    # Complex form to match specificities of the paper
+    μc = 0.1*(c1+c0/M) + 0.9*(c0/M)
+    println(μc)
+    qA = 0.5 # preference strength parameter, worth fiddling with
+    c = cmatrix(N,M,Mp,cM,Ms,c0,c1,μc,qA)
+    println(c)
     # m is fixed with a Guassian offset => Also needs to be a function
     return(nothing)
 end

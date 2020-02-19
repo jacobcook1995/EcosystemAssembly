@@ -51,7 +51,7 @@ function make_Parameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64
 # Use asserts to avoid unphysical proportions
 @assert all(l .<= 1) "One or more l values are > 1"
 @assert all(l .>= 0) "One or more l values are negative"
-@assert all(sum(D,dims=2) .= 1) "One or more rows in D does not sum to 1"
+@assert all(sum(D,dims=1) .= 1) "One or more rows in D does not sum to 1"
 @assert all(δ .>= 0) "One or more decay rates in δ are negative"
 
 return(Parameters(N,M,c,m,g,l,κ,w,D,δ))

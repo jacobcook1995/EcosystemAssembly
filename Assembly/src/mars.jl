@@ -159,9 +159,8 @@ function mvector(N::Int64,mm::Float64,sdm::Float64)
 end
 
 # function to implement the consumer resource dynamics
-# I currently provide vin and vout in order to avoid uneeded allocations => Is this sensible?
-# ARE STATIC ARRAYS A GOOD IDEA? => Definetly are if I am not adding or removing species
-function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},t::Float64,ps::Parameters,vins::Array{Float64,2},vouts::Array{Float64,2})
+# ACTUALLY WANT TO OPTIMIZE NOT USING STATIC ARRAYS AS CARE MORE ABOUT LARGE CASES RUNNING FAST RATHER THAN SMALL ONES
+function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::MarsParameters,vins::Array{Float64,2},vouts::Array{Float64,2},t::Float64)
     # First find and store intake rates
     for j = 1:ps.M
         for i = 1:ps.N
@@ -188,7 +187,13 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},t::Float64,ps::Param
         end
     end
     # Finally return the new dxdt values
-    return(dxdt)
+    return(dx)
+end
+
+# quick test function
+function test!(dx::Array{Float64,1},x::Array{Float64,1},ps::MarsParameters,t::Float64)
+    dx .= 0.2
+    return(dx)
 end
 
 # function to run simulation of the Marsland model
@@ -242,13 +247,17 @@ function simulate()
     x0 = [pop;conc]
     vins = zeros(N,M)
     vouts = zeros(N,M)
-    # Give the function the parameters + preallocated memory
-    dyns!(dx,x,t) = dynamics!(dx,x,t,ps,vins,vouts)
-    # Try this now
-    tspan = (0.0,100.0)
-    prob = ODEProblem(dyns!,x0,tspan)
-    println(prob)
-    @benchmark solve(prob,Tsit5())
+    # Now substitute preallocated memory in
+    dyns!(dx,x,ps,t) = dynamics!(dx,x,ps,vins,vouts,t)
+    # Choose time span and set off problem
+    tspan = (0.0,10.0)
+    # # Then setup and solve the problem
+    # prob = ODEProblem(dyns!,x0,tspan,ps)
+    # sol = solve(prob)
+    # println(sol)
+    x0 = [1.0,2.0,3.0]
+    prob = ODEProblem(test!,x0,tspan,ps)
+    @benchmark solve($(prob),save_everystep=false)
     return(nothing)
 end
 

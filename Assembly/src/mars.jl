@@ -176,6 +176,19 @@ function cmatrix(N::Int64,M::Int64,Mp::Array{Int64,1},cM::Array{Int64,1},Ms::Arr
     return(c)
 end
 
+# function to generate a vector of values for the maintenance energy requirments m
+function mvector(N::Int64,mm::Float64,sdm::Float64)
+    @assert mm - 5*sdm >= 0.0 "This choice could result in negative energy requirements"
+    # Initialise vector of m
+    m = zeros(N)
+    # Make required Gaussian distribution using the provided mean (mm) and SD (sdm)
+    d = Normal(mm,sdm)
+    for i = 1:N
+        m[i] = rand(d)
+    end
+    return(m)
+end
+
 # function to run simulation of the Marsland model
 function simulate()
     # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
@@ -215,8 +228,10 @@ function simulate()
     qA = 0.5 # preference strength parameter, worth fiddling with
     # Find c using a function that samples from a binary probability distribution
     c = cmatrix(N,M,Mp,cM,Ms,c0,c1,μc,qA)
-    println(c)
-    # m is fixed with a Guassian offset => Also needs to be a function
+    # Find m using a function that gives a Guassian offset
+    mm = 1.0
+    sdm = 0.1
+    m = mvector(N,mm,sdm)
     return(nothing)
 end
 

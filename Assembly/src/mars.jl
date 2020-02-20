@@ -2,6 +2,8 @@
 # This provides a point of comparison for our extended model
 using Assembly
 using Distributions
+using DifferentialEquations
+using BenchmarkTools # REMOVE THIS ONCE I'VE DONE TESTING
 
 # function to find rate of intake of a particular resource, this is currently a linear function
 function vin(pref::Float64,conc::Float64)
@@ -29,39 +31,6 @@ function Jgrow(M::Int64,l::Array{Float64,1},vals::Array{Float64,1},vins::Array{F
         Jg += (1-l[i])*vals[i]*vins[i]
     end
     return(Jg)
-end
-
-# function to implement the consumer resource dynamics
-# I currently provide vin and vout in order to avoid uneeded allocations => Is this sensible?
-# Also think that pop and concs need to be merged => Do this later if neccesary
-function dynamics(ps::Parameters,dxdt::Array{Float64,1},pop::Array{Float64,1},concs::Array{Float64,1},vins::Array{Float64,2},vouts::Array{Float64,2})
-    # First find and store intake rates
-    for j = 1:ps.M
-        for i = 1:ps.N
-            vins[i,j] = vin(ps.c[i,j],concs[j])
-        end
-    end
-    # Then use to find output rates
-    for j = 1:ps.M
-        for i = 1:ps.N
-            vouts[i,j] = vout(ps.l,ps.w[j],ps.w,vins[i,:],ps.D[j,:])
-        end
-    end
-    # First consumer dynamics
-    for i = 1:ps.N
-        dxdt[i] = ps.g[i]*pop[i]*(Jgrow(ps.M,ps.l,ps.w,vins[i,:]) - ps.m[i])
-    end
-    # Then resource dynamics
-    for i = ps.N+1:ps.N+ps.M
-        # fist add external supply of resource and decay
-        dxdt[i] = ps.κ[i-ps.N] - ps.δ[i-ps.N]
-        # Then consider contribution by various microbes
-        for j = 1:ps.N
-            dxdt[i] += pop[i]*(vouts[j,i-ps.N] - vins[j,i-ps.N])
-        end
-    end
-    # Finally return the new dxdt values
-    return(dxdt)
 end
 
 # function to construct vector of metabolite types, very simple at momet but can tweak it if I wish
@@ -189,6 +158,39 @@ function mvector(N::Int64,mm::Float64,sdm::Float64)
     return(m)
 end
 
+# function to implement the consumer resource dynamics
+# I currently provide vin and vout in order to avoid uneeded allocations => Is this sensible?
+# ARE STATIC ARRAYS A GOOD IDEA? => Definetly are if I am not adding or removing species
+function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},t::Float64,ps::Parameters,vins::Array{Float64,2},vouts::Array{Float64,2})
+    # First find and store intake rates
+    for j = 1:ps.M
+        for i = 1:ps.N
+            vins[i,j] = vin(ps.c[i,j],x[ps.N+j])
+        end
+    end
+    # Then use to find output rates
+    for j = 1:ps.M
+        for i = 1:ps.N
+            vouts[i,j] = vout(ps.l,ps.w[j],ps.w,vins[i,:],ps.D[j,:])
+        end
+    end
+    # First consumer dynamics
+    for i = 1:ps.N
+        dx[i] = ps.g[i]*x[i]*(Jgrow(ps.M,ps.l,ps.w,vins[i,:]) - ps.m[i])
+    end
+    # Then resource dynamics
+    for i = ps.N+1:ps.N+ps.M
+        # fist add external supply of resource and decay
+        dx[i] = ps.κ[i-ps.N] - ps.δ[i-ps.N]
+        # Then consider contribution by various microbes
+        for j = 1:ps.N
+            dx[i] += x[i]*(vouts[j,i-ps.N] - vins[j,i-ps.N])
+        end
+    end
+    # Finally return the new dxdt values
+    return(dxdt)
+end
+
 # function to run simulation of the Marsland model
 function simulate()
     # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
@@ -213,18 +215,18 @@ function simulate()
     # Find D using a function that samples from the Dirichlet distribution
     fc = 0.3 # These fractions are parameters that could be changed
     fs = 0.3
-    d0 = 0.5 # Stochasticity parameter, worth fiddling with
+    d0 = 0.2 # Stochasticity parameter, worth fiddling with
     D = Dmatrix(M,fc,fs,d0,Ms,cM)
     # Find generalism or specialism of consumers so that c can be found
     Mp, cMp = special(N,Nt)
     # Specify high and low expression levels
-    h = 1.00
-    l = 0.01
-    # Average of 10% highly expressed
-    μc = 0.1*h*M
+    hi = 1.00
+    lo = 0.01
+    # Average of 10% of metabolites selected
+    μc = 0.1*M
     # Define c0 and c1 such that they result in correct expression values
-    c0 = l*M
-    c1 = h-(c0/M)
+    c0 = 0.01
+    c1 = 1.00
     qA = 0.5 # preference strength parameter, worth fiddling with
     # Find c using a function that samples from a binary probability distribution
     c = cmatrix(N,M,Mp,cM,Ms,c0,c1,μc,qA)
@@ -232,6 +234,21 @@ function simulate()
     mm = 1.0
     sdm = 0.1
     m = mvector(N,mm,sdm)
+    # Now make the parameter set
+    ps = make_Parameters(N,M,c,m,g,l,κ,w,D,δ)
+    # Initialise vectors of concentrations and populations
+    pop = ones(N)
+    conc = zeros(M)
+    x0 = [pop;conc]
+    vins = zeros(N,M)
+    vouts = zeros(N,M)
+    # Give the function the parameters + preallocated memory
+    dyns!(dx,x,t) = dynamics!(dx,x,t,ps,vins,vouts)
+    # Try this now
+    tspan = (0.0,100.0)
+    prob = ODEProblem(dyns!,x0,tspan)
+    println(prob)
+    @benchmark solve(prob,Tsit5())
     return(nothing)
 end
 

@@ -1,7 +1,7 @@
 # The function and struct used in this script were adapted from code orginally written by Tom Clegg
 
 # Export Parameters so that it can be used elsewhere in my code
-export Parameters
+export Parameters, make_Parameters
 
 """
     Parameters(N::Int64,M::Int64,u::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},h::Vector{Float64})
@@ -51,7 +51,7 @@ function make_Parameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64
 # Use asserts to avoid unphysical proportions
 @assert all(l .<= 1) "One or more l values are > 1"
 @assert all(l .>= 0) "One or more l values are negative"
-@assert all(sum(D,dims=1) .= 1) "One or more rows in D does not sum to 1"
+@assert all(sum(D,dims=1) .≈ 1) "One or more rows in D does not sum to 1"
 @assert all(δ .>= 0) "One or more decay rates in δ are negative"
 
 return(Parameters(N,M,c,m,g,l,κ,w,D,δ))

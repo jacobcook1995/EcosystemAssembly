@@ -158,14 +158,11 @@ function cmatrix(N::Int64,M::Int64,Mp::Array{Int64,1},cM::Array{Int64,1},Ms::Arr
             # Check if species is a generalist
             if Mp[i] == 0
                 p = μc/(M*c1)
-                println("General p = $p")
             # Or a specialist-specialism pair
             elseif Mp[i] == Ms[j]
                 p = (μc/(M*c1))*(1+qA*((M-cM[Mp[i]])/cM[Mp[i]]))
-                println("1st special p = $p")
             else
                 p = μc/(M*c1)*(1-qA)
-                println("2nd special p = $p")
             end
             # Draw random number if less than p then set peference high
             r = rand()
@@ -207,13 +204,16 @@ function simulate()
     D = Dmatrix(M,fc,fs,d0,Ms,cM)
     # Find generalism or specialism of consumers so that c can be found
     Mp, cMp = special(N,Nt)
-    # Find c using a function that samples from a binary probability distribution
-    c0 = 0.01*(100) # 100 metabolites used in paper => c0/M = 0.01
-    c1 = 1.00-(c0/M) # Low + high = 1.00
-    # Complex form to match specificities of the paper
-    μc = 0.1*(c1+c0/M) + 0.9*(c0/M)
-    println(μc)
+    # Specify high and low expression levels
+    h = 1.00
+    l = 0.01
+    # Average of 10% highly expressed
+    μc = 0.1*h*M
+    # Define c0 and c1 such that they result in correct expression values
+    c0 = l*M
+    c1 = h-(c0/M)
     qA = 0.5 # preference strength parameter, worth fiddling with
+    # Find c using a function that samples from a binary probability distribution
     c = cmatrix(N,M,Mp,cM,Ms,c0,c1,μc,qA)
     println(c)
     # m is fixed with a Guassian offset => Also needs to be a function

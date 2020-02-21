@@ -3,7 +3,6 @@
 using Assembly
 using Distributions
 using DifferentialEquations
-using BenchmarkTools # REMOVE THIS ONCE I'VE DONE TESTING
 
 # function to find rate of intake of a particular resource, this is currently a linear function
 function vin(pref::Float64,conc::Float64)
@@ -159,7 +158,6 @@ function mvector(N::Int64,mm::Float64,sdm::Float64)
 end
 
 # function to implement the consumer resource dynamics
-# ACTUALLY WANT TO OPTIMIZE NOT USING STATIC ARRAYS AS CARE MORE ABOUT LARGE CASES RUNNING FAST RATHER THAN SMALL ONES
 function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::MarsParameters,vins::Array{Float64,2},vouts::Array{Float64,2},t::Float64)
     # First find and store intake rates
     for j = 1:ps.M
@@ -187,12 +185,6 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::MarsParameters,v
         end
     end
     # Finally return the new dxdt values
-    return(dx)
-end
-
-# quick test function
-function test!(dx::Array{Float64,1},x::Array{Float64,1},ps::MarsParameters,t::Float64)
-    dx .= 0.2
     return(dx)
 end
 
@@ -252,12 +244,8 @@ function simulate()
     # Choose time span and set off problem
     tspan = (0.0,10.0)
     # # Then setup and solve the problem
-    # prob = ODEProblem(dyns!,x0,tspan,ps)
-    # sol = solve(prob)
-    # println(sol)
-    x0 = [1.0,2.0,3.0]
-    prob = ODEProblem(test!,x0,tspan,ps)
-    @benchmark solve($(prob),save_everystep=false)
+    prob = ODEProblem(dyns!,x0,tspan,ps)
+    sol = solve($(prob))
     return(nothing)
 end
 

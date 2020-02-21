@@ -3,34 +3,8 @@
 using Assembly
 using Distributions
 using DifferentialEquations
-
-# function to find rate of intake of a particular resource, this is currently a linear function
-function vin(pref::Float64,conc::Float64)
-    return(pref*conc)
-end
-
-# function to find rate of output of a particular resource, this matches vin as a linear function
-# wb is the value of the output resource, vins is 1D as only need inputs for specific microbe type
-# Da is the vector of transformations from resource a to other resources
-function vout(l::Array{Float64},wb::Float64,w::Array{Float64,1},vins::Array{Float64,1},Da::Array{Float64,1})
-    # Initialise vout to zero
-    vo = 0
-    # Loop over all resourses
-    for i = 1:length(l)
-        vo += (w[i]/wb)*Da[i]*l[i]*vins[i]
-    end
-    return(vo)
-end
-
-# function to find the energy obtained for growth from all resources for a particular cell
-function Jgrow(M::Int64,l::Array{Float64,1},vals::Array{Float64,1},vins::Array{Float64,1})
-    Jg = 0
-    # Loop over all resources
-    for i = 1:M
-        Jg += (1-l[i])*vals[i]*vins[i]
-    end
-    return(Jg)
-end
+using Plots # REMOVE THIS ONCE I'VE DONE TO A SEPERATE ANALYSIS SCRIPT
+import PyPlot
 
 # function to construct vector of metabolite types, very simple at momet but can tweak it if I wish
 function Mtypes(M::Int64,Nt::Int64)
@@ -157,42 +131,8 @@ function mvector(N::Int64,mm::Float64,sdm::Float64)
     return(m)
 end
 
-# function to implement the consumer resource dynamics
-function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::MarsParameters,vins::Array{Float64,2},vouts::Array{Float64,2},t::Float64)
-    # First find and store intake rates
-    for j = 1:ps.M
-        for i = 1:ps.N
-            vins[i,j] = vin(ps.c[i,j],x[ps.N+j])
-        end
-    end
-    # Then use to find output rates
-    for j = 1:ps.M
-        for i = 1:ps.N
-            vouts[i,j] = vout(ps.l,ps.w[j],ps.w,vins[i,:],ps.D[j,:])
-        end
-    end
-    # First consumer dynamics
-    for i = 1:ps.N
-        dx[i] = ps.g[i]*x[i]*(Jgrow(ps.M,ps.l,ps.w,vins[i,:]) - ps.m[i])
-    end
-    # Then resource dynamics
-    for i = ps.N+1:ps.N+ps.M
-        # fist add external supply of resource and decay
-        dx[i] = ps.κ[i-ps.N] - ps.δ[i-ps.N]
-        # Then consider contribution by various microbes
-        for j = 1:ps.N
-            dx[i] += x[i]*(vouts[j,i-ps.N] - vins[j,i-ps.N])
-        end
-    end
-    # Finally return the new dxdt values
-    return(dx)
-end
-
 # function to run simulation of the Marsland model
-function simulate()
-    # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
-    N = 6
-    M = 20
+function initialise(N::Int64,M::Int64)
     # All metabolities have the same value for simplicity
     w = ones(M)
     # And all proportionality constants are the same for simplicity
@@ -233,6 +173,75 @@ function simulate()
     m = mvector(N,mm,sdm)
     # Now make the parameter set
     ps = make_Parameters(N,M,c,m,g,l,κ,w,D,δ)
+    return(ps)
+end
+
+# function to find rate of intake of a particular resource, this is currently a linear function
+function vin(pref::Float64,conc::Float64)
+    return(pref*conc)
+end
+
+# function to find rate of output of a particular resource, this matches vin as a linear function
+# wb is the value of the output resource, vins is 1D as only need inputs for specific microbe type
+# Da is the vector of transformations from resource a to other resources
+function vout(l::Array{Float64},wb::Float64,w::Array{Float64,1},vins::Array{Float64,1},Da::Array{Float64,1})
+    # Initialise vout to zero
+    vo = 0
+    # Loop over all resourses
+    for i = 1:length(l)
+        vo += (w[i]/wb)*Da[i]*l[i]*vins[i]
+    end
+    return(vo)
+end
+
+# function to find the energy obtained for growth from all resources for a particular cell
+function Jgrow(M::Int64,l::Array{Float64,1},vals::Array{Float64,1},vins::Array{Float64,1})
+    Jg = 0
+    # Loop over all resources
+    for i = 1:M
+        Jg += (1-l[i])*vals[i]*vins[i]
+    end
+    return(Jg)
+end
+
+# function to implement the consumer resource dynamics
+function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::MarsParameters,vins::Array{Float64,2},vouts::Array{Float64,2},t::Float64)
+    # First find and store intake rates
+    for j = 1:ps.M
+        for i = 1:ps.N
+            # Set value of vin to zero if it has gone negative
+            vins[i,j] = max(vin(ps.c[i,j],x[ps.N+j]),0.0)
+        end
+    end
+    # Then use to find output rates
+    for j = 1:ps.M
+        for i = 1:ps.N
+            vouts[i,j] = vout(ps.l,ps.w[j],ps.w,vins[i,:],ps.D[j,:])
+        end
+    end
+    # First consumer dynamics
+    for i = 1:ps.N
+        dx[i] = ps.g[i]*x[i]*(Jgrow(ps.M,ps.l,ps.w,vins[i,:]) - ps.m[i])
+    end
+    # Then resource dynamics
+    for i = ps.N+1:ps.N+ps.M
+        # fist add external supply of resource and decay
+        dx[i] = ps.κ[i-ps.N] - ps.δ[i-ps.N]*x[i]
+        # Then consider contribution by various microbes
+        for j = 1:ps.N
+            dx[i] += x[j]*(vouts[j,i-ps.N] - vins[j,i-ps.N])
+        end
+    end
+    # Finally return the new dxdt values
+    return(dx)
+end
+
+function simulate()
+    # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
+    N = 20
+    M = 100
+    # Make random parameter set of this size
+    ps = initialise(N,M)
     # Initialise vectors of concentrations and populations
     pop = ones(N)
     conc = zeros(M)
@@ -242,10 +251,16 @@ function simulate()
     # Now substitute preallocated memory in
     dyns!(dx,x,ps,t) = dynamics!(dx,x,ps,vins,vouts,t)
     # Choose time span and set off problem
-    tspan = (0.0,10.0)
-    # # Then setup and solve the problem
+    tspan = (0.0,20.0)
+    # Then setup and solve the problem
     prob = ODEProblem(dyns!,x0,tspan,ps)
-    sol = solve($(prob))
+    sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
+    # Now do some test plotting
+    pyplot(dpi=200)
+    plot(sol.t,sol'[:,1:N],label="")
+    savefig("Output/PopTest.png")
+    plot(sol.t,sol'[:,N+1:N+M],label="")
+    savefig("Output/ConcTest.png")
     return(nothing)
 end
 

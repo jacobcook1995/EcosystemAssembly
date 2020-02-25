@@ -1,7 +1,7 @@
 # The function and struct used in this script were adapted from code orginally written by Tom Clegg
 
 # Export Parameters so that it can be used elsewhere in my code
-export MarsParameters, make_Parameters
+export MarsParameters, make_Parameters, reduce_Parameters
 
 """
     Parameters(N::Int64,M::Int64,u::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},h::Vector{Float64})
@@ -33,8 +33,8 @@ end
 
 """
     make_Parameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},κ::Vector{Float64},w::Vector{Float64},D::Array{Float64,2},δ::Vector{Float64})
-Helper function used internally. Takes values for parameters and returns a `Parameters`
-object. Also does checks internally to make sure the values are correct.
+Helper function used internally. Takes values for parameters and returns a `Parameters`object.
+Also does checks internally to make sure the values are correct.
 """
 function make_Parameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},κ::Vector{Float64},w::Vector{Float64},D::Array{Float64,2},δ::Vector{Float64})
 
@@ -55,4 +55,23 @@ function make_Parameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64
 @assert all(δ .>= 0) "One or more decay rates in δ are negative"
 
 return(MarsParameters(N,M,c,m,g,l,κ,w,D,δ))
+end
+
+""" reduce_Parameters(ps::MarsParameters,rem::Array{Int64,1})
+Helper function used internally. Takes an old parameter set and removes the elements specified in rem.
+"""
+function reduce_Parameters(ps::MarsParameters,rem::Array{Int64,1})
+
+    # Use asserts to check that valid microbes for removal have been considered
+    @assert length(unique(rem)) == length(rem) "Cannot remove a species twice"
+    @assert all(0 .< rem .<= ps.N) "Cannot remove species that doesn't exist, species numbers run from 1 to $(ps.N)"
+
+    # Determine number of species remaining
+    nN = ps.N - length(rem)
+    # Need to change some other things too => DELETE WHEN DONE
+    keep = collect(1:ps.N) .∉ rem
+    nc = ps.c[keep,:]
+    nm = ps.m[keep]
+    ng = ps.g[keep]
+    return(make_Parameters(nN,ps.M,nc,nm,ng,ps.l,ps.κ,ps.w,ps.D,ps.δ))
 end

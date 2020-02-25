@@ -240,18 +240,20 @@ function simulate()
     # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
     N = 20
     M = 100
+    # Set lower threshold for population exisiting
+    trsh = 1e-10
     # Make random parameter set of this size
     ps = initialise(N,M)
     # Initialise vectors of concentrations and populations
     pop = ones(N)
-    conc = zeros(M)
+    conc = 0.1*ones(M) # Initial trace amount of each metabolite
     x0 = [pop;conc]
     vins = zeros(N,M)
     vouts = zeros(N,M)
     # Now substitute preallocated memory in
     dyns!(dx,x,ps,t) = dynamics!(dx,x,ps,vins,vouts,t)
     # Choose time span and set off problem
-    tspan = (0.0,20.0)
+    tspan = (0.0,100.0)
     # Then setup and solve the problem
     prob = ODEProblem(dyns!,x0,tspan,ps)
     sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
@@ -261,6 +263,10 @@ function simulate()
     savefig("Output/PopTest.png")
     plot(sol.t,sol'[:,N+1:N+M],label="")
     savefig("Output/ConcTest.png")
+    println(sol'[end,1:N])
+    # count how many are above threshold
+    c = count(sol'[end,1:N] .>= trsh)
+    println("$(c) survivors")
     return(nothing)
 end
 

@@ -236,10 +236,10 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::MarsParameters,v
     return(dx)
 end
 
-function mars_simulate()
-    # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
-    N = 20
-    M = 100
+# Simulation code to run one instatnce of the simulation
+# N is number of microbial strains, M is the number of metabolites
+# Tmax is how long the simulation is run for, n is the number of intervals
+function mars_simulate(N::Int64,M::Int64,Tmax::Float64,n::Int64)
     # Set lower threshold for population exisiting
     trsh = 1e-10
     # Make random parameter set of this size
@@ -247,27 +247,29 @@ function mars_simulate()
     # Initialise vectors of concentrations and populations
     pop = ones(N)
     conc = 0.1*ones(M) # Initial trace amount of each metabolite
-    x0 = [pop;conc]
     vins = zeros(N,M)
     vouts = zeros(N,M)
+    # Make empty containers to store output
+    T = Array{Float64,1}(undef,0)
+    C = Array{Float64,2}(undef,0,N+M)
     # Now substitute preallocated memory in
     dyns!(dx,x,ps,t) = dynamics!(dx,x,ps,vins,vouts,t)
-    # Choose time span and set off problem
-    tspan = (0.0,100.0)
-    # Then setup and solve the problem
-    prob = ODEProblem(dyns!,x0,tspan,ps)
-    sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
-    # Now do some test plotting
-    pyplot(dpi=200)
-    plot(sol.t,sol'[:,1:N],label="")
-    savefig("Output/PopTest.png")
-    plot(sol.t,sol'[:,N+1:N+M],label="")
-    savefig("Output/ConcTest.png")
-    println(sol'[end,1:N])
-    # count how many are above threshold
-    c = count(sol'[end,1:N] .>= trsh)
-    println("$(c) survivors")
-    return(nothing)
+    for i = 1:n
+        # Find time span for this step
+        tspan = ((i-1)*Tmax/n,i*Tmax/n)
+        if i == 1
+            x0 = [pop;conc]
+        else
+            x0 = C[end,:]
+        end
+        # Now set species that are effectively extinct to zero population
+        x0[x0.<=trsh] .= 0.0
+        # Then setup and solve the problem
+        prob = ODEProblem(dyns!,x0,tspan,ps)
+        sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
+        # add output stored function
+        T = cat(dims=1,T,sol.t)
+        C = cat(dims=1,C,sol'[:,:])
+    end
+    return(C,T,ps)
 end
-
-@time mars_simulate()

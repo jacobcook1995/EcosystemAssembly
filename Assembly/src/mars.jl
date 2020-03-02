@@ -239,7 +239,7 @@ end
 
 function simulate()
     # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
-    N = 5#20
+    N = 6#20
     M = 5#100
     # Set lower threshold for population exisiting
     trsh = 1e-10
@@ -247,7 +247,13 @@ function simulate()
     ps = initialise(N,M)
     # Want to convert these Marsland parameters to inhibition parameters
     ps2 = convert_Parameters(ps)
-    println(ps2)
+    println("N = $(ps2.N)")
+    println("M = $(ps2.M)")
+    println("c = $(ps2.c)")
+    println("g = $(ps2.g)")
+    println("m = $(ps2.m)")
+    println("κ = $(ps2.κ)")
+    println("δ = $(ps2.δ)")
     ############################################################################
     # Comment all this out for now, until I want to improve the simulation again
     ############################################################################

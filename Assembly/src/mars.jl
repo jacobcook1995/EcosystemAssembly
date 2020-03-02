@@ -3,8 +3,9 @@
 using Assembly
 using Distributions
 using DifferentialEquations
-using Plots # REMOVE THIS ONCE I'VE DONE TO A SEPERATE ANALYSIS SCRIPT
-import PyPlot
+# NOT DOING ANY PLOTTING AT THE MOMENT
+# using Plots # REMOVE THIS ONCE I'VE DONE TO A SEPERATE ANALYSIS SCRIPT
+# import PyPlot
 
 # function to construct vector of metabolite types, very simple at momet but can tweak it if I wish
 function Mtypes(M::Int64,Nt::Int64)
@@ -172,7 +173,7 @@ function initialise(N::Int64,M::Int64)
     sdm = 0.1
     m = mvector(N,mm,sdm)
     # Now make the parameter set
-    ps = make_Parameters(N,M,c,m,g,l,κ,w,D,δ)
+    ps = make_MarsParameters(N,M,c,m,g,l,κ,w,D,δ)
     return(ps)
 end
 
@@ -238,35 +239,41 @@ end
 
 function simulate()
     # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
-    N = 20
-    M = 100
+    N = 5#20
+    M = 5#100
     # Set lower threshold for population exisiting
     trsh = 1e-10
     # Make random parameter set of this size
     ps = initialise(N,M)
-    # Initialise vectors of concentrations and populations
-    pop = ones(N)
-    conc = 0.1*ones(M) # Initial trace amount of each metabolite
-    x0 = [pop;conc]
-    vins = zeros(N,M)
-    vouts = zeros(N,M)
-    # Now substitute preallocated memory in
-    dyns!(dx,x,ps,t) = dynamics!(dx,x,ps,vins,vouts,t)
-    # Choose time span and set off problem
-    tspan = (0.0,100.0)
-    # Then setup and solve the problem
-    prob = ODEProblem(dyns!,x0,tspan,ps)
-    sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
-    # Now do some test plotting
-    pyplot(dpi=200)
-    plot(sol.t,sol'[:,1:N],label="")
-    savefig("Output/PopTest.png")
-    plot(sol.t,sol'[:,N+1:N+M],label="")
-    savefig("Output/ConcTest.png")
-    println(sol'[end,1:N])
-    # count how many are above threshold
-    c = count(sol'[end,1:N] .>= trsh)
-    println("$(c) survivors")
+    # Want to convert these Marsland parameters to inhibition parameters
+    ps2 = convert_Parameters(ps)
+    println(ps2)
+    ############################################################################
+    # Comment all this out for now, until I want to improve the simulation again
+    ############################################################################
+    # # Initialise vectors of concentrations and populations
+    # pop = ones(N)
+    # conc = 0.1*ones(M) # Initial trace amount of each metabolite
+    # x0 = [pop;conc]
+    # vins = zeros(N,M)
+    # vouts = zeros(N,M)
+    # # Now substitute preallocated memory in
+    # dyns!(dx,x,ps,t) = dynamics!(dx,x,ps,vins,vouts,t)
+    # # Choose time span and set off problem
+    # tspan = (0.0,100.0)
+    # # Then setup and solve the problem
+    # prob = ODEProblem(dyns!,x0,tspan,ps)
+    # sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
+    # # Now do some test plotting
+    # pyplot(dpi=200)
+    # plot(sol.t,sol'[:,1:N],label="")
+    # savefig("Output/PopTest.png")
+    # plot(sol.t,sol'[:,N+1:N+M],label="")
+    # savefig("Output/ConcTest.png")
+    # println(sol'[end,1:N])
+    # # count how many are above threshold
+    # c = count(sol'[end,1:N] .>= trsh)
+    # println("$(c) survivors")
     return(nothing)
 end
 

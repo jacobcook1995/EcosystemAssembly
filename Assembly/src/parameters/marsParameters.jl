@@ -1,10 +1,11 @@
 # The function and struct used in this script were adapted from code orginally written by Tom Clegg
 
 # Export Parameters so that it can be used elsewhere in my code
-export MarsParameters, make_Parameters, reduce_Parameters
+export MarsParameters, make_MarsParameters, reduce_Parameters
 
 """
-    Parameters(N::Int64,M::Int64,u::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},h::Vector{Float64})
+    MarsParameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},
+    κ::Vector{Float64},w::Vector{Float64},D::Array{Float64,2},δ::Vector{Float64})
 Type containing the parameters for a simuation.
 # Arguments
 - `N::Int64`: Number of Consumers
@@ -32,11 +33,12 @@ struct MarsParameters
 end
 
 """
-    make_Parameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},κ::Vector{Float64},w::Vector{Float64},D::Array{Float64,2},δ::Vector{Float64})
+    make_MarsParameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},
+    κ::Vector{Float64},w::Vector{Float64},D::Array{Float64,2},δ::Vector{Float64})
 Helper function used internally. Takes values for parameters and returns a `Parameters`object.
 Also does checks internally to make sure the values are correct.
 """
-function make_Parameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},κ::Vector{Float64},w::Vector{Float64},D::Array{Float64,2},δ::Vector{Float64})
+function make_MarsParameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},l::Vector{Float64},κ::Vector{Float64},w::Vector{Float64},D::Array{Float64,2},δ::Vector{Float64})
 
 # Use asserts to ensure that arrays are correct sizes
 @assert size(c) == (N,M) "Consumer preference array (c) is the wrong size"
@@ -48,7 +50,7 @@ function make_Parameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64
 @assert size(D) == (M,M) "Metabolic matrix (D) is the wrong size"
 @assert length(δ) == M "Vector of decay rates (δ) is the wrong length"
 
-# Use asserts to avoid unphysical proportions
+# Use asserts to avoid unphysical values
 @assert all(l .<= 1) "One or more l values are > 1"
 @assert all(l .>= 0) "One or more l values are negative"
 @assert all(sum(D,dims=1) .≈ 1) "One or more rows in D does not sum to 1"
@@ -57,7 +59,8 @@ function make_Parameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64
 return(MarsParameters(N,M,c,m,g,l,κ,w,D,δ))
 end
 
-""" reduce_Parameters(ps::MarsParameters,rem::Array{Int64,1})
+"""
+    reduce_Parameters(ps::MarsParameters,rem::Array{Int64,1})
 Helper function used internally. Takes an old parameter set and removes the elements specified in rem.
 """
 function reduce_Parameters(ps::MarsParameters,rem::Array{Int64,1})
@@ -68,10 +71,10 @@ function reduce_Parameters(ps::MarsParameters,rem::Array{Int64,1})
 
     # Determine number of species remaining
     nN = ps.N - length(rem)
-    # Need to change some other things too => DELETE WHEN DONE
+    # Find indices of
     keep = collect(1:ps.N) .∉ rem
     nc = ps.c[keep,:]
     nm = ps.m[keep]
     ng = ps.g[keep]
-    return(make_Parameters(nN,ps.M,nc,nm,ng,ps.l,ps.κ,ps.w,ps.D,ps.δ))
+    return(make_MarsParameters(nN,ps.M,nc,nm,ng,ps.l,ps.κ,ps.w,ps.D,ps.δ))
 end

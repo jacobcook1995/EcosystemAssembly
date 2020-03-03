@@ -3,61 +3,122 @@
 export InhibParameters, convert_Parameters
 
 """
-    InhibParameters(N::Int64,M::Int64)
+    InhibParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},
+    reacs::Vector{Reaction},mics::Vector{Microbe})
 Type containing the parameters for a simuation.
 # Arguments
 - `N::Int64`: Number of Consumers
 - `M::Int64`: Number of Resources
-- `c::Array{Float64,2}`: Array of consumer preference of resource i by consumer j
-- `m::Vector{Float64}`: Vector of maintenance energy costs
-- `g::Vector{Float64}`: Vector of proportionality constants between growth and biomass
+- `O::Int64`: Number of Reactions
+- `T::Float64`: Temperature of system
 - `κ::Vector{Float64}`: Vector of external resource supply rates
 - `δ::Vector{Float64}`: Vector of resource decay rates
+- `reacs::Vector{Reaction}`: Vector of reactions
+- `mics::Vector{Microbe}`: Vector of microbial strains
 """
 struct InhibParameters
     N::Int64;
     M::Int64;
-    c::Array{Float64,2}
-    m::Vector{Float64}
-    g::Vector{Float64}
+    O::Int64;
+    T::Float64;
     κ::Vector{Float64}
     δ::Vector{Float64}
+    reacs::Vector{Reaction}
+    mics::Vector{Microbe}
 end
 
 """
-   convert_Parameters(ps::MarsParameters)
-Helper function used internally. Takes a MarsParameters object and converts it to an equivalent InhibParameters object.
-"""
-function convert_Parameters(ps::MarsParameters)
-    # N and M unchanged
-    N = ps.N
-    M = ps.M
-    # The consumer preference array should not change
-    c = ps.c
-    # Neither should the vectors g, m, κ and δ
-    m = ps.m
-    g = ps.g
-    κ = ps.κ
-    δ = ps.δ
-    return(make_InhibParameters(N,M,c,m,g,κ,δ))
-end
-
-"""
-    make_InhibParameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},κ::Vector{Float64},δ::Vector{Float64})
-Helper function used internally. Takes values for parameters and returns a `Parameters`object.
+    make_InhibParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},
+    reacs::Vector{Reaction},mics::Vector{Microbe})
+Helper function used internally. Takes values for parameters and returns a `InhibParameters`object.
 Also does checks internally to make sure the values are correct.
 """
-function make_InhibParameters(N::Int64,M::Int64,c::Array{Float64,2},m::Vector{Float64},g::Vector{Float64},κ::Vector{Float64},δ::Vector{Float64})
+function make_InhibParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},reacs::Vector{Reaction},mics::Vector{Microbe})
+    # Use asserts to ensure that arrays are correct sizes
+    @assert length(κ) == M "Vector of external resource supplies (κ) is the wrong length"
+    @assert length(δ) == M "Vector of decay rates (δ) is the wrong length"
+    @assert length(reacs) == O "Vector of reactions is the wrong length"
+    @assert length(mics) == N "Vector of microbes is the wrong length"
 
-# Use asserts to ensure that arrays are correct sizes
-@assert size(c) == (N,M) "Consumer preference array (c) is the wrong size"
-@assert length(m) == N "Vector of maintenance costs (m) is the wrong length"
-@assert length(g) == N "Vector of proportionality constants (g) vector is the wrong length"
-@assert length(κ) == M "Vector of external resource supplies (κ) is the wrong length"
-@assert length(δ) == M "Vector of decay rates (δ) is the wrong length"
+    # Use asserts to avoid unphysical values
+    @assert all(δ .>= 0) "One or more decay rates in δ are negative"
+    @assert T > 0.0 "Temperature cannot be negative"
 
-# Use asserts to avoid unphysical values
-@assert all(δ .>= 0) "One or more decay rates in δ are negative"
+    # Check that reaction numbering is reasonable
+    @assert all(reacs.:ID .<= O) "Reaction numbers cannot exceed number of reactions"
+    @assert length(unique(reacs.:ID)) == length(reacs.:ID) "Each reaction ID must be unique"
+    @assert all(reacs.:Rct .<= M) "Reactant numbers cannot exceed number of metabolites"
+    @assert all(reacs.:Prd .<= M) "Product numbers cannot exceed number of metabolites"
 
-return(InhibParameters(N,M,c,m,g,κ,δ))
+    # Check that the reactions given in the vector of microbes exist in the vector of reactions
+    @assert all(mics.:Reacs .<= O) "Microbe assigned to reaction that doesn't exist"
+    
+    return(InhibParameters(N,M,O,T,κ,δ,reacs,mics))
+end
+
+"""
+    Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
+Type containing the parameters for a particular reaction.
+# Arguments
+- `ID::Int64`: Number to identify reaction
+- `Rct::Int64`: Identity number of reactant
+- `Prd::Int64`: Identity number of product
+- `ΔG0::Float64`: Standard Gibbs free energy change of the reaction
+"""
+struct Reaction
+    ID::Int64;
+    Rct::Int64;
+    Prd::Int64;
+    ΔG0::Float64;
+end
+
+"""
+    make_Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
+Helper function used internally. Takes values for parameters and returns a `Reaction`object.
+Also does checks internally to make sure the values are correct.
+"""
+function make_Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
+    @assert ID > 0 "Reaction must be given a positive ID"
+    @assert Rct > 0 "All reactants have postive IDs"
+    @assert Prd > 0 "All products have postive IDs"
+    @assert Prd != Rct "Reactions cannot have same reactant and product"
+
+    return(Reaction(ID,Rct,Prd,ΔG0))
+end
+
+"""
+    Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64})
+Type containing the parameters for a particular microbial strain.
+# Arguments
+- `m::Float64`: Maintenance energy cost of microbe
+- `g::Float64`: Proportionality constant between energy and biomass
+- `R::Int64`: Number of reactions
+- `Reacs::Vector{Int64}`: Reaction numbers
+- `η::Vector{Float64}`: ATP generated per mole of reaction
+"""
+struct Microbe
+    m::Float64;
+    g::Float64;
+    R::Int64;
+    Reacs::Vector{Int64}
+    η::Vector{Float64}
+end
+
+"""
+    make_Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64})
+Helper function used internally. Takes values for parameters and returns a `Reaction`object.
+Also does checks internally to make sure the values are correct.
+"""
+function make_Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64})
+    # Check that physical parameters have been provided
+    @assert m >= 0.0 "Maintenance energy cost (m) cannot be negative"
+    @assert g >= 0.0 "Proportionality between energy and biomass (g) cannot be negative"
+    @assert R > 0 "Number of reactions must be postive"
+    # Check that the vectors have the right length
+    @assert length(Reacs) == R "Vector of reactions is the wrong length"
+    @assert length(η) == R "Vector of ATP generation rates (η) is the wrong length"
+    # Check that values in these vectors are plausible
+    @assert all(η .>= 0.0) "η values cannot reasonably be negative"
+    @assert all(Reacs .> 0) "All reactions are supposed to be indicated by a positive numbers"
+    return(Microbe(m,g,R,Reacs,η))
 end

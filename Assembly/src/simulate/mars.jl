@@ -239,6 +239,7 @@ end
 # Simulation code to run one instatnce of the simulation
 # N is number of microbial strains, M is the number of metabolites
 # Tmax is how long the simulation is run for, n is the number of intervals
+# MY 'CLEVER' ALTERATION HERE ACTUALLY SLOWS THINGS DOWN => CHANGE AT SOME POINT
 function mars_simulate(N::Int64,M::Int64,Tmax::Float64,n::Int64)
     # Set lower threshold for population exisiting
     trsh = 1e-10

@@ -54,14 +54,19 @@ struct Microbe
     R::Int64;
     Reacs::Vector{Int64}
     η::Vector{Float64}
+    qm::Vector{Float64}
+    KS::Vector{Float64}
+    kr::Vector{Float64}
 end
 
 """
-    make_Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64})
+    make_Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},
+    qm::Vector{Float64},KS::Vector{Float64},kr::Vector{Float64})
 Helper function used internally. Takes values for parameters and returns a `Reaction`object.
 Also does checks internally to make sure the values are correct.
 """
-function make_Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64})
+function make_Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},
+                        qm::Vector{Float64},KS::Vector{Float64},kr::Vector{Float64})
     # Check that physical parameters have been provided
     @assert m >= 0.0 "Maintenance energy cost (m) cannot be negative"
     @assert g >= 0.0 "Proportionality between energy and biomass (g) cannot be negative"
@@ -69,10 +74,16 @@ function make_Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Ve
     # Check that the vectors have the right length
     @assert length(Reacs) == R "Vector of reactions is the wrong length"
     @assert length(η) == R "Vector of ATP generation rates (η) is the wrong length"
+    @assert length(qm) == R "Vector of maximal rates (qm) is the wrong length"
+    @assert length(KS) == R "Vector of saturation constants (KS) is the wrong length"
+    @assert length(kr) == R "Vector of reversibilities (kr) is the wrong length"
     # Check that values in these vectors are plausible
     @assert all(η .>= 0.0) "η values cannot reasonably be negative"
+    @assert all(qm .>= 0.0) "Maximal rates cannot be negative"
+    @assert all(KS .>= 0.0) "Saturation constants cannot be negative"
+    @assert all(kr .>= 0.0) "Cannot have negative values for the reversibility"
     @assert all(Reacs .> 0) "All reactions are supposed to be indicated by a positive numbers"
-    return(Microbe(m,g,R,Reacs,η))
+    return(Microbe(m,g,R,Reacs,η,qm,KS,kr))
 end
 
 """

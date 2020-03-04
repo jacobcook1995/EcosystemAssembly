@@ -129,10 +129,13 @@ function make_InhibParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{F
     @assert T > 0.0 "Temperature must be positive"
 
     # Check that reaction numbering is reasonable
-    @assert all((reacs.↦:ID) .<= O) "Reaction numbers cannot exceed number of reactions"
-    @assert length(unique(reacs.↦:ID)) == length(reacs.↦:ID) "Each reaction ID must be unique"
+    @assert ((reacs.↦:ID) == collect(1:O)) "Reaction IDs must be sequential from 1 upwards"
     @assert all((reacs.↦:Rct) .<= M) "Reactant numbers cannot exceed number of metabolites"
     @assert all((reacs.↦:Prd) .<= M) "Product numbers cannot exceed number of metabolites"
+    # Check that no reaction is repeated
+    for i = 1:O
+        @assert all(((reacs.↦:Rct)[i] .!= (reacs.↦:Rct)[1:end .!= i]) .| ((reacs.↦:Prd)[i] .!= (reacs.↦:Prd)[1:end .!= i])) "Reaction $i is repeated"
+    end
 
     # Check that the reactions given in the vector of microbes exist in the vector of reactions
     for i = 1:N

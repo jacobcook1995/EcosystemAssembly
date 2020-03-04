@@ -4,19 +4,6 @@ using Assembly
 
 export inhib_simulate
 
-# function to generate a vector of values for the maintenance energy requirments m
-function mvector(N::Int64,mm::Float64,sdm::Float64)
-    @assert mm - 5*sdm >= 0.0 "This choice could result in negative energy requirements"
-    # Initialise vector of m
-    m = zeros(N)
-    # Make required Gaussian distribution using the provided mean (mm) and SD (sdm)
-    d = Normal(mm,sdm)
-    for i = 1:N
-        m[i] = rand(d)
-    end
-    return(m)
-end
-
 # function to run simulation of the Marsland model
 function initialise(N::Int64,M::Int64,O::Int64)
     # Assume that temperature T is constant at 20°C

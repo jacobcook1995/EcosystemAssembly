@@ -118,19 +118,6 @@ function cmatrix(N::Int64,M::Int64,Mp::Array{Int64,1},cM::Array{Int64,1},Ms::Arr
     return(c)
 end
 
-# function to generate a vector of values for the maintenance energy requirments m
-function mvector(N::Int64,mm::Float64,sdm::Float64)
-    @assert mm - 5*sdm >= 0.0 "This choice could result in negative energy requirements"
-    # Initialise vector of m
-    m = zeros(N)
-    # Make required Gaussian distribution using the provided mean (mm) and SD (sdm)
-    d = Normal(mm,sdm)
-    for i = 1:N
-        m[i] = rand(d)
-    end
-    return(m)
-end
-
 # function to run simulation of the Marsland model
 function initialise(N::Int64,M::Int64)
     # All metabolities have the same value for simplicity

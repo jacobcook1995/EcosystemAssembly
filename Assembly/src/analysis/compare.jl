@@ -11,7 +11,7 @@ function compare()
     M = 100
     Tmax = 100.0
     O = 15
-    C, T, ps = inhib_simulate(N,M,Tmax,5)
+    C, T, ps = inhib_simulate(N,M,O,Tmax)
     # Run plotting
     pyplot(dpi=200)
     plot(T,C[:,1:N],label="")

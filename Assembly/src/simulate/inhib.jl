@@ -24,45 +24,55 @@ end
 function qs(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64,qm::Float64,KS::Float64,kr::Float64)
     θs = θ(S,P,T,η,ΔG0)
     q = qm*S*(1-θs)/(KS + S*(1+kr*θs))
-    return(q)
+    # Ensure that negative value cannot be returned
+    return(max(q,0.0))
 end
 
-# function to find the energy obtained for growth from all resources for a particular cell
-function Jgrow()
-
-    return(Jg)
-end
 
 # function to implement the consumer resource dynamics
-# NEEDS TO BE SUBSTANTIALLY ALTERED
-function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::MarsParameters,vins::Array{Float64,2},vouts::Array{Float64,2},t::Float64)
-    # First find and store intake rates
-    for j = 1:ps.M
+function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,rate::Array{Float64,2},t::Float64)
+    # loop over the reactions to find reaction rate for each reaction for each strain
+    for j = 1:ps.O
+        # Find substrate and product for this reaction
+        S = x[ps.N+ps.reacs[j].Rct]
+        P = x[ps.N+ps.reacs[j].Prd]
         for i = 1:ps.N
-            # Set value of vin to zero if it has gone negative
-            vins[i,j] = max(vin(ps.c[i,j],x[ps.N+j]),0.0)
+            # Check if microbe i performs reaction j
+            if j ∈ ps.mic[i].Reacs
+                # Find index of this reaction in microbe
+                k = findfirst(x->x==j,ps.mic[i].Reacs)
+                # Use k to select correct kinetic parameters
+                rate[i,j] = qs(S,P,ps.T,ps.mics[i].η[k],ps.reacs[j].ΔG0,ps.mics[i].qm[k],ps.mics[i].KS[k],ps.mics[i].kr[k])
+            else
+                rate[i,j] = 0.0
+            end
         end
     end
-    # Then use to find output rates
-    for j = 1:ps.M
-        for i = 1:ps.N
-            vouts[i,j] = vout(ps.l,ps.w[j],ps.w,vins[i,:],ps.D[j,:])
-        end
-    end
-    # First consumer dynamics
+    # Now want to use the rate matrix in the consumer dynamics
     for i = 1:ps.N
-        # FINE APART FROM Jgrow WHICH NEEDS TO BE CHANGED
-        dx[i] = ps.g[i]*x[i]*(Jgrow() - ps.m[i])
+        # subtract maintenance
+        dx[i] = -ps.mics.m[i]
+        # Add all the non zero contributions
+        for j = 1:ps.mics.R
+            dx[i] += ps.mics.η[j]*rate[i,ps.mics.Reacs[j]]
+        end
+        # multiply by population and proportionality constant
+        dx[i] *= ps.mics[i].g*x[i]
     end
-    # Then resource dynamics
+    # Do basic resource dynamics
     for i = ps.N+1:ps.N+ps.M
         # fist add external supply of resource and decay
         dx[i] = ps.κ[i-ps.N] - ps.δ[i-ps.N]*x[i]
-        # Then consider contribution by various microbes
-        for j = 1:ps.N
-            dx[i] += x[j]*(vouts[j,i-ps.N] - vins[j,i-ps.N])
+    end
+    # Then loop over microbes
+    for i = 1:ps.N
+        # Loop over reactions for specific microbe
+        for j = 1:ps.mics.R
+            # Increase the product
+            dx[ps.N+ps.reacs[ps.mics.Reacs[j]].Prd] += rate[i,ps.mics.Reacs[j]]*x[i]
+            # and decrease the reactant
+            dx[ps.N+ps.reacs[ps.mics.Reacs[j]].Rct] -= rate[i,ps.mics.Reacs[j]]*x[i]
         end
     end
-    # Finally return the new dxdt values
     return(dx)
 end

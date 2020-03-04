@@ -2,6 +2,53 @@
 # utilizes themodynamic end product inhibition
 using Assembly
 
+export inhib_simulate
+
+# function to generate a vector of values for the maintenance energy requirments m
+function mvector(N::Int64,mm::Float64,sdm::Float64)
+    @assert mm - 5*sdm >= 0.0 "This choice could result in negative energy requirements"
+    # Initialise vector of m
+    m = zeros(N)
+    # Make required Gaussian distribution using the provided mean (mm) and SD (sdm)
+    d = Normal(mm,sdm)
+    for i = 1:N
+        m[i] = rand(d)
+    end
+    return(m)
+end
+
+# function to run simulation of the Marsland model
+function initialise(N::Int64,M::Int64,O::Int64)
+    # Assume that temperature T is constant at 20°C
+    T = 293.15
+    # And all proportionality constants are the same for simplicity
+    g = ones(N)
+    # All but resource 1 is not supplied
+    κ = zeros(M)
+    κ[1] = 100.0
+    # Assume that all δ's are equal
+    δi = 1.0
+    δ = δi*ones(M)
+    # Find m using a function that gives a Guassian offset
+    mm = 1.0
+    sdm = 0.1
+    m = mvector(N,mm,sdm)
+    # Preallocate vector of recations
+    reacs = Array{Reaction,1}(undef,O)
+    for i = 1:O
+        reacs[i] = make_Reaction(i,Rct::Int64,Prd::Int64,ΔG0::Float64)
+    end
+    # Preallocate vector of microbes
+    mics = Array{Microbe,1}(undef,N)
+    # Then construct microbes
+    for i = 1:N
+        mics[i] = make_Microbe(m[i],g[i],R::Int64,Reacs::Vector{Int64},η::Vector{Float64},qm::Vector{Float64},KS::Vector{Float64},kr::Vector{Float64})
+    end
+    # Now make the parameter set
+    ps = make_InhibParameters(N,M,O,T,κ,δ,reacs,mics)
+    return(ps)
+end
+
 # function to find the reaction quotient Q, in the case of 1 to 1 stochiometery
 function Q(S::Float64,P::Float64)
     Q = P/S
@@ -75,4 +122,26 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,
         end
     end
     return(dx)
+end
+
+# Simulation code to run one instatnce of the simulation
+# N is number of microbial strains, M is the number of metabolites
+# O is the number of reactions, Tmax is how long the simulation is run for
+function inhib_simulate(N::Int64,M::Int64,O::Int64,Tmax::Float64)
+    # Make random parameter set of this size
+    ps = initialise(N,M,O)
+    # Initialise vectors of concentrations and populations
+    pop = ones(N)
+    conc = 0.1*ones(M) # Initial trace amount of each metabolite
+    # Preallocate memory
+    rate = zeros(N,O)
+    # Now substitute preallocated memory in
+    dyns!(dx,x,ps,t) = dynamics!(dx,x,ps,rate,t)
+    # Find time span for this step
+    tspan = (0,Tmax)
+    x0 = [pop;conc]
+    # Then setup and solve the problem
+    prob = ODEProblem(dyns!,x0,tspan,ps)
+    sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
+    return(sol',sol.t,ps)
 end

@@ -10,8 +10,8 @@ function compare()
     N = 20
     M = 100
     Tmax = 100.0
-    n = 5
-    C, T, ps = mars_simulate(N,M,Tmax,5)
+    O = 15
+    C, T, ps = inhib_simulate(N,M,Tmax,5)
     # Run plotting
     pyplot(dpi=200)
     plot(T,C[:,1:N],label="")

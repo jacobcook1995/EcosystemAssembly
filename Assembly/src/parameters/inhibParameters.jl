@@ -6,7 +6,7 @@ export ↦
 # Overloadable version of getfields
 ↦(s, f) = getfield(s, f)
 
-export InhibParameters, convert_Parameters
+export InhibParameters, make_InhibParameters, make_Reaction, make_Microbe
 
 """
     Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)

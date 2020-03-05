@@ -11,7 +11,15 @@ function compare()
     M = 100
     Tmax = 100.0
     O = 15
-    C, T, ps = inhib_simulate(N,M,O,Tmax)
+    mR = 5.0
+    sdR = 1.0
+    mq = 1.0
+    sdq = 0.1
+    mK  = 0.1
+    sdK = 0.01
+    mk = 10.0
+    sdk = 1.0
+    C, T, ps = inhib_simulate(N,M,O,Tmax,mR,sdR,mq,sdq,mK,sdK,mk,sdk)
     # Run plotting
     pyplot(dpi=200)
     plot(T,C[:,1:N],label="")

@@ -125,7 +125,7 @@ function choose_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
         # Indentify which reaction we are considering
         I = Reacs[i]
         # Find corresponding Gibbs free energy change
-        dG = reacs[i].ΔG0
+        dG = reacs[I].ΔG0
         # And use to determine an upper bound on η
         ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
         η[i] = (ηh-ηl)*rand(d) + ηl
@@ -189,14 +189,19 @@ end
 
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
-    # This avoids the problem of Q(S,P) = NaN
-    if S != 0.0
-        θs = Q(S,P)/Keq(T,η,ΔG0)
-    else
-        θs = 1.0
-    end
-    if isnan(θs)
-        println("Problem is θ")
+    θs = Q(S,P)/Keq(T,η,ΔG0)
+    # Keq REASONABLE NOW
+    # PROBLEM NOW IS THAT Q OFTEN ENDS UP LARGER THAN KeQ => THIS IS PROBABLY UNAVOIDABLE
+    # LOADS OF CHECKS TO MAKE SURE THIS IS REASONABLE
+    if isnan(θs) || θs < 0.0 || θs > 1.0
+        println("Dodgey θ")
+        println("θs = $(θs)")
+        println("Q = $(Q(S,P))")
+        println("S = $S")
+        println("P = $P")
+        println("K = $(Keq(T,η,ΔG0))")
+        println("η = $η")
+        println("ΔG0 = $(ΔG0)")
     end
     return(θs)
 end
@@ -215,15 +220,13 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,
     # loop over the reactions to find reaction rate for each reaction for each strain
     for j = 1:ps.O
         # Find substrate and product for this reaction
-        S = x[ps.N+ps.reacs[j].Rct]
-        P = x[ps.N+ps.reacs[j].Prd]
         for i = 1:ps.N
             # Check if microbe i performs reaction j
             if j ∈ ps.mics[i].Reacs
                 # Find index of this reaction in microbe
                 k = findfirst(x->x==j,ps.mics[i].Reacs)
                 # Use k to select correct kinetic parameters
-                rate[i,j] = qs(S,P,ps.T,ps.mics[i].η[k],ps.reacs[j].ΔG0,ps.mics[i].qm[k],ps.mics[i].KS[k],ps.mics[i].kr[k])
+                rate[i,j] = qs(x[ps.N+ps.reacs[j].Rct],x[ps.N+ps.reacs[j].Prd],ps.T,ps.mics[i].η[k],ps.reacs[j].ΔG0,ps.mics[i].qm[k],ps.mics[i].KS[k],ps.mics[i].kr[k])
             else
                 rate[i,j] = 0.0
             end

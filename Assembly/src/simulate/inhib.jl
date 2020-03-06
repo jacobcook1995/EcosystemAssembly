@@ -108,6 +108,28 @@ function choose_kinetic(R::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float
     return(qm,KS,kr)
 end
 
+# function to choose η values for each reaction based on Gibbs free energy changes
+function choose_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
+    # Preallocate memory to store η's
+    η = zeros(length(Reacs))
+    # Set a constant lower bound
+    ηl = 1/3
+    # Set minimum equilibirum product to substrate ratio
+    mratio = 1e-5
+    # Make beta distribution for later, parameters chosen so that distribution skews right
+    d = Beta(5,1)
+    for i = 1:length(η)
+        # Indentify which reaction we are considering
+        I = Reacs[i]
+        # Find corresponding Gibbs free energy change
+        dG = reacs[i].ΔG0
+        # And use to determine an upper bound on η
+        ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
+        η[i] = (ηh-ηl)*rand(d) + ηl
+    end
+    return(η)
+end
+
 # function to run simulation of the Marsland model
 function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
     # Assume that temperature T is constant at 20°C
@@ -141,9 +163,9 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,mq::Floa
         # Find corresponding kinetic parameters for these reactions
         qm, KS, kr = choose_kinetic(R,mq,sdq,mK,sdK,mk,sdk)
         # Find corresponding η's for these reactions
-        SOMETHING HAS TO GO HERE
+        η = choose_ηs(reacs,Reacs,T)
         # Can finally generate microbe
-        mics[i] = make_Microbe(m[i],g[i],R,Reacs,η::Vector{Float64},qm,KS,kr)
+        mics[i] = make_Microbe(m[i],g[i],R,Reacs,η,qm,KS,kr)
     end
     # Now make the parameter set
     ps = make_InhibParameters(N,M,O,T,κ,δ,reacs,mics)

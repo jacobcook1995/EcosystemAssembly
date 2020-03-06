@@ -10,7 +10,7 @@ function compare()
     N = 20
     M = 100
     Tmax = 100.0
-    O = 15
+    O = 2*M
     mR = 5.0
     sdR = 1.0
     mq = 1.0

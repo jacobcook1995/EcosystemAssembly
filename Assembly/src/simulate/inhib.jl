@@ -30,30 +30,33 @@ function rand_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
         r = rand(1:M)
         # Randomly choose product
         p = rand(1:M)
-        # find Gibbs free energy change
-        dG = μ0[p] - μ0[r]
-        # Find equlibrium constant when 1 ATP is generated
-        K = Keq(T,1.0,dG)
-        # Find log base 10 of this equilbrium constant
-        logK = log(10,K)
-        # Accept if equilbrium ratio is less than 10:1 in favour of reactant
-        if logK > -l
-            i += 1
-            RP[i,1] = r
-            RP[i,2] = p
-            ΔG[i] = dG
-        # Disregard if too heavily in favour of reactant
-        elseif logK < -h
-        # Otherwise randomly decide whether to accept
-        else
-            # draw random number between 1.0 and 6.0
-            rn = rand(d)
-            # Accept if this is
-            if rn > -logK
+        # Check that r and p are not already stored
+        if all((r .∉ RP[:,1]) .| (p .∉ RP[:,2]))
+            # find Gibbs free energy change
+            dG = μ0[p] - μ0[r]
+            # Find equlibrium constant when 1 ATP is generated
+            K = Keq(T,1.0,dG)
+            # Find log base 10 of this equilbrium constant
+            logK = log(10,K)
+            # Accept if equilbrium ratio is less than 10:1 in favour of reactant
+            if logK > -l
                 i += 1
                 RP[i,1] = r
                 RP[i,2] = p
                 ΔG[i] = dG
+            # Disregard if too heavily in favour of reactant
+            elseif logK < -h
+            # Otherwise randomly decide whether to accept
+            else
+                # draw random number between 1.0 and 6.0
+                rn = rand(d)
+                # Accept if this is
+                if rn > -logK
+                    i += 1
+                    RP[i,1] = r
+                    RP[i,2] = p
+                    ΔG[i] = dG
+                end
             end
         end
     end
@@ -186,8 +189,16 @@ end
 
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
-    θ = Q(S,P)/Keq(T,η,ΔG0)
-    return(θ)
+    # This avoids the problem of Q(S,P) = NaN
+    if S != 0.0
+        θs = Q(S,P)/Keq(T,η,ΔG0)
+    else
+        θs = 1.0
+    end
+    if isnan(θs)
+        println("Problem is θ")
+    end
+    return(θs)
 end
 
 # function to find the rate of substrate consumption by a particular reaction
@@ -208,9 +219,9 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,
         P = x[ps.N+ps.reacs[j].Prd]
         for i = 1:ps.N
             # Check if microbe i performs reaction j
-            if j ∈ ps.mic[i].Reacs
+            if j ∈ ps.mics[i].Reacs
                 # Find index of this reaction in microbe
-                k = findfirst(x->x==j,ps.mic[i].Reacs)
+                k = findfirst(x->x==j,ps.mics[i].Reacs)
                 # Use k to select correct kinetic parameters
                 rate[i,j] = qs(S,P,ps.T,ps.mics[i].η[k],ps.reacs[j].ΔG0,ps.mics[i].qm[k],ps.mics[i].KS[k],ps.mics[i].kr[k])
             else
@@ -221,10 +232,10 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,
     # Now want to use the rate matrix in the consumer dynamics
     for i = 1:ps.N
         # subtract maintenance
-        dx[i] = -ps.mics.m[i]
+        dx[i] = -ps.mics[i].m
         # Add all the non zero contributions
-        for j = 1:ps.mics.R
-            dx[i] += ps.mics.η[j]*rate[i,ps.mics.Reacs[j]]
+        for j = 1:ps.mics[i].R
+            dx[i] += ps.mics[i].η[j]*rate[i,ps.mics[i].Reacs[j]]
         end
         # multiply by population and proportionality constant
         dx[i] *= ps.mics[i].g*x[i]
@@ -237,11 +248,11 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,
     # Then loop over microbes
     for i = 1:ps.N
         # Loop over reactions for specific microbe
-        for j = 1:ps.mics.R
+        for j = 1:ps.mics[i].R
             # Increase the product
-            dx[ps.N+ps.reacs[ps.mics.Reacs[j]].Prd] += rate[i,ps.mics.Reacs[j]]*x[i]
+            dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Prd] += rate[i,ps.mics[i].Reacs[j]]*x[i]
             # and decrease the reactant
-            dx[ps.N+ps.reacs[ps.mics.Reacs[j]].Rct] -= rate[i,ps.mics.Reacs[j]]*x[i]
+            dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Rct] -= rate[i,ps.mics[i].Reacs[j]]*x[i]
         end
     end
     return(dx)
@@ -268,6 +279,7 @@ function inhib_simulate(N::Int64,M::Int64,O::Int64,Tmax::Float64,mR::Float64,sdR
     tspan = (0,Tmax)
     x0 = [pop;conc]
     # Then setup and solve the problem
+    println("STARTED SIMULATION")
     prob = ODEProblem(dyns!,x0,tspan,ps)
     sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
     return(sol',sol.t,ps)

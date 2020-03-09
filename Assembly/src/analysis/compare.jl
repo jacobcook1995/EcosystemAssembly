@@ -6,10 +6,12 @@ import PyPlot
 
 # function to compare Marsland and our extended models
 function compare()
-    # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
+    println("Successfully compiled")
+    # Changing now to investigate η competition
     N = 20
     M = 100
     Tmax = 25.0
+    # Only considering one reaction now
     O = 2*M
     mR = 5.0
     sdR = 1.0
@@ -19,7 +21,8 @@ function compare()
     sdK = 0.01
     mk = 10.0
     sdk = 1.0
-    C, T, ps = inhib_simulate(N,M,O,Tmax,mR,sdR,mq,sdq,mK,sdK,mk,sdk)
+    ps = initialise(N,M,O,mR,sdR,mq,sdq,mK,sdK,mk,sdk)
+    C, T = inhib_simulate(ps,Tmax)
     # Run plotting
     pyplot(dpi=200)
     plot(T,C[:,1:N],label="")

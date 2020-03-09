@@ -10,7 +10,8 @@ I have a script called mars.jl that implements the model from Marsland et al.
 In the same folder I also have a script called inhib.jl that implements an extended model with thermodynamic end product inhibition included.\
 The folder named parameters contains scripts that construct custom made Parameters Types.
 The constructor for the parameter type used in the Marsland model is found in marsParameters.jl in the parameters folder.
-The constructor for the parameter type used in our extended model is found in inhibParameters.jl in the parameters folder.\
+The constructor for the parameter type used in our extended model is found in inhibParameters.jl in the parameters folder.
+The file make_inhib.jl provides functions to make various parameter sets for the model with inhibition.\
 Have also created a folder called analysis where scripts that analyse the output can be kept.
 In this folder the script compare.jl attempts to compare output from the base and extended model for as similar as possible parameters.\
 I will have to decide what do when I have a lot of complicated functions at a later date.

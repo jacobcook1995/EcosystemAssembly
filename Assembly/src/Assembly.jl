@@ -6,6 +6,7 @@ using Distributions
 include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available
 include("parameters/marsParameters.jl") # Parameters for base case from Marsland et al.
 include("parameters/inhibParameters.jl") # Parameters for Inhibition case
+include("parameters/make_inhib.jl") # Function to make parameters for model with inhibition
 include("simulate/mars.jl") # Include marsland model simulation code
 include("simulate/inhib.jl") # Include simulation code for our model
 

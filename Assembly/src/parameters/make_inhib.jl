@@ -2,7 +2,7 @@
 # of the model with inhibition
 using Assembly
 
-export initialise
+export initialise, initialise_η, initialise_η2
 
 # function to generate a set of random reactions for the model
 function rand_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
@@ -133,7 +133,7 @@ function choose_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
     return(η)
 end
 
-# function to run simulation of the Marsland model
+# function to generate parameter set for the model with inhibition
 function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
     @assert O > mR + 5*sdR "Not enough reactions to ensure that microbes have on average mR reactions"
     # Assume that temperature T is constant at 20°C
@@ -168,6 +168,146 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,mq::Floa
         qm, KS, kr = choose_kinetic(R,mq,sdq,mK,sdK,mk,sdk)
         # Find corresponding η's for these reactions
         η = choose_ηs(reacs,Reacs,T)
+        # Can finally generate microbe
+        mics[i] = make_Microbe(m[i],g[i],R,Reacs,η,qm,KS,kr)
+    end
+    # Now make the parameter set
+    ps = make_InhibParameters(N,M,O,T,κ,δ,reacs,mics)
+    return(ps)
+end
+
+# function to choose single η value deterministically based on microbe number i
+function single_ηs(reacs::Array{Reaction,1},T::Float64,N::Int64,i::Int64)
+    # Set a constant lower bound
+    ηl = 1/3
+    # Set minimum equilibirum product to substrate ratio
+    mratio = 1e-5
+    # Find corresponding Gibbs free energy change
+    dG = reacs[1].ΔG0
+    # And use to determine an upper bound on η
+    ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
+    η = (ηh-ηl)*(i/N) + ηl
+    return(η)
+end
+
+# function to generate parameter set for the case of η competition on one reaction
+function initialise_η(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
+    # Only two metabolities alterable by one reaction in this case
+    M = 2
+    O = 1
+    # Assume that temperature T is constant at 20°C
+    T = 293.15
+    # And all proportionality constants are the same for simplicity
+    g = ones(N)
+    # All but resource 1 is not supplied
+    κ = zeros(M)
+    κ[1] = 100.0
+    # Assume that all δ's are equal
+    δi = 1.0
+    δ = δi*ones(M)
+    # Find m using a function that gives a Guassian offset
+    mm = 1.0
+    sdm = 0.1
+    m = mvector(N,mm,sdm)
+    # Generate random set of reactions
+    μrange = 3e5 # Smaller μrange in this case to show η competition
+    RP, ΔG = rand_reactions(O,M,μrange,T)
+    # Preallocate vector of reactions
+    reacs = Array{Reaction,1}(undef,O)
+    for i = 1:O
+        reacs[i] = make_Reaction(i,RP[i,1],RP[i,2],ΔG[i])
+    end
+    # Preallocate vector of microbes
+    mics = Array{Microbe,1}(undef,N)
+    # Then construct microbes
+    for i = 1:N
+        # Only one reaction which each microbe uses
+        R = 1
+        Reacs = [1]
+        # Find corresponding kinetic parameters for this reaction
+        qm, KS, kr = choose_kinetic(R,mq,sdq,mK,sdK,mk,sdk)
+        # Find corresponding η's for these reactions
+        η = [single_ηs(reacs,T,N,i)]
+        # Can finally generate microbe
+        mics[i] = make_Microbe(m[i],g[i],R,Reacs,η,qm,KS,kr)
+    end
+    # Now make the parameter set
+    ps = make_InhibParameters(N,M,O,T,κ,δ,reacs,mics)
+    return(ps)
+end
+
+# function to deterministically generate 2 reactions in 3 metabolite case
+function two_reactions(μrange::Float64)
+    # Two reactions from 3 metabolites
+    O = 2
+    M = 3
+    # preallocate output
+    RP = zeros(Int64,O,2)
+    ΔG = zeros(O)
+    # Preallocate vector to store chemical potential at standard conditions
+    μ0 = zeros(M)
+    # Set fixed intervals
+    rs = 0.5*ones(M-1)
+    # Take maximum value to be μrange, this is unphysical but works as we are intrested in changes
+    μ0[1] = μrange
+    for i = 2:M
+        μ0[i] = μ0[i-1] - rs[i-1]*μrange
+    end
+    # Now deterministically assign reactions
+    for i = 1:2
+        RP[i,1] = i
+        RP[i,2] = i+1
+        ΔG[i] = μ0[i+1] - μ0[i]
+    end
+    return(RP,ΔG)
+end
+
+# similar to the other η but now with a substrate consuming species
+function initialise_η2(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
+    # Three metabolities alterable by two reactions in this case
+    M = 3
+    O = 2
+    # Assume that temperature T is constant at 20°C
+    T = 293.15
+    # And all proportionality constants are the same for simplicity
+    g = ones(N)
+    # All but resource 1 is not supplied
+    κ = zeros(M)
+    κ[1] = 100.0
+    # Assume that all δ's are equal
+    δi = 1.0
+    δ = δi*ones(M)
+    # Find m using a function that gives a Guassian offset
+    mm = 1.0
+    sdm = 0.1
+    m = mvector(N,mm,sdm)
+    # Generate random set of reactions
+    μrange = 6e5 # Slightly larger μrange so that two cases can be compared
+    RP, ΔG = two_reactions(μrange)
+    # Preallocate vector of reactions
+    reacs = Array{Reaction,1}(undef,O)
+    for i = 1:O
+        reacs[i] = make_Reaction(i,RP[i,1],RP[i,2],ΔG[i])
+    end
+    # Preallocate vector of microbes
+    mics = Array{Microbe,1}(undef,N)
+    # Then construct microbes
+    for i = 1:N
+        # Only one reaction which each microbe uses
+        R = 1
+        if i == 1
+            Reacs = [2]
+        else
+            Reacs = [1]
+        end
+        # Find corresponding kinetic parameters for this reaction
+        qm, KS, kr = choose_kinetic(R,mq,sdq,mK,sdK,mk,sdk)
+        # Find corresponding η's for these reactions
+        if i == 1
+            η = [3.5]
+        else
+            η = [single_ηs(reacs,T,N-1,i-1)]
+        end
         # Can finally generate microbe
         mics[i] = make_Microbe(m[i],g[i],R,Reacs,η,qm,KS,kr)
     end

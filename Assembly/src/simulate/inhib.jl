@@ -189,20 +189,15 @@ end
 
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
-    θs = Q(S,P)/Keq(T,η,ΔG0)
-    # Keq REASONABLE NOW
-    # PROBLEM NOW IS THAT Q OFTEN ENDS UP LARGER THAN KeQ => THIS IS PROBABLY UNAVOIDABLE
-    # LOADS OF CHECKS TO MAKE SURE THIS IS REASONABLE
-    if isnan(θs) || θs < 0.0 || θs > 1.0
-        println("Dodgey θ")
-        println("θs = $(θs)")
-        println("Q = $(Q(S,P))")
-        println("S = $S")
-        println("P = $P")
-        println("K = $(Keq(T,η,ΔG0))")
-        println("η = $η")
-        println("ΔG0 = $(ΔG0)")
+    # Catch perverse cases that sometimes arise
+    if S < 0.0
+        θs = 1.0
+    elseif P < 0.0
+        θs = 0.0
+    else
+        θs = Q(S,P)/Keq(T,η,ΔG0)
     end
+    # θ can be greater than 1, this does not have any impact as q cannot be negative
     return(θs)
 end
 
@@ -282,7 +277,7 @@ function inhib_simulate(N::Int64,M::Int64,O::Int64,Tmax::Float64,mR::Float64,sdR
     tspan = (0,Tmax)
     x0 = [pop;conc]
     # Then setup and solve the problem
-    println("STARTED SIMULATION")
+    println("Simulation started.")
     prob = ODEProblem(dyns!,x0,tspan,ps)
     sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
     return(sol',sol.t,ps)

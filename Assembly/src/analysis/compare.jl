@@ -9,7 +9,7 @@ function compare()
     # Going to start with a small number of consumers and metabolities so that it runs fast, is easy to debug
     N = 20
     M = 100
-    Tmax = 100.0
+    Tmax = 25.0
     O = 2*M
     mR = 5.0
     sdR = 1.0

@@ -2,7 +2,7 @@
 # of the model with inhibition
 using Assembly
 
-export initialise, initialise_η, initialise_η2
+export initialise, initialise_η, initialise_η2, initialise_chain
 
 # function to generate a set of random reactions for the model
 function rand_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
@@ -310,6 +310,104 @@ function initialise_η2(N::Int64,mq::Float64,mK::Float64,mk::Float64)
         else
             η = [single_ηs(reacs,T,N-1,i-1)]
         end
+        # Can finally generate microbe
+        mics[i] = make_Microbe(m[i],g[i],R,Reacs,η,qm,KS,kr)
+    end
+    # Now make the parameter set
+    ps = make_InhibParameters(N,M,O,T,κ,δ,reacs,mics)
+    return(ps)
+end
+
+# function to generate a linear reaction chain
+function chain_reactions(M::Int64,μrange::Float64,T::Float64)
+    # One less reaction than metabolite
+    O = M-1
+    # preallocate output
+    RP = zeros(Int64,O,2)
+    ΔG = zeros(O)
+    # Preallocate vector to store chemical potential at standard conditions
+    μ0 = zeros(M)
+    # Find fixed intervals
+    rs = ones(M-1)
+    rs = rs/sum(rs)
+    # Take maximum value to be μrange, this is unphysical but works as we are intrested in changes
+    μ0[1] = μrange
+    for i = 2:M
+        μ0[i] = μ0[i-1] - rs[i-1]*μrange
+    end
+    # Now deterministically assign reactions
+    for i = 1:O
+        RP[i,1] = i
+        RP[i,2] = i+1
+        ΔG[i] = μ0[i+1] - μ0[i]
+    end
+    return(RP,ΔG)
+end
+
+# function to choose η values for each reaction based on Gibbs free energy changes
+# This function differs in that it sets the upper bound for η lower to ensure that feasible values are generated
+function lower_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
+    # Preallocate memory to store η's
+    η = zeros(length(Reacs))
+    # Set a constant lower bound
+    ηl = 1/3
+    # Set minimum equilibirum product to substrate ratio
+    mratio = 1e-2
+    # Make beta distribution for later, parameters chosen so that distribution skews right
+    d = Beta(5,1)
+    for i = 1:length(η)
+        # Indentify which reaction we are considering
+        I = Reacs[i]
+        # Find corresponding Gibbs free energy change
+        dG = reacs[I].ΔG0
+        # And use to determine an upper bound on η
+        ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
+        η[i] = (ηh-ηl)*rand(d) + ηl
+    end
+    return(η)
+end
+
+# function to intialise a chain of microbes that consume the product of the microbe above
+function initialise_chain(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
+    # chain so one more metabolite that species, each species has 1 reaction
+    M = N+1
+    O = N
+    # Assume that temperature T is constant at 20°C
+    T = 293.15
+    # And all proportionality constants are the same for simplicity
+    g = ones(N)
+    # All but resource 1 is not supplied
+    κ = zeros(M)
+    κ[1] = 100.0
+    # Assume that all δ's are equal
+    δi = 1.0
+    δ = δi*ones(M)
+    # Find m using a function that gives a Guassian offset
+    mm = 1.0
+    sdm = 0.1
+    m = mvector(N,mm,sdm)
+    # Generate random set of reactions
+    μrange = 3e6 # Chosen to be slightly larger than glucose respiration
+    RP, ΔG = chain_reactions(M,μrange,T)
+    # Preallocate vector of reactions
+    reacs = Array{Reaction,1}(undef,O)
+    for i = 1:O
+        reacs[i] = make_Reaction(i,RP[i,1],RP[i,2],ΔG[i])
+    end
+    # Preallocate vector of microbes
+    mics = Array{Microbe,1}(undef,N)
+    # Then construct microbes
+    for i = 1:N
+        println("Microbe $(i):")
+        println("m = $(m[i])")
+        # Only one reaction which each microbe uses
+        R = 1
+        Reacs = [i]
+        # Find corresponding kinetic parameters for these reactions
+        qm, KS, kr = choose_kinetic(R,mq,sdq,mK,sdK,mk,sdk)
+        # Find corresponding η's for these reactions
+        η = lower_ηs(reacs,Reacs,T)
+        println("η = $(η[1])")
         # Can finally generate microbe
         mics[i] = make_Microbe(m[i],g[i],R,Reacs,η,qm,KS,kr)
     end

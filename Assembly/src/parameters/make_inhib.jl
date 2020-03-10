@@ -178,9 +178,9 @@ end
 
 # function to choose single η value deterministically based on microbe number i
 function single_ηs(reacs::Array{Reaction,1},T::Float64,N::Int64,i::Int64)
-    # Set a constant lower bound
-    ηl = 1/3
-    # Set minimum equilibirum product to substrate ratio
+    # Set a constant lower bound, higher in this case as non longer sampling from right skewed distribution
+    ηl = 1
+    # Set minimum equilibrium product to substrate ratio
     mratio = 1e-5
     # Find corresponding Gibbs free energy change
     dG = reacs[1].ΔG0
@@ -191,7 +191,7 @@ function single_ηs(reacs::Array{Reaction,1},T::Float64,N::Int64,i::Int64)
 end
 
 # function to generate parameter set for the case of η competition on one reaction
-function initialise_η(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
+function initialise_η(N::Int64,mq::Float64,mK::Float64,mk::Float64)
     # Only two metabolities alterable by one reaction in this case
     M = 2
     O = 1
@@ -205,10 +205,9 @@ function initialise_η(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float6
     # Assume that all δ's are equal
     δi = 1.0
     δ = δi*ones(M)
-    # Find m using a function that gives a Guassian offset
+    # Use deterministic maintenance rates
     mm = 1.0
-    sdm = 0.1
-    m = mvector(N,mm,sdm)
+    m = mm*ones(N)
     # Generate random set of reactions
     μrange = 3e5 # Smaller μrange in this case to show η competition
     RP, ΔG = rand_reactions(O,M,μrange,T)
@@ -224,8 +223,10 @@ function initialise_η(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float6
         # Only one reaction which each microbe uses
         R = 1
         Reacs = [1]
-        # Find corresponding kinetic parameters for this reaction
-        qm, KS, kr = choose_kinetic(R,mq,sdq,mK,sdK,mk,sdk)
+        # Kinetic parameters are fixed
+        qm = [mq]
+        KS = [mK]
+        kr = [mk]
         # Find corresponding η's for these reactions
         η = [single_ηs(reacs,T,N,i)]
         # Can finally generate microbe
@@ -263,7 +264,7 @@ function two_reactions(μrange::Float64)
 end
 
 # similar to the other η but now with a substrate consuming species
-function initialise_η2(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
+function initialise_η2(N::Int64,mq::Float64,mK::Float64,mk::Float64)
     # Three metabolities alterable by two reactions in this case
     M = 3
     O = 2
@@ -277,10 +278,9 @@ function initialise_η2(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float
     # Assume that all δ's are equal
     δi = 1.0
     δ = δi*ones(M)
-    # Find m using a function that gives a Guassian offset
+    # Use deterministic maintenance rates
     mm = 1.0
-    sdm = 0.1
-    m = mvector(N,mm,sdm)
+    m = mm*ones(N)
     # Generate random set of reactions
     μrange = 6e5 # Slightly larger μrange so that two cases can be compared
     RP, ΔG = two_reactions(μrange)
@@ -300,8 +300,10 @@ function initialise_η2(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float
         else
             Reacs = [1]
         end
-        # Find corresponding kinetic parameters for this reaction
-        qm, KS, kr = choose_kinetic(R,mq,sdq,mK,sdK,mk,sdk)
+        # Kinetic parameters are fixed
+        qm = [mq]
+        KS = [mK]
+        kr = [mk]
         # Find corresponding η's for these reactions
         if i == 1
             η = [3.5]

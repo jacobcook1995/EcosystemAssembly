@@ -10,12 +10,6 @@ function Q(S::Float64,P::Float64)
     return(Q)
 end
 
-# function to find the equilbrium constant
-function Keq(T::Float64,η::Float64,ΔG0::Float64)
-    Keq = exp((-ΔG0-η*ΔGATP)/(Rgas*T))
-    return(Keq)
-end
-
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
     # Catch perverse cases that sometimes arise

@@ -18,7 +18,7 @@ global Rgas = 8.31446261815324 # gas constant in J.K^-1.mol^-1
 global ΔGATP = 75000.0 # Need to find a reference for this at some point
 
 # Defining and exporting functions useful in more than one script
-export mvector
+export mvector, Keq
 
 # function to generate a vector of values for the maintenance energy requirments m
 function mvector(N::Int64,mm::Float64,sdm::Float64)
@@ -31,6 +31,12 @@ function mvector(N::Int64,mm::Float64,sdm::Float64)
         m[i] = rand(d)
     end
     return(m)
+end
+
+# function to find the equilbrium constant
+function Keq(T::Float64,η::Float64,ΔG0::Float64)
+    Keq = exp((-ΔG0-η*ΔGATP)/(Rgas*T))
+    return(Keq)
 end
 
 end # module

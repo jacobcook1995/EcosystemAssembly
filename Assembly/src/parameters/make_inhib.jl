@@ -351,7 +351,7 @@ function lower_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
     η = zeros(length(Reacs))
     # Set a constant lower bound
     ηl = 1/3
-    # Set minimum equilibirum product to substrate ratio
+    # Set minimum equilibrium product to substrate ratio
     mratio = 1e-2
     # Make beta distribution for later, parameters chosen so that distribution skews right
     d = Beta(5,1)
@@ -398,16 +398,12 @@ function initialise_chain(N::Int64,mq::Float64,sdq::Float64,mK::Float64,sdK::Flo
     mics = Array{Microbe,1}(undef,N)
     # Then construct microbes
     for i = 1:N
-        println("Microbe $(i):")
-        println("m = $(m[i])")
         # Only one reaction which each microbe uses
         R = 1
         Reacs = [i]
         # Find corresponding kinetic parameters for these reactions
         qm, KS, kr = choose_kinetic(R,mq,sdq,mK,sdK,mk,sdk)
-        # Find corresponding η's for these reactions
         η = lower_ηs(reacs,Reacs,T)
-        println("η = $(η[1])")
         # Can finally generate microbe
         mics[i] = make_Microbe(m[i],g[i],R,Reacs,η,qm,KS,kr)
     end

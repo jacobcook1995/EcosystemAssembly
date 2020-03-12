@@ -13,9 +13,9 @@ end
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
     # Catch perverse cases that sometimes arise
-    if S < 0.0
+    if S <= 0.0
         θs = 1.0
-    elseif P < 0.0
+    elseif P <= 0.0
         θs = 0.0
     else
         θs = Q(S,P)/Keq(T,η,ΔG0)
@@ -51,6 +51,8 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,
         end
     end
     # Now want to use the rate matrix in the consumer dynamics
+    # MICROBES GROW FROM AN INITIAL POPULATION OF ZERO
+    # NEED A STEP THAT ENSURES THAT ZERO POPULATIONS STAY ZERO
     for i = 1:ps.N
         # subtract maintenance
         dx[i] = -ps.mics[i].m
@@ -84,7 +86,8 @@ end
 function inhib_simulate(ps::InhibParameters,Tmax::Float64)
     # Initialise vectors of concentrations and populations
     pop = ones(ps.N)
-    conc = 0.1*ones(ps.M) # Initial trace amount of each metabolite
+    pop[2] = 0.0
+    conc = zeros(ps.M) # No chemical to begin with
     # Preallocate memory
     rate = zeros(ps.N,ps.O)
     # Now substitute preallocated memory in

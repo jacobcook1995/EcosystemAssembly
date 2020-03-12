@@ -44,22 +44,24 @@ function compare()
     println("Successfully compiled.")
     # Want to investigate a chain of microbes
     N = 20
-    Tmax = 25.0
+    Tmax = 100.0
     mq = 1.0
     sdq = 0.1
     mK  = 0.1
     sdK = 0.01
-    sdk = 1.0
     mk = 10.0
+    sdk = 1.0
     # Now make the parameter set
     ps = initialise_chain(N,mq,sdq,mK,sdK,mk,sdk)
     C, T = inhib_simulate(ps,Tmax)
     # Run plotting
     pyplot(dpi=200)
-    plot(T,C[:,1:N])
+    plot(T,C[:,1:N],label="")
     savefig("Output/TestPop.png")
-    plot(T,C[:,N+1:end])
+    plot(T,C[:,N+1:end],label="")
     savefig("Output/TestConc.png")
+    println(C[end,N+1:end])
+    println(C[end,1:N])
     return(nothing)
 end
 

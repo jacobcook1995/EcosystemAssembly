@@ -51,17 +51,22 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,
         end
     end
     # Now want to use the rate matrix in the consumer dynamics
-    # MICROBES GROW FROM AN INITIAL POPULATION OF ZERO
-    # NEED A STEP THAT ENSURES THAT ZERO POPULATIONS STAY ZERO
     for i = 1:ps.N
-        # subtract maintenance
-        dx[i] = -ps.mics[i].m
-        # Add all the non zero contributions
-        for j = 1:ps.mics[i].R
-            dx[i] += ps.mics[i].η[j]*rate[i,ps.mics[i].Reacs[j]]
+        # Check if microbe is effectively dead
+        if x[i] <= 1e-10
+            # If so x should be set to zero and should not change from that
+            dx[i] = 0.0
+            x[i] = 0.0
+        else
+            # subtract maintenance
+            dx[i] = -ps.mics[i].m
+            # Add all the non zero contributions
+            for j = 1:ps.mics[i].R
+                dx[i] += ps.mics[i].η[j]*rate[i,ps.mics[i].Reacs[j]]
+            end
+            # multiply by population and proportionality constant
+            dx[i] *= ps.mics[i].g*x[i]
         end
-        # multiply by population and proportionality constant
-        dx[i] *= ps.mics[i].g*x[i]
     end
     # Do basic resource dynamics
     for i = ps.N+1:ps.N+ps.M
@@ -86,7 +91,6 @@ end
 function inhib_simulate(ps::InhibParameters,Tmax::Float64)
     # Initialise vectors of concentrations and populations
     pop = ones(ps.N)
-    pop[2] = 0.0
     conc = zeros(ps.M) # No chemical to begin with
     # Preallocate memory
     rate = zeros(ps.N,ps.O)

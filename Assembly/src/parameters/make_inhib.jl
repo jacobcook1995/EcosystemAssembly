@@ -117,7 +117,7 @@ function choose_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
     η = zeros(length(Reacs))
     # Set a constant lower bound
     ηl = 1/3
-    # Set minimum equilibirum product to substrate ratio
+    # Set minimum equilibrium product to substrate ratio
     mratio = 1e-5
     # Make beta distribution for later, parameters chosen so that distribution skews right
     d = Beta(5,1)
@@ -352,7 +352,7 @@ function lower_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
     # Set a constant lower bound
     ηl = 1/3
     # Set minimum equilibrium product to substrate ratio
-    mratio = 1e-2
+    mratio = 1e0
     # Make beta distribution for later, parameters chosen so that distribution skews right
     d = Beta(5,1)
     for i = 1:length(η)
@@ -362,6 +362,7 @@ function lower_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
         dG = reacs[I].ΔG0
         # And use to determine an upper bound on η
         ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
+        # Choose random η from range
         η[i] = (ηh-ηl)*rand(d) + ηl
     end
     return(η)

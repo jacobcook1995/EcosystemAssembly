@@ -43,7 +43,7 @@ end
 function compare()
     println("Successfully compiled.")
     # Want to investigate a chain of microbes
-    N = 20
+    N = 10
     Tmax = 100.0
     mq = 1.0
     sdq = 0.1
@@ -51,17 +51,34 @@ function compare()
     sdK = 0.01
     mk = 10.0
     sdk = 1.0
-    # Now make the parameter set
-    ps = initialise_chain(N,mq,sdq,mK,sdK,mk,sdk)
-    C, T = inhib_simulate(ps,Tmax)
-    # Run plotting
-    pyplot(dpi=200)
-    plot(T,C[:,1:N],label="")
-    savefig("Output/TestPop.png")
-    plot(T,C[:,N+1:end],label="")
-    savefig("Output/TestConc.png")
-    println(C[end,N+1:end])
-    println(C[end,1:N])
+    for i = 1:50
+        # Now make the parameter set
+        ps = initialise_chain(N,mq,sdq,mK,sdK,mk,sdk)
+        C, T = inhib_simulate(ps,Tmax)
+        # Loop to check for first extinct species
+        stop = false
+        j = 0
+        while stop == false
+            j += 1
+            if C[end,j] == 0.0
+                println("Run $i:")
+                println("Species $j extinct")
+                println("m = $(ps.mics[j].m)") # WORK OUT WHAT TO PUT HERE
+                println("η = $(ps.mics[j].η[1])") # WORK OUT WHAT TO PUT HERE
+                stop = true
+            elseif j == N
+                stop = true
+            end
+        end
+        if i == 50
+            # Run plotting
+            pyplot(dpi=200)
+            plot(T,C[:,1:N],label="")
+            savefig("Output/TestPop.png")
+            plot(T,C[:,N+1:end],label="")
+            savefig("Output/TestConc.png")
+        end
+    end
     return(nothing)
 end
 

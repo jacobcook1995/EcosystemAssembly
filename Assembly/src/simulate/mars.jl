@@ -1,7 +1,6 @@
 # Script that attempts to implement the model laid out in Marsland et al, PLoS Comput Biol 15: e1006793.
 # This provides a point of comparison for our extended model
 using Assembly
-using DifferentialEquations
 
 export mars_simulate
 

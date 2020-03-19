@@ -1,6 +1,7 @@
 module Assembly
 
 using Distributions
+using DifferentialEquations
 
 # Include scripts that contain other functions
 include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available

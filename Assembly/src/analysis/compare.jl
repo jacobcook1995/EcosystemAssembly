@@ -3,6 +3,7 @@
 using Assembly
 using Plots
 import PyPlot
+using JLD
 
 # function to compare the two different η competition cases
 function ηcomparison()
@@ -39,11 +40,15 @@ function ηcomparison()
     return(nothing)
 end
 
-# test function to run different simulations and compare outputs
+# test function to run an example simulation
 function compare()
     println("Successfully compiled.")
     # Want to investigate a chain of microbes
-    N = 10
+    N = 20
+    M = 100
+    O = 2*M
+    mR = 5.0
+    sdR = 1.0
     Tmax = 100.0
     mq = 1.0
     sdq = 0.1
@@ -53,23 +58,16 @@ function compare()
     sdk = 1.0
     for i = 1:50
         # Now make the parameter set
-        ps = initialise_chain(N,mq,sdq,mK,sdK,mk,sdk)
-        C, T = inhib_simulate(ps,Tmax)
-        # Loop to check for first extinct species
-        stop = false
-        j = 0
-        while stop == false
-            j += 1
-            if C[end,j] == 0.0
-                println("Run $i:")
-                println("Species $j extinct")
-                println("m = $(ps.mics[j].m)") # WORK OUT WHAT TO PUT HERE
-                println("η = $(ps.mics[j].η[1])") # WORK OUT WHAT TO PUT HERE
-                stop = true
-            elseif j == N
-                stop = true
-            end
+        ps = initialise(N,M,O,mR,sdR,mq,sdq,mK,sdK,mk,sdk)
+        # save this parameter set
+        jldopen("Temp/Paras/ps$(i).jld", "w") do file
+            # addrequire(file, Assembly)
+            write(file, "ps", ps)
         end
+        @time C, T = inhib_simulate(ps,Tmax)
+        # count number of species that have grown
+        c = count(x->(x>=2.0), C[end,1:N])
+        println("Simulation $i: $c species have grown")
         if i == 50
             # Run plotting
             pyplot(dpi=200)
@@ -77,9 +75,31 @@ function compare()
             savefig("Output/TestPop.png")
             plot(T,C[:,N+1:end],label="")
             savefig("Output/TestConc.png")
+            println(C[end,1:N])
         end
     end
     return(nothing)
 end
 
-@time compare()
+# function to run test versions of scripts for the
+function test()
+    # Set simulation time
+    Tmax = 100.0
+    # Find filename to read in from argument
+    ps = load("Temp/Paras/ps$(ARGS[1]).jld","ps")
+    C, T = test_inhib_simulate(ps,Tmax)
+    # If run is successful then do plotting
+    pyplot(dpi=200)
+    plot(T,C[:,1:ps.N],label="")
+    savefig("Output/TestPop$(ARGS[1]).png")
+    plot(T,C[:,ps.N+1:end],label="")
+    savefig("Output/TestConc$(ARGS[1]).png")
+    println(C[end,1:ps.N])
+    return(nothing)
+end
+
+if length(ARGS) < 1
+    @time compare()
+else
+    @time test()
+end

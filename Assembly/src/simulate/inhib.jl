@@ -102,7 +102,7 @@ function inhib_simulate(ps::InhibParameters,Tmax::Float64)
     # Then setup and solve the problem
     println("Simulation started.")
     prob = ODEProblem(dyns!,x0,tspan,ps)
-    sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
+    sol = solve(prob)
     return(sol',sol.t)
 end
 
@@ -156,7 +156,6 @@ function test_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParame
             dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Rct] -= rate[i,ps.mics[i].Reacs[j]]*x[i]
         end
     end
-    # println(x[1:ps.N])
     return(dx)
 end
 
@@ -175,6 +174,8 @@ function test_inhib_simulate(ps::InhibParameters,Tmax::Float64)
     # Then setup and solve the problem
     println("Test simulation started.")
     prob = ODEProblem(dyns!,x0,tspan,ps)
-    sol = solve(prob,isoutofdomain=(y,p,t)->any(x->x<0,y))
+    sol = solve(prob)
+    println(sol.destats) # Also useful
+    println(sol.retcode) # Useful
     return(sol',sol.t)
 end

@@ -84,9 +84,15 @@ end
 # function to run test versions of scripts for the
 function test()
     # Set simulation time
-    Tmax = 100.0
+    Tmax = 25.0
     # Find filename to read in from argument
     ps = load("Temp/Paras/ps$(ARGS[1]).jld","ps")
+    # remake parameter set with maintenance energy
+    mics = Array{Microbe,1}(undef,ps.N)
+    for i = 1:ps.N
+        mics[i] = make_Microbe(1.0,ps.mics[i].g,ps.mics[i].R,ps.mics[i].Reacs,ps.mics[i].η,ps.mics[i].qm,ps.mics[i].KS,ps.mics[i].kr)
+    end
+    ps = make_InhibParameters(ps.N,ps.M,ps.O,ps.T,ps.κ,ps.δ,ps.reacs,mics)
     C, T = test_inhib_simulate(ps,Tmax)
     # If run is successful then do plotting
     pyplot(dpi=200)

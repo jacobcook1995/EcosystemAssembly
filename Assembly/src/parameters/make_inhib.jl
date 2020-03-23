@@ -149,7 +149,8 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,mq::Floa
     # Find m using a function that gives a Guassian offset
     mm = 1.0
     sdm = 0.1
-    m = mvector(N,mm,sdm)
+    # m = mvector(N,mm,sdm)
+    m = zeros(N)
     # Generate random set of reactions
     μrange = 3e6 # Chosen to be slightly larger than glucose respiration
     RP, ΔG = rand_reactions(O,M,μrange,T)

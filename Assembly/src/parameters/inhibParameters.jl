@@ -47,6 +47,9 @@ Type containing the parameters for a particular microbial strain.
 - `R::Int64`: Number of reactions
 - `Reacs::Vector{Int64}`: Reaction numbers
 - `η::Vector{Float64}`: ATP generated per mole of reaction
+- `qm::Vector{Float64}`: Maximal rates of substrate consumption
+- `KS::Vector{Float64}`: Substrate saturation constants
+- `kr::Vector{Float64}`: reversibility factors
 """
 struct Microbe
     m::Float64;

@@ -136,7 +136,7 @@ function choose_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
     # Set a constant lower bound
     ηl = 1/3
     # Set minimum equilibrium product to substrate ratio
-    mratio = 1e-5
+    mratio = 1e-2
     # Make beta distribution for later, parameters chosen so that distribution skews right
     d = Beta(5,1)
     for i = 1:length(η)

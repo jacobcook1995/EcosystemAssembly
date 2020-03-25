@@ -83,6 +83,13 @@ function dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,
             dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Rct] -= rate[i,ps.mics[i].Reacs[j]]*x[i]
         end
     end
+    # Final step to correct for any concentrations that have gone negative
+    for i = ps.N+1:ps.N+ps.M
+        if x[i] < 0.0
+            x[i] = 0.0
+            dx[i] = 0.0
+        end
+    end
     return(dx)
 end
 
@@ -154,6 +161,13 @@ function test_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParame
             dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Prd] += rate[i,ps.mics[i].Reacs[j]]*x[i]
             # and decrease the reactant
             dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Rct] -= rate[i,ps.mics[i].Reacs[j]]*x[i]
+        end
+    end
+    # Final step to correct for any concentrations that have gone negative
+    for i = ps.N+1:ps.N+ps.M
+        if x[i] < 0.0
+            x[i] = 0.0
+            dx[i] = 0.0
         end
     end
     return(dx)

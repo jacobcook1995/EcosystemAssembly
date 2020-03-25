@@ -10,6 +10,10 @@ function rand_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
     h = 6.0
     l = 1.0
     d = Uniform(l,h)
+    # Second uniform distribution to select by η values
+    ηl = 1.0
+    ηh = 4.0
+    d2 = Uniform(ηl,ηh)
     # preallocate output
     RP = zeros(Int64,O,2)
     ΔG = zeros(O)
@@ -34,28 +38,42 @@ function rand_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
         if all((r .∉ RP[:,1]) .| (p .∉ RP[:,2]))
             # find Gibbs free energy change
             dG = μ0[p] - μ0[r]
-            # Find equlibrium constant when 1 ATP is generated
-            K = Keq(T,1.0,dG)
-            # Find log base 10 of this equilbrium constant
-            logK = log(10,K)
-            # Accept if equilbrium ratio is less than 10:1 in favour of reactant
-            if logK > -l
-                i += 1
-                RP[i,1] = r
-                RP[i,2] = p
-                ΔG[i] = dG
-            # Disregard if too heavily in favour of reactant
-            elseif logK < -h
-            # Otherwise randomly decide whether to accept
-            else
-                # draw random number between 1.0 and 6.0
-                rn = rand(d)
-                # Accept if this is
-                if rn > -logK
+            # find η value that gives equilbrium constant of 1
+            ηQ = -dG/ΔGATP
+            # Draw random number to decide if η value is acceptable
+            if 1.0 <= ηQ <= 4.0
+                rn = rand(d2)
+                if rn >= ηQ
                     i += 1
                     RP[i,1] = r
                     RP[i,2] = p
                     ΔG[i] = dG
+                end
+            # If less than 1 need to check that equilbrium constants are reasonable
+            elseif ηQ < 1.0
+                # Find equlibrium constant when 1 ATP is generated
+                K = Keq(T,1.0,dG)
+                # Find log base 10 of this equilbrium constant
+                logK = log(10,K)
+                # Accept if equilbrium ratio is less than 10:1 in favour of reactant
+                if logK > -l
+                    i += 1
+                    RP[i,1] = r
+                    RP[i,2] = p
+                    ΔG[i] = dG
+                # Disregard if too heavily in favour of reactant
+                elseif logK < -h
+                # Otherwise randomly decide whether to accept
+                else
+                    # draw random number between 1.0 and 6.0
+                    rn = rand(d)
+                    # Accept if this is
+                    if rn > -logK
+                        i += 1
+                        RP[i,1] = r
+                        RP[i,2] = p
+                        ΔG[i] = dG
+                    end
                 end
             end
         end

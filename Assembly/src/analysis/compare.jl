@@ -136,23 +136,10 @@ function test()
     return(nothing)
 end
 
-# A quick bit of code for a schematic
-# DELETE WHEN DONE
-import Assembly.rand_reactions
-
-function delete_this()
-    println("STARTED")
-    T = 293.15
-    μrange = 6e5 # a 10th of what it is in the real case
-    Rs = rand_reactions(8,8,μrange,T)
-    println(Rs)
-    return(nothing)
-end
-
 @time delete_this()
 
-# if length(ARGS) < 1
-#     @time compare()
-# else
-#     @time test()
-# end
+if length(ARGS) < 1
+    @time compare()
+else
+    @time test()
+end

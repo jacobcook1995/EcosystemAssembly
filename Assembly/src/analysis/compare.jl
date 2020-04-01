@@ -47,9 +47,9 @@ function compare()
     N = 20
     M = 100
     O = 2*M
-    mR = 5.0
+    mR = 10.0
     sdR = 1.0
-    Tmax = 100.0
+    Tmax = 10.0
     mq = 1.0
     sdq = 0.1
     mK  = 0.1
@@ -66,8 +66,24 @@ function compare()
         end
         @time C, T = inhib_simulate(ps,Tmax)
         # count number of species that have grown
-        c = count(x->(x>=2.0), C[end,1:N])
-        println("Simulation $i: $c species have grown")
+        c = count(x->(x>=1e-2), C[end,1:N])
+        println("Simulation $i: $c species have survived")
+        # Check how many reactions that metabolise 1 there are
+        Rs = Array{Reaction}(undef,0)
+        for i = 1:O
+            if ps.reacs[i].Rct == 1
+                Rs = cat(Rs,ps.reacs[i],dims=1)
+            end
+        end
+        println("There are $(length(Rs)) reactions that break down metabolite 1")
+        # And how many species make use of these reactions
+        c = 0
+        for i = 1:N
+            if length(intersect(ps.mics[i].Reacs,Rs.↦:ID)) != 0
+                c += 1
+            end
+        end
+        println("$(c) species possess reactions to break down metabolite 1")
         if i == 50
             # Run plotting
             pyplot(dpi=200)
@@ -84,15 +100,30 @@ end
 # function to run test versions of scripts for the
 function test()
     # Set simulation time
-    Tmax = 25.0
+    Tmax = 100.0
     # Find filename to read in from argument
     ps = load("Temp/Paras/ps$(ARGS[1]).jld","ps")
-    # remake parameter set with maintenance energy
-    mics = Array{Microbe,1}(undef,ps.N)
-    for i = 1:ps.N
-        mics[i] = make_Microbe(1.0,ps.mics[i].g,ps.mics[i].R,ps.mics[i].Reacs,ps.mics[i].η,ps.mics[i].qm,ps.mics[i].KS,ps.mics[i].kr)
-    end
-    ps = make_InhibParameters(ps.N,ps.M,ps.O,ps.T,ps.κ,ps.δ,ps.reacs,mics)
+    # # Find all reactions metabolising 1
+    # Rs = Array{Reaction}(undef,0)
+    # for i = 1:ps.O
+    #     if ps.reacs[i].Rct == 1
+    #         Rs = cat(Rs,ps.reacs[i],dims=1)
+    #     end
+    # end
+    # # Find microbes that have these reactions
+    # for i = 1:ps.N
+    #     for j = 1:length(ps.mics[i].Reacs)
+    #         if ps.mics[i].Reacs[j] in (Rs.↦:ID)
+    #             η = ps.mics[i].η[j]
+    #             println("η = $(η)")
+    #             ΔG0 = ps.reacs[ps.mics[i].Reacs[j]].ΔG0
+    #             println("Gratio = $(-ΔG0/ΔGATP)")
+    #         end
+    #     end
+    # end
+    # println("Microbe 1:")
+    # println(ps.reacs[ps.mics[20].Reacs])
+    # Then run test simulation of it
     C, T = test_inhib_simulate(ps,Tmax)
     # If run is successful then do plotting
     pyplot(dpi=200)
@@ -101,11 +132,27 @@ function test()
     plot(T,C[:,ps.N+1:end],label="")
     savefig("Output/TestConc$(ARGS[1]).png")
     println(C[end,1:ps.N])
+    println(C[end,ps.N+1:end])
     return(nothing)
 end
 
-if length(ARGS) < 1
-    @time compare()
-else
-    @time test()
+# A quick bit of code for a schematic
+# DELETE WHEN DONE
+import Assembly.rand_reactions
+
+function delete_this()
+    println("STARTED")
+    T = 293.15
+    μrange = 6e5 # a 10th of what it is in the real case
+    Rs = rand_reactions(8,8,μrange,T)
+    println(Rs)
+    return(nothing)
 end
+
+@time delete_this()
+
+# if length(ARGS) < 1
+#     @time compare()
+# else
+#     @time test()
+# end

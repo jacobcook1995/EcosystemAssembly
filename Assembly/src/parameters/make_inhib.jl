@@ -153,7 +153,7 @@ end
 
 # function to generate parameter set for the model with inhibition
 function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
-    @assert O > mR + 5*sdR "Not enough reactions to ensure that microbes have on average mR reactions"
+    @assert O >= mR + 5*sdR "Not enough reactions to ensure that microbes have on average mR reactions"
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # And all proportionality constants are the same for simplicity
@@ -169,7 +169,7 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,mq::Floa
     sdm = 0.1
     m = mvector(N,mm,sdm)
     # Generate random set of reactions
-    μrange = 3e6 # Chosen to be slightly larger than glucose respiration
+    μrange = 3e6*(M/100) # Chosen to be slightly larger than glucose respiration
     RP, ΔG = rand_reactions(O,M,μrange,T)
     # Preallocate vector of reactions
     reacs = Array{Reaction,1}(undef,O)

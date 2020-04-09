@@ -60,9 +60,8 @@ function compare()
         # Now make the parameter set
         ps = initialise(N,M,O,mR,sdR,mq,sdq,mK,sdK,mk,sdk)
         # save this parameter set
-        jldopen("Temp/Paras/ps$(i).jld", "w") do file
-            # addrequire(file, Assembly)
-            write(file, "ps", ps)
+        jldopen("Temp/Paras/ps$(i).jld","w") do file
+            write(file,"ps",ps)
         end
         @time C, T = inhib_simulate(ps,Tmax)
         # count number of species that have grown

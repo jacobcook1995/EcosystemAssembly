@@ -1,6 +1,7 @@
 # A script to run Lyapunov analysis of our inhibition model.
 using Assembly
 using JLD
+using SymPy
 
 # function to set up and run a lyapunov analysis of a simple case
 function lya()
@@ -22,6 +23,11 @@ function lya()
     jldopen("Temp/Paras/psL.jld","w") do file
         write(file,"ps",ps)
     end
+    # Preallocate Jacobian
+    J = Array{Sym,2}(undef,ps.N+ps.M,ps.N+ps.M)
+    # Find Jacobian using function
+    J = Jacobian(ps,J)
+    println(J)
     return(nothing)
 end
 

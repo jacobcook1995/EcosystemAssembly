@@ -2,6 +2,7 @@ module Assembly
 
 using Distributions
 using DifferentialEquations
+using SymPy
 
 # Include scripts that contain other functions
 include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available
@@ -10,6 +11,7 @@ include("parameters/inhibParameters.jl") # Parameters for Inhibition case
 include("parameters/make_inhib.jl") # Function to make parameters for model with inhibition
 include("simulate/mars.jl") # Include marsland model simulation code
 include("simulate/inhib.jl") # Include simulation code for our model
+include("simulate/analytic.jl") # Include analytic functions to assit simulations
 
 # export global constants
 export Rgas, ΔGATP

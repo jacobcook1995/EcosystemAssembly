@@ -26,27 +26,7 @@ function lya()
     # Preallocate Jacobian
     J = Array{Sym,2}(undef,ps.N+ps.M,ps.N+ps.M)
     # Find Jacobian using function
-    @time J1 = Jacobian(ps,J)
-    @time J2 = Jacobian_test(ps)
-    # Now want to define partciluar concentrtion and population values to use
-    N1 = 10.0
-    N2 = 27.0
-    N3 = 12.0
-    N4 = 123.1
-    M1 = 3.4
-    M2 = 7.8
-    M3 = 3.4
-    M4 = 2.1
-    for i = 1:ps.N+ps.M
-        for j = 1:ps.N+ps.M
-            J1[i,j] = subs(J1[i,j],"N1"=>N1,"N2"=>N2,"M1"=>M1,"M2"=>M2)
-            J1[i,j] = subs(J1[i,j],"N3"=>N3,"N4"=>N4,"M3"=>M3,"M4"=>M4)
-            J2[i,j] = subs(J2[i,j],"N1"=>N1,"N2"=>N2,"M1"=>M1,"M2"=>M2)
-            J2[i,j] = subs(J2[i,j],"N3"=>N3,"N4"=>N4,"M3"=>M3,"M4"=>M4)
-        end
-    end
-    println(J1)
-    println(J2)
+    J = Jacobian(ps,J)
     return(nothing)
 end
 

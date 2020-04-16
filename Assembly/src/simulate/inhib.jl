@@ -109,7 +109,7 @@ function inhib_simulate(ps::InhibParameters,Tmax::Float64)
     # Then setup and solve the problem
     println("Simulation started.")
     prob = ODEProblem(dyns!,x0,tspan,ps)
-    sol = solve(prob)
+    sol = DifferentialEquations.solve(prob)
     return(sol',sol.t)
 end
 
@@ -188,7 +188,7 @@ function test_inhib_simulate(ps::InhibParameters,Tmax::Float64)
     # Then setup and solve the problem
     println("Test simulation started.")
     prob = ODEProblem(dyns!,x0,tspan,ps)
-    sol = solve(prob)
+    sol = DifferentialEquations.solve(prob)
     println(sol.destats) # Also useful
     println(sol.retcode) # Useful
     return(sol',sol.t)

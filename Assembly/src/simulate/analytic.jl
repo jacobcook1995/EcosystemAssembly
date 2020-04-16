@@ -1,7 +1,7 @@
 # Script that provides analytic functions such as Lyapunov exponents for use in the simulations
 using Assembly
 
-export Jacobian
+export Jacobian, Lyapunov
 
 # function to return the rate in symbolic form
 function symb_rate(S::Sym,P::Sym)
@@ -118,4 +118,38 @@ function Jacobian(ps::InhibParameters,J::Array{Sym,2})
         end
     end
     return(J)
+end
+
+# function to find the local eigenvalues and vectors for a partcilar Jacobian
+function Lyapunov(J::Array{Sym,2},C::Array{Float64,1},ps::InhibParameters)
+    # Check that Jacobian does correspond to
+    @assert length(C) == size(J,1) "Steady state vector wrong size for Jacobian"
+    for i = ps.N+1:ps.N+ps.M
+        # Overwrite zero concentrations
+        if C[i] == 0.0
+            C[i] = 1e-10
+        end
+    end
+    # Sub in steady state population values
+    for i = 1:ps.N
+        for j = 1:ps.N+ps.M
+            for k = 1:ps.N+ps.M
+                J[j,k] = subs(J[j,k],"N$i"=>C[i])
+            end
+        end
+    end
+    # Sub in steady state concentrations values
+    for i = ps.N+1:ps.N+ps.M
+        for j = 1:ps.N+ps.M
+            for k = 1:ps.N+ps.M
+                J[j,k] = subs(J[j,k],"M$(i-ps.N)"=>C[i])
+            end
+        end
+    end
+    # convert fully substituted Jacobian into a float
+    J = convert(Array{Float64},J)
+    # Then find eigenvalues
+    λ = eigvals(J)
+    v = eigvecs(J)
+    return(λ,v)
 end

@@ -6,7 +6,7 @@ export ↦
 # Overloadable version of getfields
 ↦(s, f) = getfield(s, f)
 
-export InhibParameters, make_InhibParameters, make_Reaction, Reaction, make_Microbe, Microbe
+export InhibParameters, make_InhibParameters, make_Reaction, Reaction, make_Microbe, Microbe, add_Microbe
 
 """
     Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
@@ -144,5 +144,24 @@ function make_InhibParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{F
     for i = 1:N
         @assert all((mics.↦:Reacs)[i] .<= O) "Microbe $i assigned to reaction that doesn't exist"
     end
+    return(InhibParameters(N,M,O,T,κ,δ,reacs,mics))
+end
+
+"""
+    add_Microbe(ps::InhibParameters,mic::Microbe)
+Function to add a Microbe to an exisiting parameter set ps.
+"""
+function add_Microbe(ps::InhibParameters,mic::Microbe)
+    # One new microbe added
+    N = ps.N+1
+    # Most parameters unchanged
+    M = ps.M
+    O = ps.O
+    T = ps.T
+    κ = ps.κ
+    δ = ps.δ
+    reacs = ps.reacs
+    # New microbe added to end of list
+    mics = cat(ps.mics,mic,dims=1)
     return(InhibParameters(N,M,O,T,κ,δ,reacs,mics))
 end

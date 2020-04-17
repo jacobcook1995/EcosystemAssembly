@@ -1,4 +1,5 @@
 # A script to run Lyapunov analysis of our inhibition model.
+# KEEP AS AN EXAMPLE SCRIPT FOR NOW
 using Assembly
 using JLD
 using SymPy
@@ -21,7 +22,7 @@ function test_run()
     sdk = 1.0
     Tmax = 100.0
     # Now make the parameter set, can just use the normal function for now
-    ps = initialise(N,M,O,mR,sdR,mq,sdq,mK,sdK,mk,sdk)
+    ps = initialise_test(mq,mK,mk)
     # save this parameter set
     jldopen("Temp/Paras/psL.jld","w") do file
         write(file,"ps",ps)
@@ -43,24 +44,35 @@ end
 
 # function to run test versions of scripts for the
 function lya()
-   # Set simulation time
-   Tmax = 100.0
-   # Find filename to read in from argument
-   ps = load("Temp/Paras/psL.jld","ps")
-   # Preallocate Jacobian
-   J = Array{Sym,2}(undef,ps.N+ps.M,ps.N+ps.M)
-   # Find Jacobian using function
-   J = Jacobian(ps,J)
-   # Then run test simulation of it
-   C, T = inhib_simulate(ps,Tmax)
-   # Use final simulation results to find local Lyapunov exponents
-   λ, v = Lyapunov(J,C[end,:],ps)
-   for i = 1:length(λ)
-       println("λ$i = $(λ[i])")
-       println("v$i = $(v[:,i])")
-   end
-   # Okay so this works but what does it tell us?
-   return(nothing)
+    # Set simulation time
+    Tmax = 100.0
+    # Find filename to read in from argument
+    ps = load("Temp/Paras/psL.jld","ps")
+    # Preallocate Jacobian
+    J = Array{Sym,2}(undef,ps.N+ps.M,ps.N+ps.M)
+    # Find Jacobian using function
+    J = Jacobian(ps,J)
+    # Then run test simulation of it
+    C, T = inhib_simulate(ps,Tmax)
+    # Use final simulation results to find local Lyapunov exponents
+    λ, v = Lyapunov(J,C[end,:],ps)
+    for i = 1:length(λ)
+        println("λ$i = $(λ[i])")
+        println("v$i = $(v[:,i])")
+    end
+    # Add microbe and test if this changes things
+    mic = make_Microbe(1.0,1.0,1,[3],[3.5],[1.0],[0.1],[10.0])
+    ps = add_Microbe(ps,mic)
+    # Preallocate Jacobian
+    J = Array{Sym,2}(undef,ps.N+ps.M,ps.N+ps.M)
+    # Find Jacobian using function
+    J = Jacobian(ps,J)
+    λ, v = Lyapunov(J,[C[end,1:ps.N-1];0.0;C[end,ps.N:end]],ps)
+    for i = 1:length(λ)
+        println("λ$i = $(λ[i])")
+        println("v$i = $(v[:,i])")
+    end
+    return(nothing)
 end
 
 if length(ARGS) < 1

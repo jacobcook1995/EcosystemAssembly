@@ -113,6 +113,24 @@ function inhib_simulate(ps::InhibParameters,Tmax::Float64)
     return(sol',sol.t)
 end
 
+# Simulation code to run one instatnce of the simulation with a user defined starting condition
+# ps is parameter set, Tmax is the time to integrate to
+# pop and conc are the intial conditions
+function inhib_simulate(ps::InhibParameters,Tmax::Float64,pop::Array{Float64,1},conc::Array{Float64,1})
+    # Preallocate memory
+    rate = zeros(ps.N,ps.O)
+    # Now substitute preallocated memory in
+    dyns!(dx,x,ps,t) = dynamics!(dx,x,ps,rate,t)
+    # Find time span for this step
+    tspan = (0,Tmax)
+    x0 = [pop;conc]
+    # Then setup and solve the problem
+    println("Simulation started.")
+    prob = ODEProblem(dyns!,x0,tspan,ps)
+    sol = DifferentialEquations.solve(prob)
+    return(sol',sol.t)
+end
+
 # Same dynamics function altered to do detailed testing
 function test_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::InhibParameters,rate::Array{Float64,2},t::Float64)
     # loop over the reactions to find reaction rate for each reaction for each strain

@@ -2,7 +2,7 @@
 # of the model with inhibition
 using Assembly
 
-export initialise, initialise_η, initialise_η2, initialise_chain
+export initialise, initialise_η, initialise_η2, initialise_chain, initialise_mic
 
 # function to generate a set of random reactions for the model
 function rand_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
@@ -152,7 +152,8 @@ function choose_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
 end
 
 # function to generate parameter set for the model with inhibition
-function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,mq::Float64,sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
+function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,mq::Float64,
+                    sdq::Float64,mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
     @assert O >= mR + 5*sdR "Not enough reactions to ensure that microbes have on average mR reactions"
     # Assume that temperature T is constant at 20°C
     T = 293.15
@@ -331,6 +332,63 @@ function initialise_η2(N::Int64,mq::Float64,mK::Float64,mk::Float64)
         # Can finally generate microbe
         mics[i] = make_Microbe(m[i],g[i],R,Reacs,η,qm,KS,kr)
     end
+    # Now make the parameter set
+    ps = make_InhibParameters(N,M,O,T,κ,δ,reacs,mics)
+    return(ps)
+end
+
+# function to initialise a single random microbe
+function initialise_mic(ps::InhibParameters,mR::Float64,sdR::Float64,mq::Float64,sdq::Float64,
+                        mK::Float64,sdK::Float64,mk::Float64,sdk::Float64)
+    # m chosen with Guassian offset
+    mm = 1.0
+    sdm = 0.1
+    m = mvector(1,mm,sdm)
+    # Proportionality constant set to one for all cases
+    g = 1.0
+    # Generate a random set of reactions
+    R, Reacs = choose_reactions(ps.O,mR,sdR)
+    # Find corresponding kinetic parameters for these reactions
+    qm, KS, kr = choose_kinetic(R,mq,sdq,mK,sdK,mk,sdk)
+    # Find corresponding η's for these reactions
+    η = choose_ηs(ps.reacs,Reacs,ps.T)
+    # Can finally generate microbe
+    return(make_Microbe(m[1],g,R,Reacs,η,qm,KS,kr))
+end
+
+# a test function to initialise a simple function
+function initialise_test(mq::Float64,mK::Float64,mk::Float64)
+    # Set constant values
+    N = 2
+    M = 4
+    O = 4
+    # Assume that temperature T is constant at 20°C
+    T = 293.15
+    # And all proportionality constants are the same for simplicity
+    g = ones(N)
+    # All but resource 1 is not supplied
+    κ = zeros(M)
+    κ[1] = 100.0
+    # Assume that all δ's are equal
+    δi = 1.0
+    δ = δi*ones(M)
+    # Find m using a function that gives a Guassian offset
+    mm = 1.0
+    sdm = 0.1
+    m = mvector(N,mm,sdm)
+    # Preallocate vector of reactions
+    reacs = Array{Reaction,1}(undef,O)
+    reacs[1] = make_Reaction(1,1,2,-6e5)
+    reacs[2] = make_Reaction(2,2,3,-6e5)
+    reacs[3] = make_Reaction(3,3,4,-6e5)
+    reacs[4] = make_Reaction(4,2,4,-1.2e6)
+    # Preallocate vector of microbes
+    mics = Array{Microbe,1}(undef,N)
+    # Each microbe has one reaction
+    R = 1
+    η = 3.5
+    mics[1] = make_Microbe(m[1],g[1],R,[1],[η],[mq],[mK],[mk])
+    mics[2] = make_Microbe(m[2],g[2],R,[2],[η],[mq],[mK],[mk])
     # Now make the parameter set
     ps = make_InhibParameters(N,M,O,T,κ,δ,reacs,mics)
     return(ps)

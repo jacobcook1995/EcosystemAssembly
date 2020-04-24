@@ -22,7 +22,7 @@ global Rgas = 8.31446261815324 # gas constant in J.K^-1.mol^-1
 global ΔGATP = 75000.0 # Need to find a reference for this at some point
 
 # Defining and exporting functions useful in more than one script
-export mvector, Keq
+export mvector, Keq, Q
 
 # function to generate a vector of values for the maintenance energy requirments m
 function mvector(N::Int64,mm::Float64,sdm::Float64)
@@ -41,6 +41,12 @@ end
 function Keq(T::Float64,η::Float64,ΔG0::Float64)
     Keq = exp((-ΔG0-η*ΔGATP)/(Rgas*T))
     return(Keq)
+end
+
+# function to find the reaction quotient Q, in the case of 1 to 1 stochiometery
+function Q(S::Float64,P::Float64)
+    Q = P/S
+    return(Q)
 end
 
 end # module

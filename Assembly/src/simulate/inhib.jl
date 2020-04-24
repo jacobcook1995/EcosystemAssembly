@@ -4,12 +4,6 @@ using Assembly
 
 export inhib_simulate, test_inhib_simulate
 
-# function to find the reaction quotient Q, in the case of 1 to 1 stochiometery
-function Q(S::Float64,P::Float64)
-    Q = P/S
-    return(Q)
-end
-
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
     # Catch perverse cases that sometimes arise
@@ -125,7 +119,6 @@ function inhib_simulate(ps::InhibParameters,Tmax::Float64,pop::Array{Float64,1},
     tspan = (0,Tmax)
     x0 = [pop;conc]
     # Then setup and solve the problem
-    println("Simulation started.")
     prob = ODEProblem(dyns!,x0,tspan,ps)
     sol = DifferentialEquations.solve(prob)
     return(sol',sol.t)

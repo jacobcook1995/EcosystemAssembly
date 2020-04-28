@@ -1,7 +1,7 @@
 module Assembly
 
 using Distributions
-# using DifferentialEquations
+using DifferentialEquations
 using SymPy
 using LinearAlgebra
 

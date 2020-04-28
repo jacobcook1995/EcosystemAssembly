@@ -180,12 +180,11 @@ function repeat()
         end
     end
     # save this metacommunity data
-    # NEED A BETTER NAMING CUSTOM HERE
-    jldopen("Paras/MD$(ARGS[1]).jld","w") do file
+    jldopen("Output/MD$(ARGS[1]).jld","w") do file
         write(file,"MD",MD)
     end
     # WHAT DATA SHOULD BE OUTPUTTED AND SAVED?
-    jldopen("Paras/Dyn$(ARGS[1]).jld","w") do file
+    jldopen("Output/Dyn$(ARGS[1]).jld","w") do file
         write(file,"C",C1)
         write(file,"T",T1)
         write(file,"t",t)

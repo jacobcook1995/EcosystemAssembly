@@ -1,8 +1,6 @@
 # A script to do repeated runs of the Inhibition model, adding new microbes
 # in if they can successfully invade
 using Assembly
-using Plots
-import PyPlot
 using JLD
 using SymPy
 
@@ -29,14 +27,23 @@ function stead(ps::InhibParameters,Tmax::Float64,pop::Array{Float64,1},conc::Arr
         if maximum(abs.(f)) <= 1.0e-5 || c == 100
             # Either end loop
             println("Steady state found after $c steps")
+            if c == 100
+                println("MASSIVE PROBLEM HERE!")
+            end
             std = true
         else
             # Otherwise update initial condiditions
             pop = Ci[end,1:ps.N]
             conc = Ci[end,ps.N+1:end]
             # Switch to using small time step to smooth out numerical oscillations
-            if c == 2
+            if c == 5
                 t = 5.0
+            elseif c == 10
+                t = 1.0
+            elseif c == 15
+                t = 0.1
+            elseif c >= 20
+                println(f)
             end
             if c != 0 && c % 10 == 0
                 println("$c steps taken without finding steady state")
@@ -72,23 +79,35 @@ end
 # function to repeatedly add microbes
 function repeat()
     println("Successfully compiled.")
+    if length(ARGS) == 0
+        error("NEED TO PROVIDE NAME FOR OUTPUT DATA.")
+    end
     # Make new parameter set if one isn't provided
     # Initially make 1 microbe
     N = 1
-    M = 8
+    M = 100
     O = 2*M
-    mR = 3.0
-    sdR = 0.0
+    mR = 10.0
+    sdR = 1.0
     mq = 1.0
     sdq = 0.1
     mK  = 0.1
     sdK = 0.01
     mk = 10.0
     sdk = 1.0
-    # Now make the parameter set
-    ps = initialise(N,M,O,mR,sdR,mq,sdq,mK,sdK,mk,sdk)
+    # Now attempt to make the parameter set
+    vld = false
+    ps = 0 # This put it in the right scope
+    while vld == false
+        ps = initialise(N,M,O,mR,sdR,mq,sdq,mK,sdK,mk,sdk)
+        # Only accept parameter set if at least one reaction leaves metabolite 1
+        if any((ps.reacs.↦:Rct) .== 1)
+            vld = true
+        end
+    end
+    # NEED A BETTER NAMING CUSTOM HERE
     # save this parameter set
-    jldopen("Temp/Paras/psR.jld","w") do file
+    jldopen("Paras/ps$(ARGS[1]).jld","w") do file
         write(file,"ps",ps)
     end
     # Then simulate to steady state
@@ -111,7 +130,7 @@ function repeat()
     # Make vector of addition times for microbes
     t = [0.0]
     # Want to try to add 10 microbes
-    for i = 1:10
+    for i = 1:1
         pop = C1[end,1:ps.N]
         conc = C1[end,ps.N+1:end]
         # Use function to construct random microbe based on parameter set
@@ -153,7 +172,6 @@ function repeat()
                     end
                 end
             end
-            println(C1[end,1:ps.N])
         else
             println("Microbe $i could not grow.")
             # Add this failed invader to the data
@@ -162,66 +180,62 @@ function repeat()
         end
     end
     # save this metacommunity data
-    jldopen("Temp/Paras/MDR.jld","w") do file
+    # NEED A BETTER NAMING CUSTOM HERE
+    jldopen("Paras/MD$(ARGS[1]).jld","w") do file
         write(file,"MD",MD)
     end
-    pyplot(dpi=200)
-    plot(T1,C1[:,1:ps.N],label="")
-    vline!(t,color=:red,label="",style=:dot)
-    savefig("Output/TestPop.png")
-    plot(T1,C1[:,ps.N+1:end],label="")
-    vline!(t,color=:red,label="",style=:dot)
-    savefig("Output/TestConc.png")
-    return(nothing)
-end
-
-function repeat_test()
-    # Load in previous data
-    ps = load("Temp/Paras/ps$(ARGS[1]).jld","ps")
-    MD = load("Temp/Paras/MD$(ARGS[1]).jld","MD")
-    # Then simulate to steady state
-    Tmax = 100.0
-    # Initialise vectors of concentrations and populations
-    pop = ones(ps.N)
-    conc = zeros(ps.M) # No chemical to begin with
-    # Now find first steady state
-    C1, T1 = stead(ps,Tmax,pop,conc)
-    # Make vector of addition times for microbes
-    t = [0.0]
-    # Run for first five microbes
-    for i = 1:10
-        pop = C1[end,1:ps.N]
-        conc = C1[end,ps.N+1:end]
-        # Use function to construct random microbe based on parameter set
-        mic = MD.data[i+1].mic
-        # Add microbe to temporary parameter set
-        ps2 = add_Microbe(ps,mic)
-        # Now use function to check if this microbe will grow
-        chk = check(ps2,pop,conc)
-        if chk == true
-            t = cat(t,T1[end],dims=1)
-            println("Microbe $i should grow.")
-            # Update parameter set
-            ps = ps2
-            Cn, Tn = stead(ps,Tmax,[pop;1.0],conc)
-            # Can just cat T straight on
-            T1 = cat(T1,Tn.+T1[end],dims=1)
-            # Need to update C1 so that it can be cat'ed to
-            CT = zeros(size(C1,1),size(C1,2)+1)
-            CT[:,1:ps.N-1] = C1[:,1:ps.N-1]
-            CT[:,ps.N] .= 0.0
-            CT[:,ps.N+1:end] = C1[:,ps.N:end]
-            # Then finally cat CT here
-            C1 = cat(CT,Cn,dims=1)
-        else
-            println("Microbe $i could not grow.")
-        end
+    # WHAT DATA SHOULD BE OUTPUTTED AND SAVED?
+    jldopen("Paras/Dyn$(ARGS[1]).jld","w") do file
+        write(file,"C",C1)
+        write(file,"T",T1)
+        write(file,"t",t)
     end
     return(nothing)
 end
 
-if length(ARGS) == 0
-    @time repeat()
-else
-    @time repeat_test()
-end
+# function repeat_test()
+#     # Load in previous data
+#     ps = load("Temp/Paras/ps$(ARGS[1]).jld","ps")
+#     MD = load("Temp/Paras/MD$(ARGS[1]).jld","MD")
+#     # Then simulate to steady state
+#     Tmax = 100.0
+#     # Initialise vectors of concentrations and populations
+#     pop = ones(ps.N)
+#     conc = zeros(ps.M) # No chemical to begin with
+#     # Now find first steady state
+#     C1, T1 = stead(ps,Tmax,pop,conc)
+#     # Make vector of addition times for microbes
+#     t = [0.0]
+#     # Run for first five microbes
+#     for i = 1:10
+#         pop = C1[end,1:ps.N]
+#         conc = C1[end,ps.N+1:end]
+#         # Use function to construct random microbe based on parameter set
+#         mic = MD.data[i+1].mic
+#         # Add microbe to temporary parameter set
+#         ps2 = add_Microbe(ps,mic)
+#         # Now use function to check if this microbe will grow
+#         chk = check(ps2,pop,conc)
+#         if chk == true
+#             t = cat(t,T1[end],dims=1)
+#             println("Microbe $i should grow.")
+#             # Update parameter set
+#             ps = ps2
+#             Cn, Tn = stead(ps,Tmax,[pop;1.0],conc)
+#             # Can just cat T straight on
+#             T1 = cat(T1,Tn.+T1[end],dims=1)
+#             # Need to update C1 so that it can be cat'ed to
+#             CT = zeros(size(C1,1),size(C1,2)+1)
+#             CT[:,1:ps.N-1] = C1[:,1:ps.N-1]
+#             CT[:,ps.N] .= 0.0
+#             CT[:,ps.N+1:end] = C1[:,ps.N:end]
+#             # Then finally cat CT here
+#             C1 = cat(CT,Cn,dims=1)
+#         else
+#             println("Microbe $i could not grow.")
+#         end
+#     end
+#     return(nothing)
+# end
+
+@time repeat()

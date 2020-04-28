@@ -7,6 +7,7 @@ export ↦
 ↦(s, f) = getfield(s, f)
 
 export InhibParameters, make_InhibParameters, make_Reaction, Reaction, make_Microbe, Microbe, add_Microbe
+export MicData, make_MicData, MetaCom, make_MetaCom, add_MetaCom, extinct_MetaCom
 
 """
     Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
@@ -164,4 +165,83 @@ function add_Microbe(ps::InhibParameters,mic::Microbe)
     # New microbe added to end of list
     mics = cat(ps.mics,mic,dims=1)
     return(InhibParameters(N,M,O,T,κ,δ,reacs,mics))
+end
+
+"""
+    MicData(mic::Microbe,invd::Bool,invN::Int64,surv::Bool,exT::Int64)
+Type storing the data on a particular microbe in the simulation
+# Arguments
+- `mic::Microbe`: Microbe paramaters
+- `invd::Bool`: Specifies if microbe successfully invaded
+- `invN::Int64`: Invasion attempt number
+- `surv::Bool`: Specifies if microbe is extinct
+- `exT::Int64`: Time step microbs went extinct at
+"""
+struct MicData
+    mic::Microbe
+    invd::Bool
+    invN::Int64
+    surv::Bool
+    exT::Int64
+end
+
+"""
+    make_MicData(mic::Microbe,invd::Bool,invN::Int64,surv::Bool,exT::Int64)
+Helper function used internally. Takes values for parameters and returns a `MicData`object.
+Also does checks internally to make sure the values are correct.
+"""
+function make_MicData(mic::Microbe,invd::Bool,invN::Int64,surv::Bool,exT::Int64)
+    # Check that feasible parameters have been provided
+    @assert invN >= 0 "Invasion number must be non-negative"
+    @assert surv == false || exT == 0 "Surviving microbes should have an extinction time set as 0"
+    @assert surv == true || exT > 0 "Only postive extinction times are possible"
+    @assert surv == false || surv == invd "Can only survive if invaded successfully"
+
+    return(MicData(mic,invd,invN,surv,exT))
+end
+
+"""
+    MetaCom(data::Vector{MicData})
+Type storing the data on the metacommunity involved in a partciular simulation
+# Arguments
+- `data::Vector{MicData}`: Vector of data of all microbes involved in simulation
+"""
+struct MetaCom
+    data::Vector{MicData}
+end
+
+"""
+    make_MetaCom(data::Vector{MicData})
+Helper function used internally. Takes values for parameters and returns a `MetaCom`object.
+Also does checks internally to make sure the values are correct.
+"""
+function make_MetaCom(data::Vector{MicData})
+    # Check that microbes are listed in order of invasions
+    @assert ((data.↦:invN) == collect(0:length(data.↦:invN)-1)) "Invasion numbers must be sequential from 0 upwards"
+    return(MetaCom(data))
+end
+
+"""
+    add_MetaCom(MT::MetaCom,md::MicData)
+Function to add data on a microbe to the existing metacommunity data
+"""
+function add_MetaCom(MT::MetaCom,md::MicData)
+    # Extract old data and attach new data to it
+    data = MT.:data
+    data = cat(data,md,dims=1)
+    return(make_MetaCom(data))
+end
+
+"""
+    extinct_MetaCom(MT::MetaCom,I::Int64,T::Int64)
+Function to change the meta data by adding in an extinction
+"""
+function extinct_MetaCom(MT::MetaCom,I::Int64,T::Int64)
+    # extract old data
+    data = MT.:data
+    # then extract line corresponding to extinct microbe
+    e_data = data[I]
+    # Then add relevant values back in
+    data[I] = make_MicData(e_data.mic,e_data.invd,e_data.invN,false,T)
+    return(make_MetaCom(data))
 end

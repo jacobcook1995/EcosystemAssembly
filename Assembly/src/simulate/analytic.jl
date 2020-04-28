@@ -45,7 +45,7 @@ function Force(ps::InhibParameters,F::Array{Sym,1})
             rc = ps.reacs[ps.mics[i].Reacs[j]]
             # Make symbols for substrate and product
             S = symbols("M$(rc.Rct)")
-            θ = symbols("$(rc.Rct)θ$(rc.Prd)")
+            θ = symbols("$(rc.Rct)θ$(rc.Prd)N$i")
             # Then make symbolic rate
             q = symb_rate(S,θ)
             # Multiple expression by relevant factors
@@ -78,7 +78,7 @@ function Force(ps::InhibParameters,F::Array{Sym,1})
                 if nR == Mn
                     # Make symbols for substrate and product
                     S = symbols("M$(nR)")
-                    θ = symbols("$(nR)θ$(nP)")
+                    θ = symbols("$(nR)θ$(nP)N$j")
                     # Then make symbolic rate
                     q = symb_rate(S,θ)
                     # Then multiply by population
@@ -92,7 +92,7 @@ function Force(ps::InhibParameters,F::Array{Sym,1})
                 elseif nP == Mn
                     # Make symbols for substrate and product
                     S = symbols("M$(nR)")
-                    θ = symbols("$(nR)θ$(nP)")
+                    θ = symbols("$(nR)θ$(nP)N$j")
                     # Then make symbolic rate
                     q = symb_rate(S,θ)
                     # Then multiply by population
@@ -133,71 +133,11 @@ function nForce(F::Array{Sym,1},C::Array{Float64,1},ps::InhibParameters)
             rc = ps.reacs[ps.mics[i].Reacs[j]]
             θ = bound_θ(C[ps.N+rc.Rct],C[ps.N+rc.Prd],ps.T,ps.mics[i].η[j],rc.ΔG0)
             for k = 1:ps.N+ps.M
-                f[k] = subs(f[k],"$(rc.Rct)θ$(rc.Prd)"=>θ)
+                f[k] = subs(f[k],"$(rc.Rct)θ$(rc.Prd)N$(i)"=>θ)
             end
         end
     end
     # convert vector into a float
     f = convert(Array{Float64},f)
     return(f)
-end
-
-# function to make the Jacobian for a particular parameter set
-function Jacobian(ps::InhibParameters,J::Array{Sym,2})
-    # Check Jacobian provided is the right size
-    @assert size(J) == (ps.N+ps.M,ps.N+ps.M) "Preallocated Jacobian incorrect size"
-    m, g, N, η, κ, M, δ = symbols("m, g, N, η, κ, M, δ")
-    # And reaction level symbols
-    qm, KS, kr, Kq = symbols("qm, KS, kr, Kq")
-    # Make empty vector
-    f = Array{Sym,1}(undef,ps.N+ps.M)
-    # Find vector of forces using function
-    f = Force(ps,f)
-    # Loop over variables to differntiate by
-    for j = 1:ps.N+ps.M
-        # Find variable to differentiate by
-        if j <= ps.N
-            dx = symbols("N$j")
-        else
-            dx = symbols("M$(j-ps.N)")
-        end
-        for i = 1:ps.N+ps.M
-            J[i,j] = diff(f[i],dx)
-        end
-    end
-    return(J)
-end
-
-# function to find the local eigenvalues and vectors for a partcilar Jacobian
-function Lyapunov(J::Array{Sym,2},C::Array{Float64,1},ps::InhibParameters)
-    # Check that Jacobian does correspond to
-    @assert length(C) == size(J,1) "Steady state vector wrong size for Jacobian"
-    for i = ps.N+1:ps.N+ps.M
-        # Overwrite zero concentrations
-        if C[i] == 0.0
-            C[i] = 1e-10
-        end
-    end
-    # Sub in steady state population values
-    for i = 1:ps.N
-        for j = 1:ps.N+ps.M
-            for k = 1:ps.N+ps.M
-                J[j,k] = subs(J[j,k],"N$i"=>C[i])
-            end
-        end
-    end
-    # Sub in steady state concentrations values
-    for i = ps.N+1:ps.N+ps.M
-        for j = 1:ps.N+ps.M
-            for k = 1:ps.N+ps.M
-                J[j,k] = subs(J[j,k],"M$(i-ps.N)"=>C[i])
-            end
-        end
-    end
-    # convert fully substituted Jacobian into a float
-    J = convert(Array{Float64},J)
-    # Then find eigenvalues
-    λ = eigvals(J)
-    v = eigvecs(J)
-    return(λ,v)
 end

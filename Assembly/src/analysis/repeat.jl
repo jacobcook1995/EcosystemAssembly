@@ -27,7 +27,6 @@ function stead(ps::InhibParameters,Tmax::Float64,pop::Array{Float64,1},conc::Arr
         if maximum(abs.(f)) <= 1.0e-5 || c == 100
             # Either end loop
             println("Steady state found after $c steps")
-            flush(stdout)
             if c == 100
                 println("MASSIVE PROBLEM HERE!")
             end
@@ -46,7 +45,6 @@ function stead(ps::InhibParameters,Tmax::Float64,pop::Array{Float64,1},conc::Arr
             end
             if c != 0 && c % 10 == 0
                 println("$c steps taken without finding steady state")
-                flush(stdout)
             end
         end
         # Regardless of outcome add simulation to output
@@ -79,7 +77,6 @@ end
 # function to repeatedly add microbes
 function repeat()
     println("Successfully compiled.")
-    flush(stdout)
     if length(ARGS) == 0
         error("NEED TO PROVIDE NAME FOR OUTPUT DATA.")
     end
@@ -143,7 +140,6 @@ function repeat()
         if chk == true
             t = cat(t,T1[end],dims=1)
             println("Microbe $i should grow.")
-            flush(stdout)
             # Update parameter set
             ps = ps2
             Cn, Tn = stead(ps,Tmax,[pop;1.0],conc)
@@ -176,7 +172,6 @@ function repeat()
             end
         else
             println("Microbe $i could not grow.")
-            flush(stdout)
             # Add this failed invader to the data
             md = make_MicData(mic,false,i,false,length(t))
             MD = add_MetaCom(MD,md)

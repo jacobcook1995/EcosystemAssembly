@@ -60,7 +60,7 @@ function compare()
         # Now make the parameter set
         ps = initialise(N,M,O,mR,sdR,mq,sdq,mK,sdK,mk,sdk)
         # save this parameter set
-        jldopen("Temp/Paras/ps$(i).jld","w") do file
+        jldopen("Paras/ps$(i).jld","w") do file
             write(file,"ps",ps)
         end
         @time C, T = inhib_simulate(ps,Tmax)
@@ -101,7 +101,7 @@ function test()
     # Set simulation time
     Tmax = 100.0
     # Find filename to read in from argument
-    ps = load("Temp/Paras/ps$(ARGS[1]).jld","ps")
+    ps = load("Paras/ps$(ARGS[1]).jld","ps")
     # # Find all reactions metabolising 1
     # Rs = Array{Reaction}(undef,0)
     # for i = 1:ps.O
@@ -134,8 +134,6 @@ function test()
     println(C[end,ps.N+1:end])
     return(nothing)
 end
-
-@time delete_this()
 
 if length(ARGS) < 1
     @time compare()

@@ -4,7 +4,9 @@
 # the main model
 using Assembly
 using DifferentialEquations # Needed as this is a test script not included in Assembly
+using SymPy # Again needed as this is a test script
 using Plots
+using LaTeXStrings
 import PyPlot
 
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
@@ -15,7 +17,7 @@ function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
     elseif P <= 0.0
         θs = 0.0
     else
-        θs = Q(S,P)/Keq(T,η,ΔG0)
+        θs = Assembly.Q(S,P)/Keq(T,η,ΔG0) # NOT A FAN OF THIS NOTATION SHOULD OVERWRITE AT SOMEPOINT
     end
     # θ can be greater than 1, this does not have any impact as q cannot be negative
     return(θs)
@@ -69,6 +71,7 @@ function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::Array{Float64,
     J = η*rate
     T = 0
     for i = 1:length(ϕ)
+        # LEAVE FOR NOW BUT THIS STEP IS ACTUALLLY SUPERFLUOUS
         T += ρ*n[i]*νx(x[2],n,ϕ,i)
     end
     # Then need to use this rate to find λ
@@ -151,15 +154,87 @@ function singpop()
     return(nothing)
 end
 
+# function to find maximum sustainable value for λ
+function λ_max(S::Float64,P::Float64,ϕ::Array{Float64,1},r::Reaction,T::Float64,η::Float64,
+                k::Float64,KS::Float64,kr::Float64,nR::Int64,ρ::Float64)
+    # HARD CODING THIS FOR NOW
+    γm = 1260
+    Kγ = 7
+    Pb = 0.5
+    M = 10e8
+    # first use ϕ to find E
+    E = 1.0*(ϕ[2]/0.4) # THIS NEEDS TO BE BETTER WRITTEN LATER, AS A FUNCTION
+    # Then use rate to find J
+    rate = qs(S,P,T,η,r.ΔG0,k,E,KS,kr)
+    # All energy comes from this reaction
+    J = η*rate
+    # Define a as a symbol
+    a = symbols("a")
+    # Make full expression for dadt
+    dadt = J - ((γm*a)/(Kγ+a))*(ϕ[1]*Pb/nR)*(ρ*M+a)
+    # Now solve this to find maximising a value
+    af = convert(Float64,nsolve(dadt,1.0))
+    # Find corresponding maximum rate
+    λ = λs(af,nR,ϕ[1])
+    return(λ)
+end
+
 # Function to find optimal ϕ for a given initial condition
-function optimise_ϕ(S::Float64,P::Float64,ϕH::Float64)
+function optimise_ϕ(S::Float64,P::Float64,ϕH::Float64,r::Reaction,T::Float64,η::Float64,
+                    k::Float64,KS::Float64,kr::Float64,nR::Int64,ρ::Float64)
     # Preallocate output
-    ϕ = zeros(3)
+    ϕm = zeros(3)
     # Seperate housekeeping fraction
     ϕT = 1 - ϕH
-    ϕ[3] = ϕH
-
-    return(ϕ)
+    ϕm[3] = ϕH
+    # Make initial vector of ϕ
+    ϕm[1] = (ϕT)/2
+    ϕm[2] = 1 - ϕm[1] - ϕm[3]
+    # Now find λ for this initial vector
+    λm = λ_max(S,P,ϕm,r,T,η,k,KS,kr,nR,ρ)
+    # loop until final value is found
+    fine = false
+    # Make new left and right phi functions
+    ϕl = zeros(3)
+    ϕr = zeros(3)
+    ϕl[3] = ϕH
+    ϕr[3] = ϕH
+    δϕ = 0.1
+    while fine == false
+        # Step to generate new ϕ values
+        update = false
+        while update == false
+            # Update left and right functions
+            ϕl[1] = ϕm[1] + δϕ
+            ϕl[2] = 1 - ϕl[1] - ϕl[3]
+            ϕr[2] = ϕm[2] + δϕ
+            ϕr[1] = 1 - ϕr[2] - ϕr[3]
+            if ϕl[2] >= 0.0 && ϕr[1] >= 0.0
+                update = true
+            else
+                # Reduce size of δϕ if it has gone negative
+                δϕ = δϕ/2
+            end
+        end
+        # Calculate left and right growth rates
+        λl = λ_max(S,P,ϕl,r,T,η,k,KS,kr,nR,ρ)
+        λr = λ_max(S,P,ϕr,r,T,η,k,KS,kr,nR,ρ)
+        # First check if already at the optimum
+        if λm >= λl && λm >= λr
+            δϕ = δϕ/2
+            # Stop if step size is small and optimum has been reached
+            if δϕ < 1.0e-5
+                fine = true
+            end
+        elseif λl > λr # go left
+            ϕm = copy(ϕl)
+            λm = λl
+        else # otherwise go right
+            ϕm = copy(ϕr)
+            λm = λr
+        end
+    end
+    return(ϕm,λm)
 end
 
 # Similar function as above except that it tries to find optimal values for ϕ_M
@@ -174,22 +249,33 @@ function singpop_opt()
     # Now make the reaction
     ΔG = -6e5 # Relatively small Gibbs free energy change
     r = make_Reaction(1,1,2,ΔG)
-    η = 0.9*(-ΔG/ΔGATP)
+    η = 1.0*(-ΔG/ΔGATP)
     k = 1.0 # matches qm from previously
     ai = 5.0 # initial energy level
     ρ = 1e-7
     n = [7459,300,300]
     # Pick an initial condition to optimise for (assume fixed environment)
-    S = 50.0
-    P = 5.0
+    S = 100.0
+    P = collect(5.0:5.0:95.0)
+    θs = zeros(length(P))
+    # Make vector of theta values
+    for i = 1:length(P)
+        θs[i] = θ(S,P[i],T,η,ΔG)
+    end
+    # Now find optimal ribosome fractions and growth rates for each one
+    ϕR = zeros(length(P))
+    λs = zeros(length(P))
     # Housekeeping protein fraction is constant
     ϕH = 0.2
-    ϕ = optimise_ϕ(S,P,ϕH)
-
-    ϕ = [0.4,0.4,0.2] # Again this should shift
-    E = 1.0*(ϕ[2]/0.4)
-
-
+    for i = 1:length(P)
+        ϕ, λs[i] = optimise_ϕ(S,P[i],ϕH,r,T,η,k,KS,kr,n[1],ρ)
+        ϕR[i] = ϕ[1]
+    end
+    pyplot(dpi=200)
+    plot(θs,ϕR,label="",xlabel=L"θ",ylabel=L"ϕ_R")
+    savefig("Output/RibosomeFrac.png")
+    plot(θs,λs,label="",xlabel=L"θ",ylabel="Optimal growth rate")
+    savefig("Output/GrowthRate.png")
     return(nothing)
 end
 

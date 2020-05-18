@@ -1,7 +1,7 @@
 # Script that provides analytic functions such as Lyapunov exponents for use in the simulations
 using Assembly
 
-export Force, nForce, Jacobian, Lyapunov
+export Force, nForce
 
 # function to return value of theta between 0 and 1
 function bound_θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)

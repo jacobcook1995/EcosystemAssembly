@@ -13,21 +13,20 @@ function singpop()
     δ = 1.0*ones(2) # Metabolite dilution rate
     KS = 0.1 # Saturation constant
     kr = 10.0 # Reversibility factor
-    # Now make the reaction
-    ΔG = -6e5 # Relatively small Gibbs free energy change
-    r = make_Reaction(1,1,2,ΔG)
-    η = 0.9*(-ΔG/ΔGATP)
     k = 1.0 # matches qm from previously
     E = 1.0 # FIXED FOR NOW BUT SHOULD BE ADJUSTED LATER
     ai = 5.0 # initial energy level
-    ϕ = [0.4,0.4,0.2] # Again this should shift
+    Ni = 100.0 # initial population
     ρ = 1e-7
     # Initialise parameter set
     ps = initialise_prot()
+    # Choose initial protein fractions
+    ϕ = [0.275,0.275,0.45] # Again this should shift
+    pa = make_var_prot(ps,ϕ)
     # Choose simulation time
     Tmax = 2500.0
     # Then run simulation
-    C, T = prot_simulate(ps,Tmax,ai,d,κ,δ,KS,kr,r,η,k,E,ϕ,ρ)
+    C, T = prot_simulate(ps,Tmax,ai,Ni,pa,d,κ,δ,KS,kr,k,ρ)
 
     # Do plotting
     pyplot(dpi=200)

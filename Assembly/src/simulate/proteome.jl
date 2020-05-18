@@ -7,9 +7,8 @@ using LaTeXStrings
 export prot_simulate
 
 # function to find the rate of substrate consumption by a particular reaction
-function qs(S::Float64,P::Float64,η::Float64,ΔG0::Float64,k::Float64,E::Float64,
-            KS::Float64,kr::Float64,ps::ProtParameters)
-    θs = θ(S,P,ps.T,η,ΔG0)
+function qs(S::Float64,P::Float64,k::Float64,E::Float64,KS::Float64,kr::Float64,ps::ProtParameters)
+    θs = θ(S,P,ps.T,ps.η,ps.r.ΔG0)
     q = k*E*S*(1-θs)/(KS + S*(1+kr*θs))
     # Ensure that negative value cannot be returned
     return(max(q,0.0))
@@ -43,21 +42,26 @@ function λs(a::Float64,ϕR::Float64,ps::ProtParameters)
     return(λ)
 end
 
+# function to calculate the amount of a partcular enzyme a strain has
+function Eα(ϕmα::Float64,ps::ProtParameters)
+    E = ps.MC*ϕmα/(ps.n[2])
+    return(E)
+end
+
 # function to run the dynamics in the shifting proteome case
-function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::Array{Float64,1},ps::ProtParameters,d::Float64,
-                    κ::Array{Float64,1},δ::Array{Float64,1},KS::Float64,kr::Float64,r::Reaction,η::Float64,
-                    k::Float64,E::Float64,ϕ::Array{Float64,1},ρ::Float64,t::Float64)
+function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::VarProtParameters,ps::ProtParameters,d::Float64,
+                    κ::Array{Float64,1},δ::Array{Float64,1},KS::Float64,kr::Float64,k::Float64,ρ::Float64,t::Float64)
     # Only one reaction so only one reaction rate
-    rate = qs(x[3],x[4],η,r.ΔG0,k,E,KS,kr,ps)
+    rate = qs(x[3],x[4],k,pa.E,KS,kr,ps)
     # All energy comes from this reaction
-    J = η*rate
+    J = ps.η*rate
     T = 0
-    for i = 1:length(ϕ)
+    for i = 1:length(pa.ϕ)
         # LEAVE FOR NOW BUT THIS STEP IS ACTUALLLY SUPERFLUOUS
-        T += ρ*ps.n[i]*νx(x[2],ϕ,i,ps)
+        T += ρ*ps.n[i]*νx(x[2],pa.ϕ,i,ps)
     end
     # Then need to use this rate to find λ
-    λ = λs(x[2],ϕ[1],ps)
+    λ = λs(x[2],pa.ϕ[1],ps)
     # Now update the stored energy
     dx[2] = J - T - λ*x[2]
 
@@ -92,17 +96,15 @@ end
 
 # Simulation code to run one instatnce of the simulation
 # ps is parameter set, Tmax is the time to integrate to
-function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,d::Float64,κ::Array{Float64,1},
-                        δ::Array{Float64,1},KS::Float64,kr::Float64,r::Reaction,η::Float64,k::Float64,
-                        E::Float64,ϕ::Array{Float64,1},ρ::Float64)
+function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,pa::VarProtParameters,
+                        d::Float64,κ::Array{Float64,1},δ::Array{Float64,1},KS::Float64,kr::Float64,
+                        k::Float64,ρ::Float64)
     # Initialise vectors of concentrations and populations
-    pop = 100*ones(1)
+    pop = Ni*ones(1)
     apop = ai*ones(1)
     conc = zeros(2) # No chemical to begin with
     # Now sub the parameters in
-    p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,d,κ,δ,KS,kr,r,η,k,E,ϕ,ρ,t)
-    # This is saved for parameters that will vary between runs
-    pa = zeros(0)
+    p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,d,κ,δ,KS,kr,k,ρ,t)
     # Make simulation time span
     tspan = (0,Tmax)
     x0 = [pop;apop;conc]

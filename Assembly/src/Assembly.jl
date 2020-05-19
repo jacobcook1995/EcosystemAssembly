@@ -23,6 +23,7 @@ export Rgas, ΔGATP
 # Decleration of useful constants
 global Rgas = 8.31446261815324 # gas constant in J.K^-1.mol^-1
 global ΔGATP = 75000.0 # Need to find a reference for this at some point
+global NA = 6.02214076e23 # Avogadro's constants in mol−1
 
 # Defining and exporting functions useful in more than one script
 export mvector, Keq, Q

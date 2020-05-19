@@ -23,8 +23,23 @@ function initialise_prot()
     r = make_Reaction(1,1,2,ΔG)
     # η chosen so that a substantial portion of the Gibbs free energy is retained
     η = 0.9*(-ΔG/ΔGATP)
+    # The reversibility factor remains the same as previously
+    kr = 10.0
+    # From Posfai et al (2017) dilution rate 0.21 per hour
+    δ = 6.0e-5*ones(2) # Metabolite dilution rate
+    # Human blood glucose is approximatly 5.5 m mol per litre (wikipedia)
+    # Sensible order of magnitude to aim for set κ/δ = 5.5e-3
+    κ = [3.3e-7,0.0] # Metabolite supply rate
+    # Assume that half saturation occurs at a quarter κ/δ
+    KS = (1/4)*5.5e-3
+    # From wikipedia an average enzyme has a k to KS ratio of 10^5 M^-1 s^-1
+    # This would give us a k of 137.5, sensible to assume an above average rate
+    # Though should be reduced by the fact we include uptake as well as metabolism
+    # Choosing k = 500 means we match the maximum glucose uptake rate seen in Natarajan et al (2000)
+    # of 3*10^7 molecules per second. This is one of the most likely parameters to need further change.
+    kc = 500.0
     # Now make the parameter set
-    ps = make_ProtParameters(MC,γm,T,η,r,n)
+    ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,r,n,δ,κ)
     return(ps)
 end
 

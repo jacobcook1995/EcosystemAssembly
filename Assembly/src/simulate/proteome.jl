@@ -4,12 +4,12 @@
 # the main model
 using LaTeXStrings
 
-export prot_simulate
+export prot_simulate, λs
 
 # function to find the rate of substrate consumption by a particular reaction
-function qs(S::Float64,P::Float64,k::Float64,E::Float64,KS::Float64,kr::Float64,ps::ProtParameters)
+function qs(S::Float64,P::Float64,E::Float64,ps::ProtParameters)
     θs = θ(S,P,ps.T,ps.η,ps.r.ΔG0)
-    q = k*E*S*(1-θs)/(KS + S*(1+kr*θs))
+    q = ps.kc*E*S*(1-θs)/(ps.KS + S*(1+ps.kr*θs))
     # Ensure that negative value cannot be returned
     return(max(q,0.0))
 end
@@ -50,9 +50,9 @@ end
 
 # function to run the dynamics in the shifting proteome case
 function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::VarProtParameters,ps::ProtParameters,d::Float64,
-                    κ::Array{Float64,1},δ::Array{Float64,1},KS::Float64,kr::Float64,k::Float64,ρ::Float64,t::Float64)
+                    ρ::Float64,t::Float64)
     # Only one reaction so only one reaction rate
-    rate = qs(x[3],x[4],k,pa.E,KS,kr,ps)
+    rate = qs(x[3],x[4],pa.E,ps)
     # All energy comes from this reaction
     J = ps.η*rate
     T = 0
@@ -77,13 +77,13 @@ function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::VarProtParamet
     # Do basic resource dynamics
     for i = 3:4
         # fist add external supply of resource and decay
-        dx[i] = κ[i-2] - δ[i-2]*x[i]
+        dx[i] = ps.κ[i-2] - ps.δ[i-2]*x[i]
     end
     # Only one reaction so consumption dynamics are simplified
     # Increase the product
-    dx[4] += rate*x[1]
+    dx[4] += rate*x[1]/NA
     # and decrease the reactant
-    dx[3] -= rate*x[1]
+    dx[3] -= rate*x[1]/NA
     # Final step to correct for any concentrations that have gone negative
     for i = 2:4
         if x[i] < 0.0
@@ -97,14 +97,13 @@ end
 # Simulation code to run one instatnce of the simulation
 # ps is parameter set, Tmax is the time to integrate to
 function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,pa::VarProtParameters,
-                        d::Float64,κ::Array{Float64,1},δ::Array{Float64,1},KS::Float64,kr::Float64,
-                        k::Float64,ρ::Float64)
+                        d::Float64,ρ::Float64)
     # Initialise vectors of concentrations and populations
     pop = Ni*ones(1)
     apop = ai*ones(1)
     conc = zeros(2) # No chemical to begin with
     # Now sub the parameters in
-    p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,d,κ,δ,KS,kr,k,ρ,t)
+    p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,d,ρ,t)
     # Make simulation time span
     tspan = (0,Tmax)
     x0 = [pop;apop;conc]

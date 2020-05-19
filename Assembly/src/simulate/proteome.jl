@@ -14,21 +14,9 @@ function qs(S::Float64,P::Float64,E::Float64,ps::ProtParameters)
     return(max(q,0.0))
 end
 
-# function to find the protein synthesis rate for a given protein fraction
-function νx(a::Float64,ϕ::Array{Float64,1},x::Int64,ps::ProtParameters)
-    # HARD CODING THIS FOR NOW
-    Pb = 0.5
-    # Find elongation rate
-    γ = γs(a,ps)
-    ν = (γ/ps.n[x])*(ps.MC*ϕ[1]/ps.n[1])*ϕ[x]*Pb
-    return(ν)
-end
-
 # function to find the elongation rate γ
 function γs(a::Float64,ps::ProtParameters)
-    # HARD CODING THIS FOR NOW
-    Kγ = 7
-    γ = ps.γm*a/(Kγ+a)
+    γ = ps.γm*a/(ps.Kγ+a)
     return(γ)
 end
 
@@ -49,21 +37,15 @@ function Eα(ϕmα::Float64,ps::ProtParameters)
 end
 
 # function to run the dynamics in the shifting proteome case
-function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::VarProtParameters,ps::ProtParameters,d::Float64,
-                    ρ::Float64,t::Float64)
+function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::VarProtParameters,ps::ProtParameters,t::Float64)
     # Only one reaction so only one reaction rate
     rate = qs(x[3],x[4],pa.E,ps)
     # All energy comes from this reaction
     J = ps.η*rate
-    T = 0
-    for i = 1:length(pa.ϕ)
-        # LEAVE FOR NOW BUT THIS STEP IS ACTUALLLY SUPERFLUOUS
-        T += ρ*ps.n[i]*νx(x[2],pa.ϕ,i,ps)
-    end
-    # Then need to use this rate to find λ
+    # Based on energy level find growth rate λ
     λ = λs(x[2],pa.ϕ[1],ps)
     # Now update the stored energy
-    dx[2] = J - T - λ*x[2]
+    dx[2] = J - (ps.MC*ps.ρ + x[2])*λ
 
     # Check if microbe is effectively dead
     if x[1] <= 1e-10
@@ -72,7 +54,7 @@ function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::VarProtParamet
         x[1] = 0.0
     else
         # (growth rate - death rate)*population
-        dx[1] = (λ - d)*x[1]
+        dx[1] = (λ - ps.d)*x[1]
     end
     # Do basic resource dynamics
     for i = 3:4
@@ -96,14 +78,13 @@ end
 
 # Simulation code to run one instatnce of the simulation
 # ps is parameter set, Tmax is the time to integrate to
-function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,pa::VarProtParameters,
-                        d::Float64,ρ::Float64)
+function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,pa::VarProtParameters)
     # Initialise vectors of concentrations and populations
     pop = Ni*ones(1)
     apop = ai*ones(1)
     conc = zeros(2) # No chemical to begin with
     # Now sub the parameters in
-    p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,d,ρ,t)
+    p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,t)
     # Make simulation time span
     tspan = (0,Tmax)
     x0 = [pop;apop;conc]

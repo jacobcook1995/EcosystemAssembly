@@ -1,8 +1,7 @@
 # Script that attempts to implement an alternative version of the Marsland model that
 # utilizes themodynamic end product inhibition
-using Assembly
 
-export inhib_simulate, test_inhib_simulate
+export inhib_simulate, test_inhib_simulate, θ
 
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)

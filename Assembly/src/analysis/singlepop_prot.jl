@@ -11,12 +11,12 @@ function singpop()
     ai = 5.0 # initial energy level
     Ni = 100.0 # initial population
     # Initialise parameter set
-    ps = initialise_prot()
+    ps = initialise_prot(false)
     # Choose initial protein fractions
     ϕ = [0.275,0.275,0.45] # Again this should shift
     pa = make_var_prot(ps,ϕ)
     # Choose simulation time
-    Tmax = 100000.0
+    Tmax = 1000000.0
     # Then run simulation
     C, T = prot_simulate(ps,Tmax,ai,Ni,pa)
 
@@ -32,9 +32,61 @@ function singpop()
     savefig("Output/testEng.png")
     plot(T,C[:,3:4],xlabel="Time",label=["Substrate" "Waste"],ylabel="Concentration")
     savefig("Output/testCon.png")
-    plot(T,λa)
-    savefig("Output/test.png")
+    s1 = L"s^{-1}"
+    plot(T,λa,xlabel="Time",label="",ylabel="Growth rate $(s1)")
+    savefig("Output/testGrowth.png")
     return(nothing)
 end
 
-@time singpop()
+# Similar function as above except that it tries to find optimal values for ϕ_M
+function singpop_opt()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 100.0 # initial population
+    # Initialise parameter set
+    ps = initialise_prot(true)
+    # Pick an initial condition to optimise for (assume fixed environment)
+    S = 100.0
+    P = [collect(0.0:1.0:99.0); collect(99.0:0.1:99.9); collect(99.90:0.01:99.99); 99.99999999]
+    θs = zeros(length(P))
+    # Make vector of theta values
+    for i = 1:length(P)
+        θs[i] = θ(S,P[i],ps.T,ps.η,ps.r.ΔG0)
+    end
+    # Now find optimal ribosome fractions and growth rates for each one
+    ϕR = zeros(length(P))
+    λs = zeros(length(P))
+    ao = zeros(length(P))
+    # Housekeeping fraction is fixed throughout
+    ϕH = 0.45
+    for i = 1:length(P)
+        # Use function to find optimal ribosome fraction
+        ϕ, λs[i], ao[i] = optimise_ϕ(S,P[i],ps,ϕH)
+        ϕR[i] = ϕ[1]
+    end
+    pyplot(dpi=200)
+    plot(θs,ϕR,label="",xlabel=L"θ",ylabel=L"ϕ_R")
+    savefig("Output/RibosomeFrac.png")
+    plot(θs,λs,label="",xlabel=L"θ",ylabel="Optimal growth rate")
+    savefig("Output/GrowthRate.png")
+    plot(θs,ao,label="",xlabel=L"θ",ylabel="ATP per cell")
+    savefig("Output/EnergyConc.png")
+    return(nothing)
+end
+
+# Just want to set up and run a single population
+function singpop()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 100.0 # initial population
+    # Initialise parameter set
+    ps = initialise_prot(false)
+    # Then run multiple simulations
+    # SOMETHING = prot_simulate_mult(ps,ai,Ni)
+
+    return(nothing)
+end
+
+@time singpop_scat()

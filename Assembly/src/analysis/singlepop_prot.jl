@@ -75,18 +75,27 @@ function singpop_opt()
     return(nothing)
 end
 
-# Just want to set up and run a single population
-function singpop()
+# Run a single population multiple times and plot a scatter graph of the results
+function singpop_scat()
     println("Successfully compiled.")
     # Simple test data set
     ai = 5.0 # initial energy level
     Ni = 100.0 # initial population
     # Initialise parameter set
     ps = initialise_prot(false)
+    # Choose simulation time
+    Tmax = 500000.0
     # Then run multiple simulations
-    # SOMETHING = prot_simulate_mult(ps,ai,Ni)
-
+    a, J = prot_simulate_mult(ps,ai,Ni,Tmax)
+    pyplot(dpi=200)
+    m = L"^{-1}"
+    plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
+    for i = 1:9
+        # Tom used a log plot but I think this will obsurce too much at the moment
+        scatter!(J[i,:],a[i,:],label="$i")
+    end
+    savefig("Output/test.png")
     return(nothing)
 end
 
-@time singpop_scat()
+@time singpop()

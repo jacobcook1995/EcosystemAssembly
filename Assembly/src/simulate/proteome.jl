@@ -3,7 +3,7 @@
 # proteome fraction model. Once I'm satisfied with it I will incorperate it into
 # the main model
 
-export prot_simulate, λs, optimise_ϕ
+export prot_simulate, λs, optimise_ϕ, prot_simulate_mult
 
 # function to find the rate of substrate consumption by a particular reaction
 function qs(S::Float64,P::Float64,E::Float64,ps::ProtParameters)
@@ -172,4 +172,38 @@ function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters,ϕH::Float64)
         end
     end
     return(ϕm,λm,af)
+end
+
+# function to simulate same species multiple times for different protein fractions
+function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Tmax::Float64)
+    # Initialise vectors of concentrations and populations
+    pop = Ni*ones(1)
+    apop = ai*ones(1)
+    conc = zeros(2) # No chemical to begin with
+    # Now sub the parameters in
+    p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,t)
+    # Make simulation time span
+    tspan = (0,Tmax)
+    x0 = [pop;apop;conc]
+    # Preallocate output
+    a = zeros(9,20)
+    J = zeros(9,20)
+    for i = 1:9
+        # Choose proteome allocation
+        ϕ = [(i/10)*0.55,((10-i)/10)*0.55,0.45]
+        pa = make_var_prot(ps,ϕ)
+        # Then setup and solve the problem
+        println("Simulation $i started.")
+        prob = ODEProblem(p_dyns!,x0,tspan,pa)
+        sol = DifferentialEquations.solve(prob)
+        println("Final population $(sol'[end,1])")
+        # Find data points to extract
+        L = length(sol.t)
+        b = floor(Int64,L/20)
+        for j = 1:20
+            a[i,j] = sol'[b*j,2]
+            J[i,j] = ps.η*qs(sol'[b*j,3],sol'[b*j,4],pa.E,ps)
+        end
+    end
+    return(a,J)
 end

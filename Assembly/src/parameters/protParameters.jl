@@ -98,5 +98,6 @@ function make_VarProtParameters(ϕ::Array{Float64,1},E::Float64)
     # Similar asserts for the vector parameters
     @assert length(ϕ) == 3 "Only considering 3 protein fractions"
     @assert all(ϕ .>= 0) "Protein fractions cannot be negative"
+    @assert sum(ϕ) == 1 "Protein fractions must sum to one"
     return(VarProtParameters(ϕ,E))
 end

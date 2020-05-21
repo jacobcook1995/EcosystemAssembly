@@ -42,13 +42,14 @@ function initialise_prot(inhib::Bool)
     # This would give us a k of 137.5, sensible to assume an above average rate
     # Though should be reduced by the fact we include uptake as well as metabolism
     # Choosing k = 500 means we match the maximum glucose uptake rate seen in Natarajan et al (2000)
-    # of 3*10^7 molecules per second. This is one of the most likely parameters to need further change.
-    kc = 500.0
+    # of 3*10^7 molecules per second.
+    # The above is a sensible argument but 1.0 gives a more reasonable ATP concentration.
+    kc = 1.0
     # The number of ATP per translation step, including the cost of amino acid sythesis
     # This figure is taken from Lynch and Marinov 2015
     ρ = 29.0
     # This is currently a paramter which I am fiddling
-    Kγ = 5e11
+    Kγ = 5e8
     # Now make the parameter set
     ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,r,n,δ,κ)
     return(ps)

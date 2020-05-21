@@ -135,29 +135,8 @@ function test()
     return(nothing)
 end
 
-# if length(ARGS) < 1
-#     @time compare()
-# else
-#     @time test()
-# end
-
-# TEST FOR PABLO, DELETE WHEN DONE
-# test function to run an example simulation
-function test_pablo()
-    println("Successfully compiled.")
-    N = 2
-    # Want to investigate a chain of microbes
-    Tmax = 80.0
-    # Make the parameter set
-    ps = initialise_pab()
-    C, T = inhib_simulate(ps,Tmax,[1.0,1.0],[0.0,0.0,0.0])
-    # Run plotting
-    pyplot(dpi=200)
-    plot(T,C[:,1:N],label=["Strain 1" "Strain 2"])
-    savefig("Output/TestPop.png")
-    plot(T,C[:,N+1:end],label=["Metabolite 1" "Metabolite 2" "Metabolite 3"])
-    savefig("Output/TestConc.png")
-    return(nothing)
+if length(ARGS) < 1
+    @time compare()
+else
+    @time test()
 end
-
-@time test_pablo()

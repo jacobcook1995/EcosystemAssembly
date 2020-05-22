@@ -3,7 +3,7 @@
 # proteome fraction model. Once I'm satisfied with it I will incorperate it into
 # the main model
 
-export prot_simulate, λs, optimise_ϕ, prot_simulate_mult
+export prot_simulate, λs, optimise_ϕ, prot_simulate_mult, λ_max, Eα, qs
 
 # function to find the rate of substrate consumption by a particular reaction
 function qs(S::Float64,P::Float64,E::Float64,ps::ProtParameters)
@@ -96,6 +96,10 @@ end
 
 # function to find maximum sustainable value for λ
 function λ_max(S::Float64,P::Float64,ϕ::Array{Float64,1},ps::ProtParameters)
+    # If ribosome fraction is zero no growth is possible
+    if ϕ[1] == 0.0
+        return(0.0,0.0)
+    end
     # HARD CODING THIS FOR NOW
     Pb = 0.5
     # Calculate amount of enzyme

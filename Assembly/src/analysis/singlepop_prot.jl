@@ -27,23 +27,20 @@ function singpop()
     # Do plotting
     pyplot(dpi=200)
     plot(T,C[:,1],xlabel="Time",label="",ylabel="Population")
-    savefig("Output/testPop.png")
+    savefig("Output/PopvsTime.png")
     plot(T,C[:,2],xlabel="Time",label="",ylabel="Cell energy conc")
-    savefig("Output/testEng.png")
+    savefig("Output/EnergyvsTime.png")
     plot(T,C[:,3:4],xlabel="Time",label=["Substrate" "Waste"],ylabel="Concentration")
-    savefig("Output/testCon.png")
+    savefig("Output/MetabolitevsTime.png")
     s1 = L"s^{-1}"
     plot(T,λa,xlabel="Time",label="",ylabel="Growth rate $(s1)")
-    savefig("Output/testGrowth.png")
+    savefig("Output/GrowthvsTime.png")
     return(nothing)
 end
 
 # Similar function as above except that it tries to find optimal values for ϕ_M
 function singpop_opt()
     println("Successfully compiled.")
-    # Simple test data set
-    ai = 5.0 # initial energy level
-    Ni = 100.0 # initial population
     # Initialise parameter set
     ps = initialise_prot(true)
     # Pick an initial condition to optimise for (assume fixed environment)
@@ -98,4 +95,62 @@ function singpop_scat()
     return(nothing)
 end
 
-@time singpop()
+# function to make a plot of growth rate with changing ribosome fraction
+function singpop_curv()
+    println("Successfully compiled.")
+    # Initialise parameter set
+    ps = initialise_prot(false)
+    # Pick an initial condition to optimise for (assume fixed environment)
+    S = 100.0
+    P = 10.0
+    # Housekeeping fraction is fixed throughout
+    ϕH = 0.45
+    # Set number of fractions to consider
+    N = 100
+    # Preallocate output
+    λ = zeros(N)
+    ϕr = zeros(N)
+    ϕ = zeros(3)
+    # Fix housekeeping fraction
+    ϕ[3] = ϕH
+    for i = 1:N
+        ϕ[1] = (1-ϕ[3])*(i-1)/(N-1)
+        ϕ[2] = 1 - ϕ[1] - ϕ[3]
+        # function to find maximum sustainable value for λ
+        λ[i], _ = λ_max(S,P,ϕ,ps)
+        ϕr[i] = ϕ[1]
+    end
+    pyplot(dpi=200)
+    pR = L"\phi_R"
+    ls = L"\lambda\;(s^{-1})"
+    plot(ϕr,λ,label="",xlabel="Ribosome protein fraction, $(pR)",ylabel="Growth rate, $(ls)")
+    savefig("Output/GrowthvsPR.png")
+    # Make vector of ribosome fractions
+    ϕR = collect(0:0.01:(1-ϕH))
+    λ1 = zeros(length(ϕR))
+    # Find growth rate with infinite energy for a fixed ribosome fraction
+    a = 10e20 # energy taken to be approximatly infinite
+    for i = 1:length(ϕR)
+        λ1[i] = λs(a,ϕR[i],ps)
+    end
+    # Now need to implement second growth law, all energy goes directly to growth
+    ϕP = collect((1-ϕH):-0.01:0)
+    λ2 = zeros(length(ϕP))
+    # Find growth rate assuming energy intake exactly balances energy use by translation
+    for i = 1:length(ϕP)
+        # Find amount of enzyme
+        E = Eα(ϕP[i],ps)
+        # Then use to find reaction rate
+        q = qs(S::Float64,P::Float64,E,ps)
+        J = ps.η*q
+        λ2[i] = J/(ps.MC*ps.ρ)
+    end
+    plot(ϕR,λ1,label="Ribosome limited",xlabel="Ribosome protein fraction, $(pR)",ylabel="Growth rate, $(ls)")
+    plot!(ϕR,λ2,label="Energy limited")
+    savefig("Output/GrowthLaws.png")
+    plot!(ϕr,λ,label="Actual")
+    savefig("Output/CombGrowth.png")
+    return(nothing)
+end
+
+@time singpop_curv()

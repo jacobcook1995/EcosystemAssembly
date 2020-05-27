@@ -190,14 +190,14 @@ function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Tmax::Flo
     tspan = (0,Tmax)
     x0 = [pop;apop;conc]
     # Preallocate output
-    a = zeros(9,20)
-    J = zeros(9,20)
-    for i = 1:9
+    a = zeros(7,20)
+    J = zeros(7,20)
+    for i = 2:8
         # Choose proteome allocation
         ϕ = [(i/10)*0.55,((10-i)/10)*0.55,0.45]
         pa = make_var_prot(ps,ϕ)
         # Then setup and solve the problem
-        println("Simulation $i started.")
+        println("Simulation $(i-1) started.")
         prob = ODEProblem(p_dyns!,x0,tspan,pa)
         sol = DifferentialEquations.solve(prob)
         println("Final population $(sol'[end,1])")
@@ -205,8 +205,8 @@ function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Tmax::Flo
         L = length(sol.t)
         b = floor(Int64,L/20)
         for j = 1:20
-            a[i,j] = sol'[b*j,2]
-            J[i,j] = ps.η*qs(sol'[b*j,3],sol'[b*j,4],pa.E,ps)
+            a[i-1,j] = sol'[b*j,2]
+            J[i-1,j] = ps.η*qs(sol'[b*j,3],sol'[b*j,4],pa.E,ps)
         end
     end
     return(a,J)

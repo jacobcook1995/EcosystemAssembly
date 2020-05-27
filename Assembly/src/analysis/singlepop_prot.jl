@@ -13,6 +13,8 @@ function singpop()
     # Initialise parameter set
     ps = initialise_prot(false)
     # Choose initial protein fractions
+    # ϕ = [0.11, 0.44, 0.45] # Low ribosome fraction test
+    # ϕ = [0.44, 0.11, 0.45] # High ribosome fraction test
     ϕ = [0.275,0.275,0.45] # Again this should shift
     pa = make_var_prot(ps,ϕ)
     # Choose simulation time
@@ -82,16 +84,39 @@ function singpop_scat()
     ps = initialise_prot(false)
     # Choose simulation time
     Tmax = 500000.0
+    # Make lists
+    ls = Array{Any,1}(undef,7)
+    # 13 decline
+    ls[1] = collect(4:12)
+    # 14 decline
+    ls[2] = collect(4:13)
+    # 13 decline
+    ls[3] = collect(2:12)
+    # 15-18 decline
+    ls[4] = collect(2:14)
+    # 16 decline
+    ls[5] = collect(2:15)
+    # 20 decline
+    ls[6] = collect(2:19)
+    # no decline
+    ls[7] = collect(4:20)
     # Then run multiple simulations
     a, J = prot_simulate_mult(ps,ai,Ni,Tmax)
     pyplot(dpi=200)
     m = L"^{-1}"
+    pR = L"\phi_R"
     plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
-    for i = 1:9
+    for i = 1:7
         # Tom used a log plot but I think this will obsurce too much at the moment
-        scatter!(J[i,:],a[i,:],label="$i")
+        scatter!(J[i,ls[i]],a[i,ls[i]],label="$(pR) = $(round(((i+1)/10)*0.55,digits=3))")
     end
-    savefig("Output/test.png")
+    savefig("Output/ATPvsRate.png")
+    plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
+    for i = 1:7
+        # Tom used a log plot but I think this will obsurce too much at the moment
+        scatter!(log.(J[i,ls[i]]),log.(a[i,ls[i]]),label="$(pR) = $(round(((i+1)/10)*0.55,digits=3))")
+    end
+    savefig("Output/LogATPvsRate.png")
     return(nothing)
 end
 
@@ -153,4 +178,4 @@ function singpop_curv()
     return(nothing)
 end
 
-@time singpop_curv()
+@time singpop_scat()

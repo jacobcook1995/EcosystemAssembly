@@ -178,4 +178,33 @@ function singpop_curv()
     return(nothing)
 end
 
-@time singpop_scat()
+# A testing function
+function singpop_test()
+    # THIS IS HARD CODED AND SHOULD BE IMPROVED LATER
+    Pb = 0.5
+    println("Successfully compiled.")
+    # Initialise parameter set
+    ps = initialise_prot(false)
+    # Housekeeping fraction is fixed throughout
+    ϕH = 0.45
+    # Choose nutrient conditions
+    S = 100.0
+    P = 10.0
+    # Set amount of energy
+    a = 1e25
+    # Amount of enzyme corresponding to 100% of the proteome
+    E100 = Eα(1.0,ps)
+    # find rate of substrate consumption
+    q = qs(S,P,E100,ps)
+    # And use to find J
+    J = ps.η*q
+    # Find effective elongation rate
+    γ = γs(a,ps)
+    println(γ)
+    # Then find ribosome fraction
+    ϕR = J*(1-ϕH)/(J + (γ*Pb/ps.n[1])*(ps.ρ*ps.MC + a))
+    println(ϕR)
+    return(nothing)
+end
+
+@time singpop()

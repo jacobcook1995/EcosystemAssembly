@@ -50,8 +50,10 @@ function initialise_prot(inhib::Bool)
     ρ = 29.0
     # This is currently a paramter which I am fiddling
     Kγ = 5e8
+    # The proportion of ribosomes bound is taken from Underwood et al to be 70%
+    Pb = 0.7
     # Now make the parameter set
-    ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,r,n,δ,κ)
+    ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,Pb,r,n,δ,κ)
     return(ps)
 end
 

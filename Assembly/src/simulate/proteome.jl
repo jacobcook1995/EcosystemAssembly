@@ -21,11 +21,9 @@ end
 
 # function to find the growth rate λ
 function λs(a::Float64,ϕR::Float64,ps::ProtParameters)
-    # HARD CODING THIS FOR NOW
-    Pb = 0.5
     # Find elongation rate
     γ = γs(a,ps)
-    λ = (γ*ϕR*Pb)/ps.n[1]
+    λ = (γ*ϕR*ps.Pb)/ps.n[1]
     return(λ)
 end
 
@@ -100,8 +98,6 @@ function λ_max(S::Float64,P::Float64,ϕ::Array{Float64,1},ps::ProtParameters)
     if ϕ[1] == 0.0
         return(0.0,0.0)
     end
-    # HARD CODING THIS FOR NOW
-    Pb = 0.5
     # Calculate amount of enzyme
     E = Eα(ϕ[2],ps)
     # Then use rate to find J
@@ -111,7 +107,7 @@ function λ_max(S::Float64,P::Float64,ϕ::Array{Float64,1},ps::ProtParameters)
     # Define a as a symbol
     a = symbols("a")
     # Make full expression for dadt
-    dadt = J - ((ps.γm*a)/(ps.Kγ+a))*(ϕ[1]*Pb/ps.n[1])*(ps.ρ*ps.MC+a)
+    dadt = J - ((ps.γm*a)/(ps.Kγ+a))*(ϕ[1]*ps.Pb/ps.n[1])*(ps.ρ*ps.MC+a)
     # Now solve this to find maximising a value
     af = convert(Float64,nsolve(dadt,1.0))
     # Find corresponding maximum rate

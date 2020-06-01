@@ -180,8 +180,6 @@ end
 
 # A testing function
 function singpop_test()
-    # THIS IS HARD CODED AND SHOULD BE IMPROVED LATER
-    Pb = 0.5
     println("Successfully compiled.")
     # Initialise parameter set
     ps = initialise_prot(false)
@@ -202,7 +200,7 @@ function singpop_test()
     γ = γs(a,ps)
     println(γ)
     # Then find ribosome fraction
-    ϕR = J*(1-ϕH)/(J + (γ*Pb/ps.n[1])*(ps.ρ*ps.MC + a))
+    ϕR = J*(1-ϕH)/(J + (γ*ps.Pb/ps.n[1])*(ps.ρ*ps.MC + a))
     println(ϕR)
     return(nothing)
 end

@@ -12,19 +12,16 @@ function singpop()
     Ni = 100.0 # initial population
     # Initialise parameter set
     ps = initialise_prot(false)
-    # Choose initial protein fractions
-    # ϕ = [0.11, 0.44, 0.45] # Low ribosome fraction test
-    # ϕ = [0.44, 0.11, 0.45] # High ribosome fraction test
-    ϕ = [0.275,0.275,0.45] # Again this should shift
-    pa = make_var_prot(ps,ϕ)
     # Choose simulation time
     Tmax = 1000000.0
     # Then run simulation
-    C, T = prot_simulate(ps,Tmax,ai,Ni,pa)
-
+    C, T = prot_simulate(ps,Tmax,ai,Ni)
+    # Now calculate growth rates and proteome fractions
     λa = zeros(length(T))
+    ϕR = zeros(length(T))
     for i = 1:length(T)
-        λa[i] = λs(C[i,2],ϕ[1],ps)
+        ϕR[i] = ϕ_R(C[i,2],ps)
+        λa[i] = λs(C[i,2],ϕR[i],ps)
     end
     # Do plotting
     pyplot(dpi=200)
@@ -37,6 +34,8 @@ function singpop()
     s1 = L"s^{-1}"
     plot(T,λa,xlabel="Time",label="",ylabel="Growth rate $(s1)")
     savefig("Output/GrowthvsTime.png")
+    plot(T,ϕR,xlabel="Time",label="",ylabel=L"\phi_R")
+    savefig("Output/FractionvsTime.png")
     return(nothing)
 end
 
@@ -55,17 +54,19 @@ function singpop_opt()
     end
     # Now find optimal ribosome fractions and growth rates for each one
     ϕR = zeros(length(P))
+    ϕR2 = zeros(length(P))
     λs = zeros(length(P))
     ao = zeros(length(P))
-    # Housekeeping fraction is fixed throughout
-    ϕH = 0.45
     for i = 1:length(P)
         # Use function to find optimal ribosome fraction
-        ϕ, λs[i], ao[i] = optimise_ϕ(S,P[i],ps,ϕH)
+        ϕ, λs[i], ao[i] = optimise_ϕ(S,P[i],ps)
         ϕR[i] = ϕ[1]
+        # Find what fraction I am using
+        ϕR2[i] = ϕ_R(ao[i],ps)
     end
     pyplot(dpi=200)
     plot(θs,ϕR,label="",xlabel=L"θ",ylabel=L"ϕ_R")
+    plot!(θs,ϕR2,label="")
     savefig("Output/RibosomeFrac.png")
     plot(θs,λs,label="",xlabel=L"θ",ylabel="Optimal growth rate")
     savefig("Output/GrowthRate.png")
@@ -183,26 +184,59 @@ function singpop_test()
     println("Successfully compiled.")
     # Initialise parameter set
     ps = initialise_prot(false)
-    # Housekeeping fraction is fixed throughout
-    ϕH = 0.45
-    # Choose nutrient conditions
-    S = 100.0
-    P = 10.0
     # Set amount of energy
-    a = 1e25
-    # Amount of enzyme corresponding to 100% of the proteome
-    E100 = Eα(1.0,ps)
-    # find rate of substrate consumption
-    q = qs(S,P,E100,ps)
-    # And use to find J
-    J = ps.η*q
-    # Find effective elongation rate
-    γ = γs(a,ps)
-    println(γ)
-    # Then find ribosome fraction
-    ϕR = J*(1-ϕH)/(J + (γ*ps.Pb/ps.n[1])*(ps.ρ*ps.MC + a))
-    println(ϕR)
+    as = collect(1e7:1e7:1e9)
+    ϕs = zeros(length(as))
+    # Now find ev
+    for i = 1:length(as)
+        ϕs[i] = ϕ_R(as[i],ps)
+    end
+    plot(as,ϕs)
+    savefig("Output/test.png")
+    # Now find ribosome fraction vs a for a number of conditions
     return(nothing)
+end
+
+# Function to find range of responses to changing a
+function singpop_range()
+    println("Successfully compiled.")
+    # Initialise parameter set
+    ps = initialise_prot(true)
+    S = 1e-2
+    P = collect(0.0:1e-3:9e-3)
+    ϕ = collect(0.01:0.01:0.55)
+    θs = zeros(length(P))
+    # Make vector of theta values
+    for i = 1:length(P)
+        θs[i] = θ(S,P[i],ps.T,ps.η,ps.r.ΔG0)
+    end
+    # Preallocate vectors for growth rate and energy concentration
+    λ = zeros(length(P),length(ϕ))
+    am = zeros(length(P),length(ϕ))
+    # Now find λ and a values for each value of ϕ and P
+    for j = 1:length(ϕ)
+        for i = 1:length(P)
+            λ[i,j], am[i,j] = λ_max(S,P[i],ϕ[j],ps)
+        end
+    end
+    # The first ϕ value should have the highest range of a values
+    ϕR = zeros(length(am[1,:]))
+    # Find corresponding ϕR value for each step
+    for i = 1:length(ϕR)
+        ϕR[i] = ϕ_R(am[1,i],ps)
+    end
+    pyplot(dpi=200)
+    plot(xlabel=L"\phi_R",ylabel="Energy")
+    for i = 1:length(P)
+        plot!(ϕ,am[i,:],label="θ = $(θs[i])")
+    end
+    plot!(ϕR,am[1,:],label="actual")
+    savefig("Output/EnergyvsFraction.png")
+    plot(xlabel=L"\phi_R",ylabel="Growth rate")
+    for i = 1:length(P)
+        plot!(ϕ,λ[i,:],label="θ = $(θs[i])")
+    end
+    savefig("Output/GrowthvsFraction.png")
 end
 
 @time singpop()

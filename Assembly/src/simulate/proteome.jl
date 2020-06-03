@@ -3,7 +3,7 @@
 # proteome fraction model. Once I'm satisfied with it I will incorperate it into
 # the main model
 
-export prot_simulate, λs, optimise_ϕ, prot_simulate_mult, λ_max, Eα, qs, γs
+export prot_simulate, λs, optimise_ϕ, prot_simulate_mult, λ_max, Eα, qs, γs, ϕ_R
 
 # function to find the rate of substrate consumption by a particular reaction
 function qs(S::Float64,P::Float64,E::Float64,ps::ProtParameters)
@@ -33,14 +33,24 @@ function Eα(ϕmα::Float64,ps::ProtParameters)
     return(E)
 end
 
+# function to find ϕR based on the energy concentration
+function ϕ_R(a::Float64,ps::ProtParameters)
+    ϕ = (1-ps.ϕH)*(1-exp(-a/ps.Ω))
+    return(ϕ)
+end
+
 # function to run the dynamics in the shifting proteome case
-function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::VarProtParameters,ps::ProtParameters,t::Float64)
+function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::Array{Int64,1},ps::ProtParameters,t::Float64)
+    # Find proteome fraction
+    ϕR = ϕ_R(x[2],ps)
+    # Then find amount of enzyme
+    E = Eα(1-ϕR-ps.ϕH,ps)
     # Only one reaction so only one reaction rate
-    rate = qs(x[3],x[4],pa.E,ps)
+    rate = qs(x[3],x[4],E,ps)
     # All energy comes from this reaction
     J = ps.η*rate
     # Based on energy level find growth rate λ
-    λ = λs(x[2],pa.ϕ[1],ps)
+    λ = λs(x[2],ϕR,ps)
     # Now update the stored energy
     dx[2] = J - (ps.MC*ps.ρ + x[2])*λ
 
@@ -75,7 +85,7 @@ end
 
 # Simulation code to run one instatnce of the simulation
 # ps is parameter set, Tmax is the time to integrate to
-function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,pa::VarProtParameters)
+function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64)
     # Initialise vectors of concentrations and populations
     pop = Ni*ones(1)
     apop = ai*ones(1)
@@ -85,6 +95,8 @@ function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,
     # Make simulation time span
     tspan = (0,Tmax)
     x0 = [pop;apop;conc]
+    # Additional set of parameters so that it actually evaluates, empty for the moment
+    pa = Array{Int64,1}(undef,0)
     # Then setup and solve the problem
     println("Simulation started.")
     prob = ODEProblem(p_dyns!,x0,tspan,pa)
@@ -93,13 +105,13 @@ function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,
 end
 
 # function to find maximum sustainable value for λ
-function λ_max(S::Float64,P::Float64,ϕ::Array{Float64,1},ps::ProtParameters)
+function λ_max(S::Float64,P::Float64,ϕ::Float64,ps::ProtParameters)
     # If ribosome fraction is zero no growth is possible
-    if ϕ[1] == 0.0
+    if ϕ == 0.0
         return(0.0,0.0)
     end
     # Calculate amount of enzyme
-    E = Eα(ϕ[2],ps)
+    E = Eα(1-ϕ-ps.ϕH,ps)
     # Then use rate to find J
     rate = qs(S,P,E,ps)
     # All energy comes from this reaction
@@ -107,21 +119,21 @@ function λ_max(S::Float64,P::Float64,ϕ::Array{Float64,1},ps::ProtParameters)
     # Define a as a symbol
     a = symbols("a")
     # Make full expression for dadt
-    dadt = J - ((ps.γm*a)/(ps.Kγ+a))*(ϕ[1]*ps.Pb/ps.n[1])*(ps.ρ*ps.MC+a)
+    dadt = J - ((ps.γm*a)/(ps.Kγ+a))*(ϕ*ps.Pb/ps.n[1])*(ps.ρ*ps.MC+a)
     # Now solve this to find maximising a value
     af = convert(Float64,nsolve(dadt,1.0))
     # Find corresponding maximum rate
-    λ = λs(af,ϕ[1],ps)
+    λ = λs(af,ϕ,ps)
     return(λ,af)
 end
 
 # Function to find optimal ϕ for a given initial condition
-function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters,ϕH::Float64)
+function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters)
     # Preallocate output
     ϕm = zeros(3)
     # Seperate housekeeping fraction
-    ϕT = 1 - ϕH
-    ϕm[3] = ϕH
+    ϕT = 1 - ps.ϕH
+    ϕm[3] = ps.ϕH
     # Make initial vector of ϕ
     ϕm[1] = (ϕT)/2
     ϕm[2] = 1 - ϕm[1] - ϕm[3]
@@ -132,8 +144,8 @@ function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters,ϕH::Float64)
     # Make new left and right phi functions
     ϕl = zeros(3)
     ϕr = zeros(3)
-    ϕl[3] = ϕH
-    ϕr[3] = ϕH
+    ϕl[3] = ps.ϕH
+    ϕr[3] = ps.ϕH
     δϕ = 0.1
     while fine == false
         # Step to generate new ϕ values
@@ -175,6 +187,8 @@ function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters,ϕH::Float64)
 end
 
 # function to simulate same species multiple times for different protein fractions
+# THIS ONE NO LONGER MAKES ANY SENSE ONCE PROTEOME IS ALLOWED TO VARY
+# CHANGE LATER!!!
 function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Tmax::Float64)
     # Initialise vectors of concentrations and populations
     pop = Ni*ones(1)

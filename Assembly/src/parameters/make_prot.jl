@@ -1,7 +1,7 @@
 # Script that makes the parameters needed for simulation of the single species proteome model
 # Probably should get merged eventually
 
-export initialise_prot, make_var_prot
+export initialise_prot
 
 # function to generate parameter set for the model with inhibition
 function initialise_prot(inhib::Bool)
@@ -52,18 +52,11 @@ function initialise_prot(inhib::Bool)
     Kγ = 5e8
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
+    # Housekeeping fraction is taken from Scott et al. 2010
+    ϕH = 0.45
+    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
+    Ω = 2*Kγ
     # Now make the parameter set
-    ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,Pb,r,n,δ,κ)
+    ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,Pb,ϕH,Ω,r,n,δ,κ)
     return(ps)
-end
-
-# A function to make set of parameters that are varied in our simulation
-function make_var_prot(ps::ProtParameters,ϕ::Array{Float64,1})
-    # Check that housekeeping fraction matches with Scott et al. 2010
-    @assert ϕ[3] == 0.45 "Housekeeping protein fraction should be 0.45"
-    # Find number of enzymes using the protein fraction
-    E = Eα(ϕ[2],ps)
-    # Now make parameter set
-    pa = make_VarProtParameters(ϕ,E)
-    return(pa)
 end

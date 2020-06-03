@@ -1,12 +1,12 @@
 # This script of the parameters for the single population proteome model
 # This should be later integrated with inhibParameters.
 
-export ProtParameters, make_ProtParameters, VarProtParameters, make_VarProtParameters
+export ProtParameters, make_ProtParameters
 
 """
     ProtParameters(MC::Int64,γm::Float64,T::Float64,η::Float64,KS::Float64,kr::Float64,
-    kc::Float64,ρ::Float64,Kγ::Float64,d::Float64,Pb::Float64,r::Reaction,n::Array{Int64,1},
-    δ::Array{Float64,1},κ::Array{Float64,1})
+    kc::Float64,ρ::Float64,Kγ::Float64,d::Float64,Pb::Float64,ϕH::Float64,Ω::Float64,
+    r::Reaction,n::Array{Int64,1},δ::Array{Float64,1},κ::Array{Float64,1})
 Type containing the parameters for a simulation of the single population proteome model.
 # Arguments
 - `MC::Int64`: Mass of cell in amino acids.
@@ -20,6 +20,8 @@ Type containing the parameters for a simulation of the single population proteom
 - `Kγ::Float64`: Threshold energy in ATP per cell
 - `Pb::Float64`: Proportion of ribosomes bound
 - `d::Float64`: Biomass loss rate (~death rate)
+- `ϕH::Float64`: Fraction of proteome allocated to biomass
+- `Ω::Float64`: Scaling constant for how fast proteome alters with energy
 - `r::Reaction`: Reaction that population uses
 - `n::Array{Int64,1}`: Array of number of amino acids per protein type, [r,p,h]
 - `δ::Array{Float64,1}`: Dilution rates of the metabolites
@@ -37,6 +39,8 @@ struct ProtParameters
     Kγ::Float64;
     d::Float64;
     Pb::Float64;
+    ϕH::Float64;
+    Ω::Float64;
     r::Reaction;
     n::Array{Int64,1}
     δ::Array{Float64,1}
@@ -45,14 +49,14 @@ end
 
 """
     make_ProtParameters(MC::Int64,γm::Float64,T::Float64,η::Float64,KS::Float64,kr::Float64,
-    kc::Float64,ρ::Float64,Kγ::Float64,d::Float64,Pb::Float64,r::Reaction,n::Array{Int64,1},δ::Array{Float64,1},
-    κ::Array{Float64,1})
+    kc::Float64,ρ::Float64,Kγ::Float64,d::Float64,Pb::Float64,ϕH::Float64,r::Reaction,
+    Ω::Float64,n::Array{Int64,1},δ::Array{Float64,1},κ::Array{Float64,1})
 Helper function used internally. Takes values for parameters and returns a `ProtParameters`object.
 Also does checks internally to make sure the values are correct.
 """
 function make_ProtParameters(MC::Int64,γm::Float64,T::Float64,η::Float64,KS::Float64,kr::Float64,
-                            kc::Float64,ρ::Float64,Kγ::Float64,d::Float64,Pb::Float64,r::Reaction,
-                            n::Array{Int64,1},δ::Array{Float64,1},κ::Array{Float64,1})
+                            kc::Float64,ρ::Float64,Kγ::Float64,d::Float64,Pb::Float64,ϕH::Float64,
+                            Ω::Float64,r::Reaction,n::Array{Int64,1},δ::Array{Float64,1},κ::Array{Float64,1})
     # Use asserts to ensure parameters a sensible
     @assert MC > 0 "Cell mass must be positive"
     @assert γm >= 0.0 "Elongation rate cannot be negative"
@@ -65,6 +69,8 @@ function make_ProtParameters(MC::Int64,γm::Float64,T::Float64,η::Float64,KS::F
     @assert Kγ > 0.0 "Threshold energy must be positive"
     @assert d > 0.0 "Death rate must be positive"
     @assert 0.0 <= Pb <= 1.0 "Proportion of ribosomes bound has to be between 0 and 1"
+    @assert 0.0 <= ϕH <= 1.0 "Housekeeping proteins have to be between 0 and 100% of total"
+    @assert Ω > 0.0 "Proteome fraction scaling constant must be positive"
 
     # Similar asserts for the vector parameters
     @assert length(n) == 3 "Only considering 3 protein types"
@@ -74,33 +80,5 @@ function make_ProtParameters(MC::Int64,γm::Float64,T::Float64,η::Float64,KS::F
     @assert all(κ .>= 0) "Negative metabolite supply isn't possible"
     @assert all(δ .> 0) "All dilution rates must be positive"
 
-    return(ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,Pb,r,n,δ,κ))
-end
-
-"""
-    VarProtParameters(ϕ::Array{Float64,1},E::Float64)
-Type containing the parameters varied in a simulation of the single population proteome model.
-# Arguments
-- `ϕ::Array{Float64,1}`: Protein fractions.
-- `E::Float64`: Number of enzymes per cell
-"""
-struct VarProtParameters
-    ϕ::Array{Float64,1}
-    E::Float64;
-end
-
-"""
-    make_VarProtParameters(ϕ::Array{Float64,1},E::Float64)
-Helper function used internally. Takes values for parameters and returns a `VarProtParameters`object.
-Also does checks internally to make sure the values are correct.
-"""
-function make_VarProtParameters(ϕ::Array{Float64,1},E::Float64)
-    # Use asserts to ensure parameters a sensible
-    @assert E >= 0.0 "Number of enzymes per cell cannot be negative"
-
-    # Similar asserts for the vector parameters
-    @assert length(ϕ) == 3 "Only considering 3 protein fractions"
-    @assert all(ϕ .>= 0) "Protein fractions cannot be negative"
-    @assert sum(ϕ) == 1 "Protein fractions must sum to one"
-    return(VarProtParameters(ϕ,E))
+    return(ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,Pb,ϕH,Ω,r,n,δ,κ))
 end

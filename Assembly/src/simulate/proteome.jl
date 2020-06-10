@@ -41,16 +41,19 @@ end
 
 # function to run the dynamics in the shifting proteome case
 function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::Array{Int64,1},ps::ProtParameters,t::Float64)
-    # Find proteome fraction
+    # Find optimal proteome fraction
     ϕR = ϕ_R(x[2],ps)
+    # This introduces a time delay
+    h = 1e-5 # HARDCODE THIS FOR THE MEAN TIME
+    dx[5] = h*(ϕR-x[5])
     # Then find amount of enzyme
-    E = Eα(1-ϕR-ps.ϕH,ps)
+    E = Eα(1-x[5]-ps.ϕH,ps)
     # Only one reaction so only one reaction rate
     rate = qs(x[3],x[4],E,ps)
     # All energy comes from this reaction
     J = ps.η*rate
     # Based on energy level find growth rate λ
-    λ = λs(x[2],ϕR,ps)
+    λ = λs(x[2],x[5],ps)
     # Now update the stored energy
     dx[2] = J - (ps.MC*ps.ρ + x[2])*λ
 
@@ -85,11 +88,11 @@ end
 
 # Simulation code to run one instatnce of the simulation
 # ps is parameter set, Tmax is the time to integrate to
-function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64)
+function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,Si::Float64=0.0)
     # Initialise vectors of concentrations and populations
     pop = Ni*ones(1)
     apop = ai*ones(1)
-    conc = zeros(2) # No chemical to begin with
+    conc = [Si,0.0,0.1] # No product to begin with, substrate can be set
     # Now sub the parameters in
     p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,t)
     # Make simulation time span

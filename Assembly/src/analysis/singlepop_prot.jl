@@ -239,4 +239,49 @@ function singpop_range()
     savefig("Output/GrowthvsFraction.png")
 end
 
-@time singpop()
+# Simulation of a single population growing on a fixed initial amount of substrate
+function singpop_fix()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 10.0 # initial population
+    Ci = 1.0
+    # This is currently a paramter which I am fiddling
+    Kγ = 1e8
+    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
+    Ωs = [Kγ/100; Kγ/10; Kγ; 10*Kγ; 100*Kγ]
+    # kc is another parameter that I should fiddle
+    kc = 1.0
+    for j = 1:length(Ωs)
+        # Initialise parameter set
+        ps = initialise_prot_fix(Kγ,Ωs[j],kc)
+        # Choose simulation time
+        Tmax = 250000.0
+        # Then run simulation
+        C, T = prot_simulate(ps,Tmax,ai,Ni,Ci)
+        # Now calculate growth rates and proteome fractions
+        λa = zeros(length(T))
+        ϕR = zeros(length(T))
+        for i = 1:length(T)
+            ϕR[i] = ϕ_R(C[i,2],ps)
+            λa[i] = λs(C[i,2],ϕR[i],ps)
+        end
+        # Do plotting
+        pyplot(dpi=200)
+        plot(T,C[:,1],xlabel="Time",label="",ylabel="Population")
+        savefig("Output/FixPopvsTime$j.png")
+        plot(T,C[:,2],xlabel="Time",label="",ylabel="Cell energy conc")
+        savefig("Output/FixEnergyvsTime$j.png")
+        plot(T,C[:,3:4],xlabel="Time",label=["Substrate" "Waste"],ylabel="Concentration")
+        savefig("Output/FixMetabolitevsTime$j.png")
+        s1 = L"s^{-1}"
+        plot(T,λa,xlabel="Time",label="",ylabel="Growth rate $(s1)")
+        savefig("Output/FixGrowthvsTime$j.png")
+        plot(T,ϕR,xlabel="Time",label="",ylabel=L"\phi_R")
+        plot!(T,C[:,5],label="")
+        savefig("Output/FixFractionvsTime$j.png")
+    end
+    return(nothing)
+end
+
+@time singpop_fix()

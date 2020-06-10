@@ -75,51 +75,52 @@ function singpop_opt()
     return(nothing)
 end
 
-# Run a single population multiple times and plot a scatter graph of the results
-function singpop_scat()
-    println("Successfully compiled.")
-    # Simple test data set
-    ai = 5.0 # initial energy level
-    Ni = 100.0 # initial population
-    # Initialise parameter set
-    ps = initialise_prot(false)
-    # Choose simulation time
-    Tmax = 500000.0
-    # Make lists
-    ls = Array{Any,1}(undef,7)
-    # 13 decline
-    ls[1] = collect(4:12)
-    # 14 decline
-    ls[2] = collect(4:13)
-    # 13 decline
-    ls[3] = collect(2:12)
-    # 15-18 decline
-    ls[4] = collect(2:14)
-    # 16 decline
-    ls[5] = collect(2:15)
-    # 20 decline
-    ls[6] = collect(2:19)
-    # no decline
-    ls[7] = collect(4:20)
-    # Then run multiple simulations
-    a, J = prot_simulate_mult(ps,ai,Ni,Tmax)
-    pyplot(dpi=200)
-    m = L"^{-1}"
-    pR = L"\phi_R"
-    plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
-    for i = 1:7
-        # Tom used a log plot but I think this will obsurce too much at the moment
-        scatter!(J[i,ls[i]],a[i,ls[i]],label="$(pR) = $(round(((i+1)/10)*0.55,digits=3))")
-    end
-    savefig("Output/ATPvsRate.png")
-    plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
-    for i = 1:7
-        # Tom used a log plot but I think this will obsurce too much at the moment
-        scatter!(log.(J[i,ls[i]]),log.(a[i,ls[i]]),label="$(pR) = $(round(((i+1)/10)*0.55,digits=3))")
-    end
-    savefig("Output/LogATPvsRate.png")
-    return(nothing)
-end
+# NO LONGER NEEDED, KEPT FOR REFERENCE DELETE WHEN DONE WITH
+# # Run a single population multiple times and plot a scatter graph of the results
+# function singpop_scat()
+#     println("Successfully compiled.")
+#     # Simple test data set
+#     ai = 5.0 # initial energy level
+#     Ni = 100.0 # initial population
+#     # Initialise parameter set
+#     ps = initialise_prot(false)
+#     # Choose simulation time
+#     Tmax = 500000.0
+#     # Make lists
+#     ls = Array{Any,1}(undef,7)
+#     # 13 decline
+#     ls[1] = collect(4:12)
+#     # 14 decline
+#     ls[2] = collect(4:13)
+#     # 13 decline
+#     ls[3] = collect(2:12)
+#     # 15-18 decline
+#     ls[4] = collect(2:14)
+#     # 16 decline
+#     ls[5] = collect(2:15)
+#     # 20 decline
+#     ls[6] = collect(2:19)
+#     # no decline
+#     ls[7] = collect(4:20)
+#     # Then run multiple simulations
+#     a, J = prot_simulate_mult(ps,ai,Ni,Tmax)
+#     pyplot(dpi=200)
+#     m = L"^{-1}"
+#     pR = L"\phi_R"
+#     plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
+#     for i = 1:7
+#         # Tom used a log plot but I think this will obsurce too much at the moment
+#         scatter!(J[i,ls[i]],a[i,ls[i]],label="$(pR) = $(round(((i+1)/10)*0.55,digits=3))")
+#     end
+#     savefig("Output/ATPvsRate.png")
+#     plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
+#     for i = 1:7
+#         # Tom used a log plot but I think this will obsurce too much at the moment
+#         scatter!(log.(J[i,ls[i]]),log.(a[i,ls[i]]),label="$(pR) = $(round(((i+1)/10)*0.55,digits=3))")
+#     end
+#     savefig("Output/LogATPvsRate.png")
+#     return(nothing)
+# end
 
 # function to make a plot of growth rate with changing ribosome fraction
 function singpop_curv()
@@ -284,4 +285,47 @@ function singpop_fix()
     return(nothing)
 end
 
-@time singpop_fix()
+# Run a single population multiple times and plot a scatter graph of the results
+function singpop_scat()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 10.0 # initial population
+    Ci = 1.0
+    # This is currently a paramter which I am fiddling
+    Kγ = 1e8
+    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
+    Ωs = [Kγ]
+    # kc is another parameter that I should fiddle
+    kc = 1.0
+    # choose eta values
+    ηs = [0.9,1.1,1.2,1.25]*7.2
+    # Choose simulation time
+    Tmax = 250000.0
+    # Setup plotting
+    pyplot(dpi=200)
+    m = L"^{-1}"
+    pR = L"\phi_R"
+    # Name the two plots
+    p1 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
+    p2 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
+    # Now loop over the omega values
+    for i = 1:length(Ωs)
+        for j = 1:length(ηs)
+            # Now make the parameter set
+            ps = initialise_prot_fix(Kγ,Ωs[i],kc,ηs[j])
+            # Then run multiple simulations
+            a, J = prot_simulate_mult(ps,ai,Ni,Ci,Tmax)
+            # Tom used a log plot but I think this will obsurce too much at the moment
+            scatter!(p1,J,a,label="η = $(ηs[j])")
+            # Tom used a log plot but I think this will obsurce too much at the moment
+            scatter!(p2,log10.(J),log10.(a),label="η = $(ηs[j])")
+        end
+    end
+    # Save the two plots
+    savefig(p1,"Output/ATPvsRate.png")
+    savefig(p2,"Output/LogATPvsRate.png")
+    return(nothing)
+end
+
+@time singpop_scat()

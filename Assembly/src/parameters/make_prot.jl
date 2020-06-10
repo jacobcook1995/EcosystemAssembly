@@ -63,7 +63,7 @@ end
 
 
 # function to generate parameter set for the model outside the chemostat
-function initialise_prot_fix(Kγ::Float64,Ω::Float64,kc::Float64)
+function initialise_prot_fix(Kγ::Float64,Ω::Float64,kc::Float64,η::Float64=7.2)
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Cell mass is taken from Bremer H, Dennis P (1996) Modulation of chemical
@@ -80,8 +80,8 @@ function initialise_prot_fix(Kγ::Float64,Ω::Float64,kc::Float64)
     # Now make the reaction
     ΔG = -6e5 # Relatively small Gibbs free energy change
     r = make_Reaction(1,1,2,ΔG)
-    # η chosen so that a substantial portion of the Gibbs free energy is retained
-    η = 0.9*(-ΔG/ΔGATP)
+    # # η chosen so that a substantial portion of the Gibbs free energy is retained
+    # η = 0.9*(-ΔG/ΔGATP)
     # The reversibility factor remains the same as previously
     kr = 10.0
     # In this case there is (effectively) no removal

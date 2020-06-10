@@ -189,38 +189,37 @@ function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters)
     return(ϕm,λm,af)
 end
 
-# function to simulate same species multiple times for different protein fractions
-# THIS ONE NO LONGER MAKES ANY SENSE ONCE PROTEOME IS ALLOWED TO VARY
-# CHANGE LATER!!!
-function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Tmax::Float64)
+# function to simulate same species and return money
+function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Ci::Float64,Tmax::Float64)
     # Initialise vectors of concentrations and populations
     pop = Ni*ones(1)
     apop = ai*ones(1)
-    conc = zeros(2) # No chemical to begin with
+    conc = [Ci; 0.0] # Large initial deposit of substrate
+    ϕi = 0.1*ones(1) # Start with low ribosome fraction
     # Now sub the parameters in
     p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,t)
     # Make simulation time span
     tspan = (0,Tmax)
-    x0 = [pop;apop;conc]
+    x0 = [pop;apop;conc;ϕi]
+    # parameter set kept empty
+    pa = Array{Int64,1}(undef,0)
+    # Then setup and solve the problem
+    println("Simulation $(1) started.")
+    prob = ODEProblem(p_dyns!,x0,tspan,pa)
+    sol = DifferentialEquations.solve(prob)
+    println("Final population $(sol'[end,1])")
+    # Find position of the peak
+    pk, tp = findmax(sol'[:,2])
+    # find position where substrate has decayed below a certain point
+    te = findlast(x->x>=0.9,sol'[:,3])
     # Preallocate output
-    a = zeros(7,20)
-    J = zeros(7,20)
-    for i = 2:8
-        # Choose proteome allocation
-        ϕ = [(i/10)*0.55,((10-i)/10)*0.55,0.45]
-        pa = make_var_prot(ps,ϕ)
-        # Then setup and solve the problem
-        println("Simulation $(i-1) started.")
-        prob = ODEProblem(p_dyns!,x0,tspan,pa)
-        sol = DifferentialEquations.solve(prob)
-        println("Final population $(sol'[end,1])")
-        # Find data points to extract
-        L = length(sol.t)
-        b = floor(Int64,L/20)
-        for j = 1:20
-            a[i-1,j] = sol'[b*j,2]
-            J[i-1,j] = ps.η*qs(sol'[b*j,3],sol'[b*j,4],pa.E,ps)
-        end
+    a = zeros(te+1-tp)
+    J = zeros(te+1-tp)
+    # Output all points up to final time point
+    for j = tp:te
+        a[j+1-tp] = sol'[j,2]
+        E = Eα(1-sol'[j,5]-ps.ϕH,ps)
+        J[j+1-tp] = ps.η*qs(sol'[j,3],sol'[j,4],E,ps)
     end
     return(a,J)
 end

@@ -7,12 +7,10 @@ using LinearAlgebra
 
 # Include scripts that contain other functions
 include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available
-include("parameters/marsParameters.jl") # Parameters for base case from Marsland et al.
 include("parameters/inhibParameters.jl") # Parameters for Inhibition case
 include("parameters/make_inhib.jl") # Function to make parameters for model with inhibition
 include("parameters/protParameters.jl") # Parameters for proteome case
 include("parameters/make_prot.jl") # Function to make parameters for proteome model
-include("simulate/mars.jl") # Include marsland model simulation code
 include("simulate/inhib.jl") # Include simulation code for our model
 include("simulate/analytic.jl") # Include analytic functions to assit simulations
 include("simulate/proteome.jl") # Include simulation code for proteome model

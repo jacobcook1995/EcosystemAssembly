@@ -55,15 +55,17 @@ function initialise_prot(inhib::Bool)
     # Housekeeping fraction is taken from Scott et al. 2010
     ϕH = 0.45
     # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
-    Ω = 2*Kγ
+    KΩ = 2*Kγ
+    # Number of doublings required to dilute to 1%
+    fd = log(100)/log(2)
     # Now make the parameter set
-    ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,Pb,ϕH,Ω,r,n,δ,κ)
+    ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,Pb,ϕH,KΩ,fd,r,n,δ,κ)
     return(ps)
 end
 
 
 # function to generate parameter set for the model outside the chemostat
-function initialise_prot_fix(Kγ::Float64,Ω::Float64,kc::Float64,η::Float64=7.2)
+function initialise_prot_fix(Kγ::Float64,KΩ::Float64,kc::Float64,η::Float64=7.2)
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Cell mass is taken from Bremer H, Dennis P (1996) Modulation of chemical
@@ -87,7 +89,7 @@ function initialise_prot_fix(Kγ::Float64,Ω::Float64,kc::Float64,η::Float64=7.
     # In this case there is (effectively) no removal
     δ = 1e-9*ones(2)
     # Set death rate to (basically) zero
-    d = 1.0e-30
+    d = 6.0e-5
     # Also no supply in this case
     κ = [0.0,0.0] # Metabolite supply rate
     # Assume that half saturation occurs at a quarter κ/δ
@@ -99,7 +101,9 @@ function initialise_prot_fix(Kγ::Float64,Ω::Float64,kc::Float64,η::Float64=7.
     Pb = 0.7
     # Housekeeping fraction is taken from Scott et al. 2010
     ϕH = 0.45
+    # Number of doublings required to dilute to 1%
+    fd = log(100)/log(2)
     # Now make the parameter set
-    ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,Pb,ϕH,Ω,r,n,δ,κ)
+    ps = make_ProtParameters(MC,γm,T,η,KS,kr,kc,ρ,Kγ,d,Pb,ϕH,KΩ,fd,r,n,δ,κ)
     return(ps)
 end

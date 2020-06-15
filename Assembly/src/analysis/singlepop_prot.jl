@@ -25,7 +25,7 @@ function singpop()
     end
     # Do plotting
     pyplot(dpi=200)
-    plot(T,C[:,1],xlabel="Time",label="",ylabel="Population")
+    plot(T,log10.(C[:,1]),xlabel="Time",label="",ylabel="Population")
     savefig("Output/PopvsTime.png")
     plot(T,C[:,2],xlabel="Time",label="",ylabel="Cell energy conc")
     savefig("Output/EnergyvsTime.png")
@@ -35,6 +35,7 @@ function singpop()
     plot(T,λa,xlabel="Time",label="",ylabel="Growth rate $(s1)")
     savefig("Output/GrowthvsTime.png")
     plot(T,ϕR,xlabel="Time",label="",ylabel=L"\phi_R")
+    plot!(T,C[:,5],label="")
     savefig("Output/FractionvsTime.png")
     return(nothing)
 end
@@ -199,7 +200,7 @@ function singpop_fix()
     # Simple test data set
     ai = 5.0 # initial energy level
     Ni = 10.0 # initial population
-    Ci = 1.0
+    Si = 1.0
     # This is currently a paramter which I am fiddling
     Kγ = 1e8
     # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
@@ -212,7 +213,7 @@ function singpop_fix()
         # Choose simulation time
         Tmax = 250000.0
         # Then run simulation
-        C, T = prot_simulate(ps,Tmax,ai,Ni,Ci)
+        C, T = prot_simulate(ps,Tmax,ai,Ni,Si)
         # Now calculate growth rates and proteome fractions
         λa = zeros(length(T))
         ϕR = zeros(length(T))
@@ -222,7 +223,7 @@ function singpop_fix()
         end
         # Do plotting
         pyplot(dpi=200)
-        plot(T,C[:,1],xlabel="Time",label="",ylabel="Population")
+        plot(T,log10.(C[:,1]),xlabel="Time",label="",ylabel="Population")
         savefig("Output/FixPopvsTime$j.png")
         plot(T,C[:,2],xlabel="Time",label="",ylabel="Cell energy conc")
         savefig("Output/FixEnergyvsTime$j.png")
@@ -281,4 +282,33 @@ function singpop_scat()
     return(nothing)
 end
 
-@time singpop_scat()
+# Quick test function
+function test()
+    println("Successfully compiled.")
+    # Choose parameters
+    Kγ = 1e8
+    Ωs = [Kγ/100,Kγ/10,Kγ,10*Kγ,100*Kγ]
+    kc = 1.0
+    # Setup plotting
+    pyplot(dpi=200)
+    # Name the two plots
+    p1 = plot(title = "M-M")
+    # Loop over Ω values
+    for j = 1:length(Ωs)
+        # Make parameter set
+        ps = initialise_prot_fix(Kγ,Ωs[j],kc)
+        # Make vector of energy values
+        as = collect(0.0:1e5:1e9)
+        # Preallocate vectors to store outputted fractions
+        ϕ1 = zeros(length(as))
+        # Now loop over the energy values
+        for i = 1:length(as)
+            ϕ1[i] = ϕ_R(as[i],ps)
+        end
+        plot!(p1,as,ϕ1)
+    end
+    savefig(p1,"Output/test1.png")
+    return(nothing)
+end
+
+@time singpop()

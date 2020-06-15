@@ -3,7 +3,7 @@
 # proteome fraction model. Once I'm satisfied with it I will incorperate it into
 # the main model
 
-export prot_simulate, λs, optimise_ϕ, prot_simulate_mult, λ_max, Eα, qs, γs, ϕ_R
+export prot_simulate, λs, optimise_ϕ, prot_simulate_mult, λ_max, Eα, qs, γs, ϕ_R, ϕ_R_2
 
 # function to find the rate of substrate consumption by a particular reaction
 function qs(S::Float64,P::Float64,E::Float64,ps::ProtParameters)
@@ -35,27 +35,27 @@ end
 
 # function to find ϕR based on the energy concentration
 function ϕ_R(a::Float64,ps::ProtParameters)
-    ϕ = (1-ps.ϕH)*(1-exp(-a/ps.Ω))
+    ϕ = (1-ps.ϕH)*a/(ps.KΩ + a)
     return(ϕ)
 end
 
 # function to run the dynamics in the shifting proteome case
 function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::Array{Int64,1},ps::ProtParameters,t::Float64)
-    # Find optimal proteome fraction
-    ϕR = ϕ_R(x[2],ps)
-    # This introduces a time delay
-    h = 1e-5 # HARDCODE THIS FOR THE MEAN TIME
-    dx[5] = h*(ϕR-x[5])
+    # Based on energy level find growth rate λ
+    λ = λs(x[2],x[5],ps)
     # Then find amount of enzyme
     E = Eα(1-x[5]-ps.ϕH,ps)
     # Only one reaction so only one reaction rate
     rate = qs(x[3],x[4],E,ps)
     # All energy comes from this reaction
     J = ps.η*rate
-    # Based on energy level find growth rate λ
-    λ = λs(x[2],x[5],ps)
     # Now update the stored energy
     dx[2] = J - (ps.MC*ps.ρ + x[2])*λ
+    # Find optimal proteome fraction
+    ϕR = ϕ_R(x[2],ps)
+    # This introduces a time delay
+    τ = ps.fd/λ
+    dx[5] = (ϕR-x[5])/τ
 
     # Check if microbe is effectively dead
     if x[1] <= 1e-10

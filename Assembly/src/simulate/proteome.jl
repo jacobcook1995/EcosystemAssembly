@@ -3,7 +3,7 @@
 # proteome fraction model. Once I'm satisfied with it I will incorperate it into
 # the main model
 
-export prot_simulate, λs, optimise_ϕ, prot_simulate_mult, λ_max, Eα, qs, γs, ϕ_R, ϕ_R_2
+export prot_simulate, λs, optimise_ϕ, prot_simulate_mult, λ_max, Eα, qs, γs, ϕ_R, ϕ_R_2, prot_simulate_fix
 
 # function to find the rate of substrate consumption by a particular reaction
 function qs(S::Float64,P::Float64,E::Float64,ps::ProtParameters)
@@ -141,7 +141,7 @@ function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters)
     ϕm[1] = (ϕT)/2
     ϕm[2] = 1 - ϕm[1] - ϕm[3]
     # Now find λ for this initial vector
-    λm, af = λ_max(S,P,ϕm,ps)
+    λm, af = λ_max(S,P,ϕm[1],ps)
     # loop until final value is found
     fine = false
     # Make new left and right phi functions
@@ -167,8 +167,8 @@ function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters)
             end
         end
         # Calculate left and right growth rates
-        λl, al = λ_max(S,P,ϕl,ps)
-        λr, ar = λ_max(S,P,ϕr,ps)
+        λl, al = λ_max(S,P,ϕl[1],ps)
+        λr, ar = λ_max(S,P,ϕr[1],ps)
         # First check if already at the optimum
         if λm >= λl && λm >= λr
             δϕ = δϕ/2
@@ -189,7 +189,7 @@ function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters)
     return(ϕm,λm,af)
 end
 
-# function to simulate same species and return money
+# function to simulate same species and return energy values
 function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Ci::Float64,Tmax::Float64)
     # Initialise vectors of concentrations and populations
     pop = Ni*ones(1)
@@ -222,4 +222,90 @@ function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Ci::Float
         J[j+1-tp] = ps.η*qs(sol'[j,3],sol'[j,4],E,ps)
     end
     return(a,J)
+end
+
+# function to run the dynamics in the shifting proteome case with fixed concentrations
+function p_dynamics_fix!(dx::Array{Float64,1},x::Array{Float64,1},pa::Array{Int64,1},ps::ProtParameters,t::Float64)
+    # Based on energy level find growth rate λ
+    λ = λs(x[2],x[5],ps)
+    # Then find amount of enzyme
+    E = Eα(1-x[5]-ps.ϕH,ps)
+    # Only one reaction so only one reaction rate
+    rate = qs(x[3],x[4],E,ps)
+    # All energy comes from this reaction
+    J = ps.η*rate
+    # Now update the stored energy
+    dx[2] = J - (ps.MC*ps.ρ + x[2])*λ
+    # Find optimal proteome fraction
+    ϕR = ϕ_R(x[2],ps)
+    # This introduces a time delay
+    τ = ps.fd/λ
+    dx[5] = (ϕR-x[5])/τ
+
+    # Check if microbe is effectively dead
+    if x[1] <= 1e-10
+        # If so x should be set to zero and should not change from that
+        dx[1] = 0.0
+        x[1] = 0.0
+    else
+        # (growth rate - death rate)*population
+        dx[1] = (λ - ps.d)*x[1]
+    end
+    return(dx)
+end
+
+# function to run the dynamics in the shifting proteome case with fixed concentrations and no adaption
+function p_dynamics_fix_na!(dx::Array{Float64,1},x::Array{Float64,1},pa::Array{Int64,1},ps::ProtParameters,t::Float64)
+    # Based on energy level find growth rate λ
+    λ = λs(x[2],x[5],ps)
+    # Then find amount of enzyme
+    E = Eα(1-x[5]-ps.ϕH,ps)
+    # Only one reaction so only one reaction rate
+    rate = qs(x[3],x[4],E,ps)
+    # All energy comes from this reaction
+    J = ps.η*rate
+    # Now update the stored energy
+    dx[2] = J - (ps.MC*ps.ρ + x[2])*λ
+
+    # Check if microbe is effectively dead
+    if x[1] <= 1e-10
+        # If so x should be set to zero and should not change from that
+        dx[1] = 0.0
+        x[1] = 0.0
+    else
+        # (growth rate - death rate)*population
+        dx[1] = (λ - ps.d)*x[1]
+    end
+    return(dx)
+end
+
+# Simulation code to run one instatnce of the simulation
+# ps is parameter set, Tmax is the time to integrate to
+function prot_simulate_fix(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,
+                            Si::Float64,Pi::Float64,ϕi::Float64,upa::Bool=true)
+    # Initialise vectors of concentrations and populations
+    pop = Ni*ones(1)
+    apop = ai*ones(1)
+    conc = [Si,Pi,ϕi] # No product to begin with, substrate can be set
+    if upa == true
+        # Now sub the parameters in
+        p_dyns1!(dx,x,pa,t) = p_dynamics_fix!(dx,x,pa,ps,t)
+    else
+        # MAYBE THIS IS CAUSING WARNINGS????
+        p_dyns2!(dx,x,pa,t) = p_dynamics_fix_na!(dx,x,pa,ps,t)
+    end
+    # Make simulation time span
+    tspan = (0,Tmax)
+    x0 = [pop;apop;conc]
+    # Additional set of parameters so that it actually evaluates, empty for the moment
+    pa = Array{Int64,1}(undef,0)
+    # Then setup and solve the problem
+    # This splitting is needed to fix compilation
+    if upa == true
+        prob = ODEProblem(p_dyns1!,x0,tspan,pa)
+    else
+        prob = ODEProblem(p_dyns2!,x0,tspan,pa)
+    end
+    sol = DifferentialEquations.solve(prob)
+    return(sol',sol.t)
 end

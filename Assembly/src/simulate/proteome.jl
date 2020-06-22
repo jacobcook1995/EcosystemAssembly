@@ -88,11 +88,11 @@ end
 
 # Simulation code to run one instatnce of the simulation
 # ps is parameter set, Tmax is the time to integrate to
-function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,Si::Float64=0.0)
+function prot_simulate(ps::ProtParameters,Tmax::Float64,ai::Float64,Ni::Float64,Si::Float64=0.0,ϕi::Float64=0.1)
     # Initialise vectors of concentrations and populations
     pop = Ni*ones(1)
     apop = ai*ones(1)
-    conc = [Si,0.0,0.1] # No product to begin with, substrate can be set
+    conc = [Si,0.0,ϕi] # No product to begin with, substrate can be set
     # Now sub the parameters in
     p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,t)
     # Make simulation time span

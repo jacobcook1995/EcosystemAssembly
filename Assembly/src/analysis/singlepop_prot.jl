@@ -184,14 +184,14 @@ function singpop_fix()
     Ni = 10.0 # initial population
     Si = 1.0
     # This is currently a paramter which I am fiddling
-    Kγ = 1e8
+    Kγ = 5e8
     # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
-    Ωs = [Kγ/100; Kγ/10; Kγ; 10*Kγ; 100*Kγ]
+    KΩs = [1.5e9,2.0e9,2.5e9]
     # kc is another parameter that I should fiddle
     kc = 1.0
-    for j = 1:length(Ωs)
+    for j = 1:length(KΩs)
         # Initialise parameter set
-        ps = initialise_prot_fix(Kγ,Ωs[j],kc)
+        ps = initialise_prot_fix(Kγ,KΩs[j],kc)
         # Choose simulation time
         Tmax = 250000.0
         # Then run simulation
@@ -285,9 +285,11 @@ function singpop_KΩ_plots()
     pyplot(dpi=200)
     p1 = plot(T,log10.(C[:,1]),xlabel="Time",label="",ylabel="Population")
     p2 = plot(T,C[:,2],xlabel="Time",label="",ylabel="Cell energy conc")
-    p3 = plot(T,C[:,5],label="")
+    p3 = plot(T,C[:,5],label="Optimal",xlabel="Time",ylabel=L"\phi_R",legend=:right)
     # Now test for a range of Ω values
     Ωs = [ps.Kγ/10,ps.Kγ/5,ps.Kγ,5*ps.Kγ,10*ps.Kγ]
+    # Make K Omega label
+    KO = L"K_Ω"
     # Loop over Ω values
     for j = 1:length(Ωs)
         # Make parameter set
@@ -295,9 +297,9 @@ function singpop_KΩ_plots()
         # Run the simulations
         C, T = prot_simulate_fix(ps,Tmax,ai,Ni,S,P,ϕi)
         # Then do the plotting
-        plot!(p1,T,log10.(C[:,1]),label="Ω = $(Ωs[j])")
-        plot!(p2,T,C[:,2],label="Ω = $(Ωs[j])")
-        plot!(p3,T,C[:,5],label="Ω = $(Ωs[j])")
+        plot!(p1,T,log10.(C[:,1]),label="$(KO) = $(Ωs[j])")
+        plot!(p2,T,C[:,2],label="$(KO) = $(Ωs[j])")
+        plot!(p3,T,C[:,5],label="$(KO) = $(Ωs[j])")
     end
     # Save all of the plots
     savefig(p1,"Output/PopvsTime.png")
@@ -312,10 +314,8 @@ function singpop_KΩ_opt()
     # Initialise parameter set
     ps = initialise_prot(false)
     # Pick an initial condition to optimise for (assume fixed environment)
-    S = 5.5e-3*100
+    Ss = 5.5e-3*[0.01,0.05,0.1,0.5,1.0,5.0,10.0,50.0,100.0,500.0,1000.0]
     P = 5.5e-4
-    # Find optimal value for ϕR for this condition
-    ϕr, _, am = optimise_ϕ(S,P,ps)
     # Choose simulation parameters
     Tmax = 1000000.0
     ai = 5.0
@@ -324,58 +324,68 @@ function singpop_KΩ_opt()
     # Choose intial value of KΩ
     KΩ = 5e8
     ps = initialise_prot_KΩ(KΩ)
-    # Run the simulations
-    C, T = prot_simulate_fix(ps,Tmax,ai,Ni,S,P,ϕi)
-    # Find final ribosome fraction
-    ϕR = C[end,5]
-    println("Original ϕ = $(ϕr[1])")
-    # Choose initial step size
-    δΩ = 1e8
-    # Preallocate variables so that they are in scope
-    Ku = 5e8
-    Kd = 5e8
-    # Set up loop to find optimal KΩ value
-    fnd = false
-    while fnd == false
-        # Step to generate new ϕ values
-        update = false
-        while update == false
-            # Update up and down values
-            Ku = KΩ + δΩ
-            Kd = KΩ - δΩ
-            if Kd >= 0.0
-                update = true
-            else
-                # Reduce size of δϕ if it has gone negative
+    # Before I start optimisations setup plotting
+    pyplot(dpi=200)
+    p1 = plot(xlabel="Log Substrate",xaxis=:log,ylabel=L"K_\Omega")
+    # Run set of optimisations
+    for i = 1:length(Ss)
+        # Find optimal value for ϕR for this condition
+        ϕr, _, am = optimise_ϕ(Ss[i],P,ps)
+        # Run the simulations
+        C, T = prot_simulate_fix(ps,Tmax,ai,Ni,Ss[i],P,ϕi)
+        # Find final ribosome fraction
+        ϕR = C[end,5]
+        println("Run $i original ϕ = $(ϕr[1])")
+        # Choose initial step size
+        δΩ = 1e8
+        # Preallocate variables so that they are in scope
+        Ku = 5e8
+        Kd = 5e8
+        # Set up loop to find optimal KΩ value
+        fnd = false
+        while fnd == false
+            # Step to generate new ϕ values
+            update = false
+            while update == false
+                # Update up and down values
+                Ku = KΩ + δΩ
+                Kd = KΩ - δΩ
+                if Kd >= 0.0
+                    update = true
+                else
+                    # Reduce size of δϕ if it has gone negative
+                    δΩ = δΩ/2
+                end
+            end
+            # Make the two parameter sets
+            psu = initialise_prot_KΩ(Ku)
+            psd = initialise_prot_KΩ(Kd)
+            # For some reason printing here stops the integrations failing?
+            println(Kd)
+            # Calculate final ϕ values for up and down cases
+            C, T = prot_simulate_fix(psu,Tmax,ai,Ni,Ss[i],P,ϕi)
+            ϕu = C[end,5]
+            C, T = prot_simulate_fix(psd,Tmax,ai,Ni,Ss[i],P,ϕi)
+            ϕd = C[end,5]
+            # First check if already at the optimum
+            if abs(ϕR-ϕr[1]) <= abs(ϕu-ϕr[1]) && abs(ϕR-ϕr[1]) <= abs(ϕd-ϕr[1])
                 δΩ = δΩ/2
+                # Stop if step size is small and optimum has been reached
+                if δΩ < 1.0e5
+                    fnd = true
+                end
+            elseif abs(ϕd-ϕr[1]) > abs(ϕu-ϕr[1]) # go up
+                ϕR = ϕu
+                KΩ = Ku
+            else # otherwise go down
+                ϕR = ϕd
+                KΩ = Kd
             end
         end
-        # Make the two parameter sets
-        psu = initialise_prot_KΩ(Ku)
-        psd = initialise_prot_KΩ(Kd)
-        # Calculate final ϕ values for up and down cases
-        C, T = prot_simulate_fix(psu,Tmax,ai,Ni,S,P,ϕi)
-        ϕu = C[end,5]
-        C, T = prot_simulate_fix(psd,Tmax,ai,Ni,S,P,ϕi)
-        ϕd = C[end,5]
-        # First check if already at the optimum
-        if abs(ϕR-ϕr[1]) <= abs(ϕu-ϕr[1]) && abs(ϕR-ϕr[1]) <= abs(ϕd-ϕr[1])
-            δΩ = δΩ/2
-            # Stop if step size is small and optimum has been reached
-            if δΩ < 1.0e5
-                fnd = true
-            end
-        elseif abs(ϕd-ϕr[1]) > abs(ϕu-ϕr[1]) # go up
-            ϕR = ϕu
-            KΩ = Ku
-        else # otherwise go down
-            ϕR = ϕd
-            KΩ = Kd
-        end
+        # Plotting or something here
+        scatter!(p1,[Ss[i]],[KΩ],label="")
     end
-    println("Finished:")
-    println("KΩ = $(KΩ)")
-    println("ϕR = $(ϕR)")
+    savefig(p1,"Output/OptimiseK.png")
     return(nothing)
 end
 
@@ -429,7 +439,7 @@ function singpop_KΩ_comp()
     Tmax = 5000000.0
     # Now loop over all simulations
     for i = 1:length(KΩs)
-        ps = initialise_prot_KΩ(KΩs[i],true)
+        ps = initialise_prot_KΩ(KΩs[i])
         # Run the simulation
         C, T = prot_simulate(ps,Tmax,ai,Ni)
         # Calculate growth and energy aquistion rates
@@ -467,4 +477,144 @@ function singpop_KΩ_comp()
     return(nothing)
 end
 
-@time singpop_KΩ_comp()
+# Script to compare simulations for different η values
+function singpop_η_comp()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 10.0 # initial population
+    Si = 1.0
+    # This is currently a parameter which I am fiddling
+    Kγ = 5e8
+    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
+    KΩ = 2.5e9
+    # kc is another parameter that I should fiddle
+    kc = 1.0
+    # Choose eta values
+    ηs = [0.9,1.0,1.1]*7.2
+    # Setup plotting
+    pyplot(dpi=200)
+    p1 = plot(xlabel="Time",ylabel="Population")
+    p2 = plot(xlabel="Time",ylabel="Cell energy conc")
+    p3 = plot(xlabel="Time",ylabel="Concentration")
+    p4 = plot(xlabel="Time",ylabel=L"\phi_R")
+    # Choose time interval
+    Tmax = 2500000.0
+    # Now loop over all simulations
+    for i = 1:length(ηs)
+        ps = initialise_prot_fix(Kγ,KΩ,kc,ηs[i])
+        # Run the simulation
+        C, T = prot_simulate(ps,Tmax,ai,Ni,Si)
+        # Plot results
+        plot!(p1,T,log10.(C[:,1]),label="η = $(ηs[i])")
+        plot!(p2,T,C[:,2],label="η = $(ηs[i])")
+        plot!(p3,T,C[:,3:4],label="")
+        plot!(p4,T,C[:,5],label="η = $(ηs[i])")
+    end
+    # Now save the plots
+    savefig(p1,"Output/TBatchPopvsTime.png")
+    savefig(p2,"Output/TBatchEnergyvsTime.png")
+    savefig(p3,"Output/TBatchMetabolitevsTime.png")
+    savefig(p4,"Output/TBatchFractionvsTime.png")
+    # Now do chemostat set
+    p1 = plot(xlabel="Time",ylabel="Population")
+    p2 = plot(xlabel="Time",ylabel="Cell energy conc")
+    p3 = plot(xlabel="Time",ylabel="Concentration")
+    p4 = plot(xlabel="Time",ylabel=L"\phi_R")
+    p5 = plot(xlabel="Time",ylabel="λ")
+    p6 = plot(xlabel="Time",ylabel="J")
+    p7 = plot(xlabel="Simulation number",ylabel="R*")
+    p8 = plot(xlabel="Simulation number",ylabel="Time to max pop")
+    # Choose time interval
+    Tmax = 5000000.0
+    # Now loop over all simulations
+    inhb = [true,false]
+    for i = 1:length(inhb)
+        ps = initialise_prot_KΩ(KΩ,inhb[i])
+        # Run the simulation
+        C, T = prot_simulate(ps,Tmax,ai,Ni)
+        # Calculate growth and energy aquistion rates
+        λa = zeros(length(T))
+        J = zeros(length(T))
+        for i = 1:length(T)
+            λa[i] = λs(C[i,2],C[i,5],ps)
+            # Find amount of enzyme
+            E = Eα(1-C[i,5]-ps.ϕH,ps)
+            J[i] = ps.η*qs(C[i,3],C[i,4],E,ps)
+        end
+        # Plot results
+        plot!(p1,T,log10.(C[:,1]),label="")
+        plot!(p2,T,C[:,2],label="")
+        plot!(p3,T,C[:,3],label="")
+        plot!(p4,T,C[:,5],label="")
+        plot!(p5,T,λa,label="")
+        plot!(p6,T,J.*C[:,1],label="")
+        scatter!(p7,[i],[C[end,3]],label="")
+        # find maximum population
+        mp, _ = findmax(C[:,1])
+        # find first time point that is greater than 99% than this maximum
+        tp = findfirst(x->x >= 0.99*mp,C[:,1])
+        scatter!(p8,[i],[T[tp]],label="")
+    end
+    # Now save the plots
+    savefig(p1,"Output/TChemoPopvsTime.png")
+    savefig(p2,"Output/TChemoEnergyvsTime.png")
+    savefig(p3,"Output/TChemoSubstratevsTime.png")
+    savefig(p4,"Output/TChemoFractionvsTime.png")
+    savefig(p5,"Output/TChemoGrowthvsTime.png")
+    savefig(p6,"Output/TChemoGainvsTime.png")
+    savefig(p7,"Output/TChemoEndSub.png")
+    savefig(p8,"Output/TChemoEndTime.png")
+    return(nothing)
+end
+
+# Simulation of a single population growing on a fixed initial amount of substrate
+# In this function want to change the initial ribosome fraction
+function singpop_fix_init()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 10.0 # initial population
+    Si = 1.0
+    # This is currently a paramter which I am fiddling
+    Kγ = 5e8
+    # Choose value of KΩ
+    KΩ = 2.0e9
+    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
+    ϕis = [0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5]
+    # kc is another parameter that I should fiddle
+    kc = 1.0
+    for j = 1:length(ϕis)
+        # Initialise parameter set
+        ps = initialise_prot_fix(Kγ,KΩ,kc)
+        # Choose simulation time
+        Tmax = 250000.0
+        # Then run simulation
+        C, T = prot_simulate(ps,Tmax,ai,Ni,Si,ϕis[j])
+        # Now calculate growth rates and proteome fractions
+        λa = zeros(length(T))
+        ϕR = zeros(length(T))
+        for i = 1:length(T)
+            ϕR[i] = ϕ_R(C[i,2],ps)
+            λa[i] = λs(C[i,2],ϕR[i],ps)
+        end
+        # Do plotting
+        pR = L"\phi_R"
+        pyplot(dpi=200)
+        plot(T,log10.(C[:,1]),xlabel="Time",label="Initial $pR = $(ϕis[j])",ylabel="Population")
+        savefig("Output/FixPopvsTime$j.png")
+        plot(T,C[:,2],xlabel="Time",label="Initial $pR = $(ϕis[j])",ylabel="Cell energy conc")
+        savefig("Output/FixEnergyvsTime$j.png")
+        plot(T,C[:,3:4],xlabel="Time",label=["Substrate" "Waste"],ylabel="Concentration")
+        savefig("Output/FixMetabolitevsTime$j.png")
+        s1 = L"s^{-1}"
+        plot(T,λa,xlabel="Time",label="Initial $pR = $(ϕis[j])",ylabel="Growth rate $(s1)")
+        savefig("Output/FixGrowthvsTime$j.png")
+        plot(T,ϕR,xlabel="Time",label="",ylabel=L"\phi_R")
+        plot!(T,C[:,5],label="")
+        savefig("Output/FixFractionvsTime$j.png")
+    end
+    return(nothing)
+end
+
+@time singpop_fix_init()

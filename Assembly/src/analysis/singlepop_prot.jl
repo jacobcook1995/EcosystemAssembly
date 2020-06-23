@@ -229,13 +229,57 @@ function singpop_scat()
     Ni = 10.0 # initial population
     Ci = 1.0
     # This is currently a paramter which I am fiddling
-    Kγ = 1e8
+    Kγ = 5e8
     # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
-    Ωs = [Kγ]
+    Ωs = [1.25e9,2e9]
+    # Ωs = collect(1e9:2.5e8:3e9)
     # kc is another parameter that I should fiddle
     kc = 1.0
     # choose eta values
-    ηs = [0.9,1.1,1.2,1.25]*7.2
+    ηs = 1.0*7.2
+    # Choose simulation time
+    Tmax = 250000.0
+    # Setup plotting
+    pyplot(dpi=200)
+    m = L"^{-1}"
+    pR = L"\phi_R"
+    KO = L"K_\Omega"
+    # Name the two plots
+    p1 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
+    p2 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell",xaxis=:log,yaxis=:log)
+    # Now loop over the omega values
+    for i = 1:length(Ωs)
+        # Now make the parameter set
+        ps = initialise_prot_fix(Kγ,Ωs[i],kc,ηs)
+        # Then run multiple simulations
+        a, J = prot_simulate_mult(ps,ai,Ni,Ci,Tmax)
+        # Tom used a log plot but I think this will obsurce too much at the moment
+        scatter!(p1,J,a,label="$(KO) = $(Ωs[i])")
+        # Tom used a log plot but I think this will obsurce too much at the moment
+        scatter!(p2,J,a,label="$(KO) = $(Ωs[i])")
+    end
+    # Save the two plots
+    savefig(p1,"Output/ATPvsRate.png")
+    savefig(p2,"Output/LogATPvsRate.png")
+    return(nothing)
+end
+
+# Run a single population multiple times and plot a scatter graph of the results
+# This one does the comparison for η
+function singpop_scat_η()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 10.0 # initial population
+    Ci = 1.0
+    # This is currently a paramter which I am fiddling
+    Kγ = 5e8
+    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
+    KΩs = [1.25e9,1.5e9,2.5e9,3e9]
+    # kc is another parameter that I should fiddle
+    kc = 1.0
+    # choose eta values
+    ηs = [0.5,0.75,1.0,1.1]*7.2
     # Choose simulation time
     Tmax = 250000.0
     # Setup plotting
@@ -244,18 +288,132 @@ function singpop_scat()
     pR = L"\phi_R"
     # Name the two plots
     p1 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
-    p2 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
-    # Now loop over the omega values
-    for i = 1:length(Ωs)
-        for j = 1:length(ηs)
+    p2 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell",xaxis=:log,yaxis=:log)
+    # Now loop over the eta values
+    for i = 1:length(ηs)
+        for j = 1:length(KΩs)
             # Now make the parameter set
-            ps = initialise_prot_fix(Kγ,Ωs[i],kc,ηs[j])
+            ps = initialise_prot_fix(Kγ,KΩs[j],kc,ηs[i])
             # Then run multiple simulations
             a, J = prot_simulate_mult(ps,ai,Ni,Ci,Tmax)
             # Tom used a log plot but I think this will obsurce too much at the moment
-            scatter!(p1,J,a,label="η = $(ηs[j])")
+            if j == 1
+                scatter!(p1,J,a,label="η = $(ηs[i])",color=i)
+            else
+                scatter!(p1,J,a,label="",color=i)
+            end
             # Tom used a log plot but I think this will obsurce too much at the moment
-            scatter!(p2,log10.(J),log10.(a),label="η = $(ηs[j])")
+            if j == 1
+                scatter!(p2,J,a,label="η = $(ηs[i])",color=i)
+            else
+                scatter!(p2,J,a,label="",color=i)
+            end
+        end
+    end
+    # Save the two plots
+    savefig(p1,"Output/ATPvsRate.png")
+    savefig(p2,"Output/LogATPvsRate.png")
+    return(nothing)
+end
+
+# Run a single population multiple times and plot a scatter graph of the results
+# This one does the comparison for kc
+function singpop_scat_kc()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 10.0 # initial population
+    Ci = 1.0
+    # This is currently a paramter which I am fiddling
+    Kγ = 5e8
+    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
+    KΩs = [1.25e9,1.5e9,2.5e9,3e9]
+    # Choose different k values
+    kcs = [1e-1,5e-1,1.0,5.0,1e1,5e1,1e2]
+    # choose eta values
+    η = 1.0*7.2
+    # Choose simulation time
+    Tmax = 250000.0
+    # Setup plotting
+    pyplot(dpi=200)
+    m = L"^{-1}"
+    pR = L"\phi_R"
+    # Name the two plots
+    p1 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
+    p2 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell",xaxis=:log,yaxis=:log)
+    # Now loop over the eta values
+    for i = 1:length(kcs)
+        for j = 1:length(KΩs)
+            # Now make the parameter set
+            ps = initialise_prot_fix(Kγ,KΩs[j],kcs[i],η)
+            # Then run multiple simulations
+            a, J = prot_simulate_mult(ps,ai,Ni,Ci,Tmax)
+            # Tom used a log plot but I think this will obsurce too much at the moment
+            if j == 1
+                scatter!(p1,J,a,label="kc = $(kcs[i])",color=i)
+            else
+                scatter!(p1,J,a,label="",color=i)
+            end
+            # Tom used a log plot but I think this will obsurce too much at the moment
+            if j == 1
+                scatter!(p2,J,a,label="kc = $(kcs[i])",color=i)
+            else
+                scatter!(p2,J,a,label="",color=i)
+            end
+        end
+    end
+    # Save the two plots
+    savefig(p1,"Output/ATPvsRate.png")
+    savefig(p2,"Output/LogATPvsRate.png")
+    return(nothing)
+end
+
+# Run a single population multiple times and plot a scatter graph of the results
+# This one does the comparison for ϕR
+function singpop_scat_ϕR()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 10.0 # initial population
+    Ci = 1.0
+    # This is currently a paramter which I am fiddling
+    Kγ = 5e8
+    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
+    KΩs = [1.25e9,1.5e9,2.5e9,3e9]
+    # Choose different k values
+    kc = 1.0
+    # choose eta values
+    η = 1.0*7.2
+    # Choose simulation time
+    Tmax = 250000.0
+    # Choose starting values of ϕR
+    ϕRs = [0.05,0.1,0.15,0.25,0.35,0.45]
+    # Setup plotting
+    pyplot(dpi=200)
+    m = L"^{-1}"
+    pR = L"\phi_R"
+    # Name the two plots
+    p1 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell")
+    p2 = plot(xlabel="Energy acquisition rate ATP cell$(m) s$m",ylabel="ATP per cell",xaxis=:log,yaxis=:log)
+    # Now loop over the eta values
+    for i = 1:length(ϕRs)
+        for j = 1:length(KΩs)
+            # Now make the parameter set
+            ps = initialise_prot_fix(Kγ,KΩs[j],kc,η)
+            # Then run multiple simulations
+            a, J = prot_simulate_mult(ps,ai,Ni,Ci,Tmax,ϕRs[i])
+            # Tom used a log plot but I think this will obsurce too much at the moment
+            if j == 1
+                scatter!(p1,J,a,label="ϕRi = $(ϕRs[i])",color=i)
+            else
+                scatter!(p1,J,a,label="",color=i)
+            end
+            # Tom used a log plot but I think this will obsurce too much at the moment
+            if j == 1
+                scatter!(p2,J,a,label="ϕRi = $(ϕRs[i])",color=i)
+            else
+                scatter!(p2,J,a,label="",color=i)
+            end
         end
     end
     # Save the two plots
@@ -399,7 +557,7 @@ function singpop_KΩ_comp()
     # This is currently a parameter which I am fiddling
     Kγ = 5e8
     # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
-    KΩs = [5e8,1e9,1.5e9,2e9,2.5e9,3e9,4e9,5e9,10e9]
+    KΩs = [5e8,7.5e8,1e9,1.25e9,1.5e9,1.75e9,2e9,2.25e9,2.5e9,2.75e9,3e9]
     # kc is another parameter that I should fiddle
     kc = 1.0
     # Setup plotting
@@ -433,8 +591,9 @@ function singpop_KΩ_comp()
     p4 = plot(xlabel="Time",ylabel=L"\phi_R")
     p5 = plot(xlabel="Time",ylabel="λ")
     p6 = plot(xlabel="Time",ylabel="J")
-    p7 = plot(xlabel="Simulation number",ylabel="R*")
-    p8 = plot(xlabel="Simulation number",ylabel="Time to max pop")
+    KO = L"K_\Omega"
+    p7 = plot(xlabel=KO,ylabel="R*")
+    p8 = plot(xlabel=KO,ylabel="Time to max pop")
     # Choose time interval
     Tmax = 5000000.0
     # Now loop over all simulations
@@ -458,12 +617,12 @@ function singpop_KΩ_comp()
         plot!(p4,T,C[:,5],label="KΩ = $(KΩs[i])")
         plot!(p5,T,λa,label="KΩ = $(KΩs[i])")
         plot!(p6,T,J.*C[:,1],label="KΩ = $(KΩs[i])")
-        scatter!(p7,[i],[C[end,3]],label="KΩ = $(KΩs[i])")
+        scatter!(p7,[KΩs[i]],[C[end,3]],label="")
         # find maximum population
         mp, _ = findmax(C[:,1])
         # find first time point that is greater than 99% than this maximum
-        tp = findfirst(x->x >= 0.99*mp,C[:,1])
-        scatter!(p8,[i],[T[tp]],label="KΩ = $(KΩs[i])")
+        tp = findfirst(x->x >= 0.95*mp,C[:,1])
+        scatter!(p8,[KΩs[i]],[T[tp]],label="")
     end
     # Now save the plots
     savefig(p1,"Output/ChemoPopvsTime.png")
@@ -617,4 +776,4 @@ function singpop_fix_init()
     return(nothing)
 end
 
-@time singpop_fix_init()
+@time singpop_scat_ϕR()

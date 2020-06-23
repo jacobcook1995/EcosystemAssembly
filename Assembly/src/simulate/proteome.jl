@@ -190,12 +190,12 @@ function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters)
 end
 
 # function to simulate same species and return energy values
-function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Ci::Float64,Tmax::Float64)
+function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Ci::Float64,Tmax::Float64,ϕRi::Float64=0.1)
     # Initialise vectors of concentrations and populations
     pop = Ni*ones(1)
     apop = ai*ones(1)
     conc = [Ci; 0.0] # Large initial deposit of substrate
-    ϕi = 0.1*ones(1) # Start with low ribosome fraction
+    ϕi = [ϕRi] # Start with low ribosome fraction
     # Now sub the parameters in
     p_dyns!(dx,x,pa,t) = p_dynamics!(dx,x,pa,ps,t)
     # Make simulation time span
@@ -204,14 +204,14 @@ function prot_simulate_mult(ps::ProtParameters,ai::Float64,Ni::Float64,Ci::Float
     # parameter set kept empty
     pa = Array{Int64,1}(undef,0)
     # Then setup and solve the problem
-    println("Simulation $(1) started.")
+    println("Simulation started.")
     prob = ODEProblem(p_dyns!,x0,tspan,pa)
     sol = DifferentialEquations.solve(prob)
     println("Final population $(sol'[end,1])")
-    # Find position of the peak
+    # # Find position of the peak
     pk, tp = findmax(sol'[:,2])
     # find position where substrate has decayed below a certain point
-    te = findlast(x->x>=0.9,sol'[:,3])
+    te = findlast(x->x>=0.9*Ci,sol'[:,3])
     # Preallocate output
     a = zeros(te+1-tp)
     J = zeros(te+1-tp)

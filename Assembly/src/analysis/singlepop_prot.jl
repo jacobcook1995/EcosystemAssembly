@@ -25,7 +25,50 @@ function singpop()
         λa[i] = λs(C[i,2],ϕR[i],ps)
     end
     # Do plotting
-    pyplot(dpi=200)
+    pyplot(dpi=200,bg=:transparent,fg=:black)
+    plot(T,C[:,1],xlabel="Time",label="",ylabel="Population",yaxis=:log)
+    savefig("Output/PopvsTime.png")
+    plot(T,C[:,2],xlabel="Time",label="",ylabel="Cell energy conc")
+    savefig("Output/EnergyvsTime.png")
+    plot(T,C[:,3:4],xlabel="Time",label=["Substrate" "Waste"],ylabel="Concentration")
+    savefig("Output/MetabolitevsTime.png")
+    s1 = L"s^{-1}"
+    plot(T,λa,xlabel="Time",label="",ylabel="Growth rate $(s1)")
+    savefig("Output/GrowthvsTime.png")
+    plot(T,ϕR,xlabel="Time",label="",ylabel=L"\phi_R")
+    plot!(T,C[:,5],label="")
+    savefig("Output/FractionvsTime.png")
+    return(nothing)
+end
+
+# Same as above function but for a batch culture
+function singpop_batch()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 100.0 # initial population
+    Si = 1.0
+    # This is currently a paramter which I am fiddling
+    Kγ = 5e8
+    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
+    KΩ = 2.0e9
+    # kc is another parameter that I should fiddle
+    kc = 1.0
+    # Initialise parameter set
+    ps = initialise_prot_fix(Kγ,KΩ,kc)
+    # Choose simulation time
+    Tmax = 250000.0
+    # Then run simulation
+    C, T = prot_simulate(ps,Tmax,ai,Ni,Si)
+    # Now calculate growth rates and proteome fractions
+    λa = zeros(length(T))
+    ϕR = zeros(length(T))
+    for i = 1:length(T)
+        ϕR[i] = ϕ_R(C[i,2],ps)
+        λa[i] = λs(C[i,2],ϕR[i],ps)
+    end
+    # Do plotting
+    pyplot(dpi=200,bg=:transparent,fg=:black)
     plot(T,C[:,1],xlabel="Time",label="",ylabel="Population",yaxis=:log)
     savefig("Output/PopvsTime.png")
     plot(T,C[:,2],xlabel="Time",label="",ylabel="Cell energy conc")
@@ -132,4 +175,4 @@ function growth_laws()
     return(nothing)
 end
 
-@time growth_laws()
+@time singpop_batch()

@@ -3,7 +3,7 @@
 # proteome fraction model. Once I'm satisfied with it I will incorperate it into
 # the main model
 
-export prot_simulate, λs, Eα, qs, γs, ϕ_R, prot_simulate_fix
+export prot_simulate, λs, Eα, qs, γs, ϕ_R, prot_simulate_fix, λmax, optimise_ϕ
 
 # function to find the rate of substrate consumption by a particular reaction
 function qs(S::Float64,P::Float64,E::Float64,ps::ProtParameters)
@@ -39,6 +39,88 @@ function ϕ_R(a::Float64,ps::ProtParameters)
     return(ϕ)
 end
 
+# function to find maximum sustainable value for λ
+ function λ_max(S::Float64,P::Float64,ϕ::Float64,ps::ProtParameters)
+     # If ribosome fraction is zero no growth is possible
+     if ϕ == 0.0
+         return(0.0,0.0)
+     end
+     # Calculate amount of enzyme
+     E = Eα(1-ϕ-ps.ϕH,ps)
+     # Then use rate to find J
+     rate = qs(S,P,E,ps)
+     # All energy comes from this reaction
+     J = ps.η*rate
+     # Define a as a symbol
+     a = symbols("a")
+     # Make full expression for dadt
+     dadt = J - ((ps.γm*a)/(ps.Kγ+a))*(ϕ*ps.Pb/ps.n[1])*(ps.ρ*ps.MC+a)
+     # Now solve this to find maximising a value
+     af = convert(Float64,nsolve(dadt,1.0))
+     # Find corresponding maximum rate
+     λ = λs(af,ϕ,ps)
+     return(λ,af)
+ end
+
+ # Function to find optimal ϕ for a given initial condition
+ function optimise_ϕ(S::Float64,P::Float64,ps::ProtParameters)
+     # Preallocate output
+     ϕm = zeros(3)
+     # Seperate housekeeping fraction
+     ϕT = 1 - ps.ϕH
+     ϕm[3] = ps.ϕH
+     # Make initial vector of ϕ
+     ϕm[1] = (ϕT)/2
+     ϕm[2] = 1 - ϕm[1] - ϕm[3]
+     # Now find λ for this initial vector
+     λm, af = λ_max(S,P,ϕm[1],ps)
+     # loop until final value is found
+     fine = false
+     # Make new left and right phi functions
+     ϕl = zeros(3)
+     ϕr = zeros(3)
+     ϕl[3] = ps.ϕH
+     ϕr[3] = ps.ϕH
+     δϕ = 0.1
+     while fine == false
+         # Step to generate new ϕ values
+         update = false
+         while update == false
+             # Update left and right functions
+             ϕl[1] = ϕm[1] + δϕ
+             ϕl[2] = 1 - ϕl[1] - ϕl[3]
+             ϕr[2] = ϕm[2] + δϕ
+             ϕr[1] = 1 - ϕr[2] - ϕr[3]
+             if ϕl[2] >= 0.0 && ϕr[1] >= 0.0
+                 update = true
+             else
+                 # Reduce size of δϕ if it has gone negative
+                 δϕ = δϕ/2
+             end
+         end
+         # Calculate left and right growth rates
+         λl, al = λ_max(S,P,ϕl[1],ps)
+         λr, ar = λ_max(S,P,ϕr[1],ps)
+         # First check if already at the optimum
+         if λm >= λl && λm >= λr
+             δϕ = δϕ/2
+             # Stop if step size is small and optimum has been reached
+             if δϕ < 1.0e-5
+                 fine = true
+             end
+         elseif λl > λr # go left
+             ϕm = copy(ϕl)
+             λm = λl
+             af = al
+         else # otherwise go right
+             ϕm = copy(ϕr)
+             λm = λr
+             af = ar
+         end
+     end
+     return(ϕm,λm,af)
+ end
+
 # function to run the dynamics in the shifting proteome case
 function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::Array{Int64,1},ps::ProtParameters,t::Float64)
     # Based on energy level find growth rate λ
@@ -49,12 +131,18 @@ function p_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},pa::Array{Int64,1}
     rate = qs(x[3],x[4],E,ps)
     # All energy comes from this reaction
     J = ps.η*rate
-    # Now update the stored energy
-    dx[2] = J - (ps.MC*ps.ρ + x[2])*λ
+    # Now update the stored energy, provided the population still exists
+    if x[1] <= 1e-10
+        dx[2] = 0.0
+        x[2] = 0.0
+    else
+        dx[2] = J - (ps.MC*ps.ρ + x[2])*λ
+    end
     # Find optimal proteome fraction
     ϕR = ϕ_R(x[2],ps)
     # This introduces a time delay
     τ = ps.fd/λ
+    # Is it worth solving this explicitly as a delay differential equation???
     dx[5] = (ϕR-x[5])/τ
 
     # Check if microbe is effectively dead

@@ -175,4 +175,223 @@ function growth_laws()
     return(nothing)
 end
 
-@time singpop_batch()
+# function to test the effect of varying cell mass MC
+function singpop_MC()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 100.0 # initial population
+    MCs = [10^7,10^8,10^9]
+    # Set up plotting
+    pyplot(dpi=200)
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log)
+    p2 = plot(xlabel="Time",ylabel="Cell energy conc")
+    p3 = plot(xlabel="Time",ylabel="Concentration")
+    s1 = L"s^{-1}"
+    p4 = plot(xlabel="Time",ylabel="Growth rate $(s1)")
+    p5 = plot(xlabel="Time",ylabel=L"\phi_R")
+    p6 = plot(xlabel="Time",ylabel="Energy conc per amino acid")
+    p7 = plot(xlabel="Time",ylabel="Total biomass",yaxis=:log)
+    for i = 1:length(MCs)
+        # Initialise parameter set
+        ps = initialise_prot_M(MCs[i])
+        # Choose simulation time
+        Tmax = 1000000.0
+        # Then run simulation
+        C, T = prot_simulate(ps,Tmax,ai,Ni*(10^8/MCs[i]))
+        # Now calculate growth rates and proteome fractions
+        λa = zeros(length(T))
+        ϕR = zeros(length(T))
+        for i = 1:length(T)
+            ϕR[i] = ϕ_R(C[i,2],ps)
+            λa[i] = λs(C[i,2],ϕR[i],ps)
+        end
+        # Do plotting
+        plot!(p1,T,C[:,1])
+        plot!(p2,T,C[:,2])
+        plot!(p3,T,C[:,3:4],label=["Substrate" "Waste"])
+        s1 = L"s^{-1}"
+        plot!(p4,T,λa)
+        plot!(p5,T,ϕR)
+        plot!(p5,T,C[:,5])
+        plot!(p6,T,C[:,2]/ps.MC)
+        plot!(p7,T,C[:,1]*ps.MC)
+    end
+    # Save the figures
+    savefig(p1,"Output/PopvsTime.png")
+    savefig(p2,"Output/EnergyvsTime.png")
+    savefig(p3,"Output/MetabolitevsTime.png")
+    savefig(p4,"Output/GrowthvsTime.png")
+    savefig(p5,"Output/FractionvsTime.png")
+    savefig(p6,"Output/RescaleEnergy.png")
+    savefig(p7,"Output/TotalBiomass.png")
+end
+
+# function to test the effect of varying temperature T
+function singpop_T()
+    println("Successfully compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 100.0 # initial population
+    Ts = [273.15,283.15,293.15,303.15,313.15]
+    # Set up plotting
+    pyplot(dpi=200)
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log)
+    p2 = plot(xlabel="Time",ylabel="Cell energy conc")
+    p3 = plot(xlabel="Time",ylabel="Concentration")
+    s1 = L"s^{-1}"
+    p4 = plot(xlabel="Time",ylabel="Growth rate $(s1)")
+    p5 = plot(xlabel="Time",ylabel=L"\phi_R")
+    for i = 1:length(Ts)
+        # Initialise parameter set
+        ps = initialise_prot_T(Ts[i])
+        # Choose simulation time
+        Tmax = 1000000.0
+        # Then run simulation
+        C, T = prot_simulate(ps,Tmax,ai,Ni)
+        # Now calculate growth rates and proteome fractions
+        λa = zeros(length(T))
+        ϕR = zeros(length(T))
+        for i = 1:length(T)
+            ϕR[i] = ϕ_R(C[i,2],ps)
+            λa[i] = λs(C[i,2],ϕR[i],ps)
+        end
+        # Do plotting
+        plot!(p1,T,C[:,1])
+        plot!(p2,T,C[:,2])
+        plot!(p3,T,C[:,3:4],label=["Substrate" "Waste"])
+        s1 = L"s^{-1}"
+        plot!(p4,T,λa)
+        plot!(p5,T,ϕR)
+        plot!(p5,T,C[:,5])
+    end
+    # Save the figures
+    savefig(p1,"Output/PopvsTime.png")
+    savefig(p2,"Output/EnergyvsTime.png")
+    savefig(p3,"Output/MetabolitevsTime.png")
+    savefig(p4,"Output/GrowthvsTime.png")
+    savefig(p5,"Output/FractionvsTime.png")
+end
+
+# function to investigate synthesis rate vs efficency tradeoff
+function ρ_tradeoff()
+    println("Compiled.")
+    # Simple test data set
+    ai = 5.0 # initial energy level
+    Ni = 100.0 # initial population
+    # Substrate and product for the optimisation
+    S = 5.5e-3
+    P = 5.5e-4
+    fac = [1/4,1/2,3/4,1] # factors to reduce γmax and ρ by
+    # Set up plotting
+    pyplot(dpi=200)
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log)
+    p2 = plot(xlabel="Time",ylabel="Cell energy conc")
+    p3 = plot(xlabel="Time",ylabel="Concentration")
+    s1 = L"s^{-1}"
+    p4 = plot(xlabel="Time",ylabel="Growth rate $(s1)")
+    p5 = plot(xlabel="Time",ylabel=L"\phi_R")
+    # Now loop over the data
+    for i = 1:length(fac)
+        # Initialise parameter set
+        ps = initialise_ρ(fac[i])
+        # Update parameter set to have optimal K_Ω
+        ps = opt_KΩ(ps,S,P)
+        # Choose simulation time
+        Tmax = 1000000.0
+        # Then run simulation
+        C, T = prot_simulate(ps,Tmax,ai,Ni)
+        # Now calculate growth rates and proteome fractions
+        λa = zeros(length(T))
+        ϕR = zeros(length(T))
+        for i = 1:length(T)
+            ϕR[i] = ϕ_R(C[i,2],ps)
+            λa[i] = λs(C[i,2],ϕR[i],ps)
+        end
+        # Do plotting
+        plot!(p1,T,C[:,1],label="factor = $(fac[i])")
+        plot!(p2,T,C[:,2],label="factor = $(fac[i])")
+        plot!(p3,T,C[:,3:4],label=["Substrate" "Waste"])
+        s1 = L"s^{-1}"
+        plot!(p4,T,λa,label="factor = $(fac[i])")
+        plot!(p5,T,ϕR,label="")
+        plot!(p5,T,C[:,5],label="factor = $(fac[i])")
+    end
+    # Save the figures
+    savefig(p1,"Output/EffPopvsTime.png")
+    savefig(p2,"Output/EffEnergyvsTime.png")
+    savefig(p3,"Output/EffMetabolitevsTime.png")
+    savefig(p4,"Output/EffGrowthvsTime.png")
+    savefig(p5,"Output/EffFractionvsTime.png")
+    return(nothing)
+end
+
+# function to find the optimal value for KΩ for a particular parameter set
+ function opt_KΩ(ps::ProtParameters,S::Float64,P::Float64)
+     # Choose simulation parameters
+     Tmax = 1000000.0
+     ai = 5.0
+     Ni = 100.0
+     ϕi = 0.1
+     # Choose intial value of KΩ
+     KΩ = 5e8
+     ps = initialise_prot_KΩ(ps,KΩ)
+     # Find optimal value for ϕR for this condition
+     ϕr, _, am = optimise_ϕ(S,P,ps)
+     # Run the simulations
+     C, T = prot_simulate_fix(ps,Tmax,ai,Ni,S,P,ϕi)
+     # Find final ribosome fraction
+     ϕR = C[end,5]
+     println("Original ϕ = $(ϕr[1])")
+     # Choose initial step size
+     δΩ = 1e8
+     # Preallocate variables so that they are in scope
+     Ku = 5e8
+     Kd = 5e8
+     # Set up loop to find optimal KΩ value
+     fnd = false
+     while fnd == false
+         # Step to generate new ϕ values
+         update = false
+         while update == false
+             # Update up and down values
+             Ku = KΩ + δΩ
+             Kd = KΩ - δΩ
+             if Kd >= 0.0
+                 update = true
+             else
+                 # Reduce size of δϕ if it has gone negative
+                 δΩ = δΩ/2
+             end
+         end
+         # Make the two parameter sets
+         psu = initialise_prot_KΩ(ps,Ku)
+         psd = initialise_prot_KΩ(ps,Kd)
+         # For some reason printing stops an error with DifferentialEquations????
+         # println(KΩ)
+         # Calculate final ϕ values for up and down cases
+         C, T = prot_simulate_fix(psu,Tmax,ai,Ni,S,P,ϕi)
+         ϕu = C[end,5]
+         C, T = prot_simulate_fix(psd,Tmax,ai,Ni,S,P,ϕi)
+         ϕd = C[end,5]
+         # First check if already at the optimum
+         if abs(ϕR-ϕr[1]) <= abs(ϕu-ϕr[1]) && abs(ϕR-ϕr[1]) <= abs(ϕd-ϕr[1])
+             δΩ = δΩ/2
+             # Stop if step size is small and optimum has been reached
+             if δΩ < 1.0e5
+                 fnd = true
+             end
+         elseif abs(ϕd-ϕr[1]) > abs(ϕu-ϕr[1]) # go up
+             ϕR = ϕu
+             KΩ = Ku
+         else # otherwise go down
+             ϕR = ϕd
+             KΩ = Kd
+         end
+     end
+     # Make final parameter set
+     ps = initialise_prot_KΩ(ps,KΩ)
+     return(ps)
+ end
+
+@time ρ_tradeoff()

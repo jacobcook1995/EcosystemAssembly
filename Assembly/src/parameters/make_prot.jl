@@ -118,7 +118,7 @@ function initialise_prot_M(MC::Int64)
 end
 
 # function to generate parameter set for the model with inhibition option to change temperature
-function initialise_prot_T(T::Float64)
+function initialise_prot_T(T::Float64,inhib::Bool)
     # Cell mass is taken from Bremer H, Dennis P (1996) Modulation of chemical
     # composition and other parameters of the cell by growth rate (Book chapter).
     MC = 10^8
@@ -134,7 +134,12 @@ function initialise_prot_T(T::Float64)
     ΔG = -6e5 # Relatively small Gibbs free energy change
     r = make_Reaction(1,1,2,ΔG)
     # η chosen so that a substantial portion of the Gibbs free energy is retained
-    η = 1.1*(-ΔG/ΔGATP)
+    # η chosen so that a substantial portion of the Gibbs free energy is retained
+    if inhib == false
+        η = 0.9*(-ΔG/ΔGATP)
+    else
+        η = 1.1*(-ΔG/ΔGATP)
+    end
     # The reversibility factor remains the same as previously
     kr = 10.0
     # From Posfai et al (2017) dilution rate 0.21 per hour

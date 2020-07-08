@@ -185,12 +185,12 @@ function singpop_MC()
     # Set up plotting
     pyplot(dpi=200)
     p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log)
-    p2 = plot(xlabel="Time",ylabel="Cell energy conc")
+    p2 = plot(xlabel="Time",ylabel="ATP molcules per cell")
     p3 = plot(xlabel="Time",ylabel="Concentration")
     s1 = L"s^{-1}"
     p4 = plot(xlabel="Time",ylabel="Growth rate $(s1)")
     p5 = plot(xlabel="Time",ylabel=L"\phi_R")
-    p6 = plot(xlabel="Time",ylabel="Energy conc per amino acid")
+    p6 = plot(xlabel="Time",ylabel="ATP molecules per amino acid")
     p7 = plot(xlabel="Time",ylabel="Total biomass",yaxis=:log)
     for i = 1:length(MCs)
         # Initialise parameter set
@@ -207,15 +207,15 @@ function singpop_MC()
             λa[i] = λs(C[i,2],ϕR[i],ps)
         end
         # Do plotting
-        plot!(p1,T,C[:,1])
-        plot!(p2,T,C[:,2])
+        plot!(p1,T,C[:,1],label="M = $(MCs[i])")
+        plot!(p2,T,C[:,2],label="M = $(MCs[i])")
         plot!(p3,T,C[:,3:4],label=["Substrate" "Waste"])
         s1 = L"s^{-1}"
-        plot!(p4,T,λa)
-        plot!(p5,T,ϕR)
-        plot!(p5,T,C[:,5])
-        plot!(p6,T,C[:,2]/ps.MC)
-        plot!(p7,T,C[:,1]*ps.MC)
+        plot!(p4,T,λa,label="M = $(MCs[i])")
+        plot!(p5,T,ϕR,label="")
+        plot!(p5,T,C[:,5],label="")
+        plot!(p6,T,C[:,2]/ps.MC,label="M = $(MCs[i])")
+        plot!(p7,T,C[:,1]*ps.MC,label="M = $(MCs[i])")
     end
     # Save the figures
     savefig(p1,"Output/PopvsTime.png")
@@ -243,8 +243,8 @@ function singpop_T()
     p4 = plot(xlabel="Time",ylabel="Growth rate $(s1)")
     p5 = plot(xlabel="Time",ylabel=L"\phi_R")
     for i = 1:length(Ts)
-        # Initialise parameter set
-        ps = initialise_prot_T(Ts[i])
+        # Initialise product inhibited parameter set
+        ps = initialise_prot_T(Ts[i],true)
         # Choose simulation time
         Tmax = 1000000.0
         # Then run simulation
@@ -257,13 +257,13 @@ function singpop_T()
             λa[i] = λs(C[i,2],ϕR[i],ps)
         end
         # Do plotting
-        plot!(p1,T,C[:,1])
-        plot!(p2,T,C[:,2])
+        plot!(p1,T,C[:,1],label="T = $(Ts[i]) K")
+        plot!(p2,T,C[:,2],label="T = $(Ts[i]) K")
         plot!(p3,T,C[:,3:4],label=["Substrate" "Waste"])
         s1 = L"s^{-1}"
-        plot!(p4,T,λa)
-        plot!(p5,T,ϕR)
-        plot!(p5,T,C[:,5])
+        plot!(p4,T,λa,label="T = $(Ts[i]) K")
+        plot!(p5,T,ϕR,label="")
+        plot!(p5,T,C[:,5],label="T = $(Ts[i]) K")
     end
     # Save the figures
     savefig(p1,"Output/PopvsTime.png")
@@ -271,6 +271,42 @@ function singpop_T()
     savefig(p3,"Output/MetabolitevsTime.png")
     savefig(p4,"Output/GrowthvsTime.png")
     savefig(p5,"Output/FractionvsTime.png")
+    # Redo the plotting for noihibited case
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log)
+    p2 = plot(xlabel="Time",ylabel="Cell energy conc")
+    p3 = plot(xlabel="Time",ylabel="Concentration")
+    s1 = L"s^{-1}"
+    p4 = plot(xlabel="Time",ylabel="Growth rate $(s1)")
+    p5 = plot(xlabel="Time",ylabel=L"\phi_R")
+    for i = 1:length(Ts)
+        # Initialise product inhibited parameter set
+        ps = initialise_prot_T(Ts[i],false)
+        # Choose simulation time
+        Tmax = 1000000.0
+        # Then run simulation
+        C, T = prot_simulate(ps,Tmax,ai,Ni)
+        # Now calculate growth rates and proteome fractions
+        λa = zeros(length(T))
+        ϕR = zeros(length(T))
+        for i = 1:length(T)
+            ϕR[i] = ϕ_R(C[i,2],ps)
+            λa[i] = λs(C[i,2],ϕR[i],ps)
+        end
+        # Do plotting
+        plot!(p1,T,C[:,1],label="T = $(Ts[i]) K")
+        plot!(p2,T,C[:,2],label="T = $(Ts[i]) K")
+        plot!(p3,T,C[:,3:4],label=["Substrate" "Waste"])
+        s1 = L"s^{-1}"
+        plot!(p4,T,λa,label="T = $(Ts[i]) K")
+        plot!(p5,T,ϕR,label="")
+        plot!(p5,T,C[:,5],label="T = $(Ts[i]) K")
+    end
+    # Save the figures
+    savefig(p1,"Output/NoInhibPopvsTime.png")
+    savefig(p2,"Output/NoInhibEnergyvsTime.png")
+    savefig(p3,"Output/NoInhibMetabolitevsTime.png")
+    savefig(p4,"Output/NoInhibGrowthvsTime.png")
+    savefig(p5,"Output/NoInhibFractionvsTime.png")
 end
 
 # function to investigate synthesis rate vs efficency tradeoff
@@ -394,4 +430,4 @@ end
      return(ps)
  end
 
-@time ρ_tradeoff()
+@time singpop_T()

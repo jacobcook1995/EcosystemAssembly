@@ -45,7 +45,7 @@ end
 function singpop_batch()
     println("Successfully compiled.")
     # Simple test data set
-    ai = 5.0 # initial energy level
+    ai = 5e6 # initial energy level
     Ni = 100.0 # initial population
     Si = 1.0
     # This is currently a paramter which I am fiddling
@@ -59,7 +59,8 @@ function singpop_batch()
     # Choose simulation time
     Tmax = 250000.0
     # Then run simulation
-    C, T = prot_simulate(ps,Tmax,ai,Ni,Si)
+    ϕi = 0.4 # High intial ϕR
+    C, T = prot_simulate(ps,Tmax,ai,Ni,Si,ϕi)
     # Now calculate growth rates and proteome fractions
     λa = zeros(length(T))
     ϕR = zeros(length(T))
@@ -71,16 +72,20 @@ function singpop_batch()
     pyplot(dpi=200,bg=:transparent,fg=:black)
     plot(T,C[:,1],xlabel="Time",label="",ylabel="Population",yaxis=:log)
     savefig("Output/PopvsTime.png")
-    plot(T,C[:,2],xlabel="Time",label="",ylabel="Cell energy conc")
+    plot(T,C[:,2],xlabel="Time",label="",ylabel="ATP per cell")
     savefig("Output/EnergyvsTime.png")
     plot(T,C[:,3:4],xlabel="Time",label=["Substrate" "Waste"],ylabel="Concentration")
     savefig("Output/MetabolitevsTime.png")
     s1 = L"s^{-1}"
     plot(T,λa,xlabel="Time",label="",ylabel="Growth rate $(s1)")
     savefig("Output/GrowthvsTime.png")
-    plot(T,ϕR,xlabel="Time",label="",ylabel=L"\phi_R")
-    plot!(T,C[:,5],label="")
+    pR = L"\phi_R"
+    plot(T,ϕR,xlabel="Time",label="Optimal $(pR)",ylabel=L"\phi_R")
+    plot!(T,C[:,5],label="Actual $(pR)")
     savefig("Output/FractionvsTime.png")
+    pRi = L"\phi^i_R"
+    plot(T,C[:,2],xlabel="Time",label="$(pRi) = $(ϕi)",ylabel="ATP per cell")
+    savefig("Output/NotedCase.png")
     return(nothing)
 end
 
@@ -430,4 +435,4 @@ end
      return(ps)
  end
 
-@time singpop_T()
+@time singpop_batch()

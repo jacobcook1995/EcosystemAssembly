@@ -53,8 +53,6 @@ function atp_read()
     nt = length(tns)
     # Call PyPlot
     pyplot(dpi=150)
-    # Preallocate array of accepted time points
-    Ts = Array{Vector{Float64},2}(undef,ni,4)
     # Then plot all the graphs at once
     for i = 1:nt
         for j = 1:ni
@@ -67,41 +65,35 @@ function atp_read()
             # Add the appropriate titles
             plot(xlabel="Time (hours)",ylabel=yl,title=gen)
             # Count number of replicates
-            rps = unique(dataf.replicate)
+            rps = unique(dataf.replicate[I])
             nr = length(rps)
-            # Then loop over the replicates
+            # Find unique times and order them
+            ts = sort(unique(dataf.minute[I]))
+            # Now loop over times
+            for k = 1:length(ts)
+                # Group samples by time
+                IT = I .& (dataf.minute .== ts[k])
+                # Then perform hampel filter on sample
+                kp = hampel_filter(dataf.trait_value[IT],3)
+                # Loop over this output
+                for m = 1:length(kp)
+                    # Overwrite the replicate number with 0
+                    if kp[m] == 0
+                        (dataf.replicate[IT])[m] = 0
+                    end
+                end
+            end
+            # IT DOESN'T FULLY WORK, I THINK THIS IS BECAUSE I NEED TO RUN IT ON
+            # ONLY THE CELL COUNT AND THEN DELETE CORRESPONDING ATP VALUES
+            # Now loop over the replicates
             for k = 1:nr
                 # Find data for particular index
                 I2 = I .& (dataf.replicate .== rps[k])
-                # Use hampel_filter to identify anomalus variations in the cell count
-                if i == 1
-                    kp = hampel_filter(dataf.trait_value[I2],3)
-                    # Save time points with valid data for later
-                    Ts[j,k] = (dataf.minute[I2])[kp]
-                end
                 # Then plot the data
                 if i == 3
-                    # IF I USE THIS STUFF FOR A PAPER I NEED TO CHECK IT THROUGH CAREFULLY
-                    # Make vector of bools to store the result of the check
-                    TI = fill(true,length(dataf.minute[I2]))
-                    # Empty vector to store missing values
-                    miss = []
-                    # Loop over all time points in the data
-                    for m = 1:length(dataf.minute[I2])
-                        # If time point isn't included in data add it to the missing vector
-                        if (dataf.minute[I2])[m] ∉ Ts[j,k]
-                            miss = cat(miss,m,dims=1)
-                        end
-                    end
-                    # Find posistions of non-zero elements in I2
-                    pos = findall(x->x!=0,I2)
-                    # Now loop over vector of missing elements and remove as appropriate
-                    for m = 1:length(miss)
-                        I2[pos[miss[m]]] = 0
-                    end
                     scatter!((dataf.minute[I2])/60.0,(dataf.trait_value[I2])*1e-9,label="")
                 elseif i == 1
-                    scatter!((dataf.minute[I2])[kp]/60.0,(dataf.trait_value[I2])[kp],label="")
+                    scatter!((dataf.minute[I2])/60.0,(dataf.trait_value[I2]),label="")
                 else
                     scatter!(dataf.minute[I2]/60.0,dataf.trait_value[I2],label="")
                 end

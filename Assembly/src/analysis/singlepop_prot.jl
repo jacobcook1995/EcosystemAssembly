@@ -59,7 +59,7 @@ function singpop_batch()
     # Choose simulation time
     Tmax = 250000.0
     # Then run simulation
-    ϕi = 0.4 # High intial ϕR
+    ϕi = 0.1 # Low intial ϕR
     C, T = prot_simulate(ps,Tmax,ai,Ni,Si,ϕi)
     # Now calculate growth rates and proteome fractions
     λa = zeros(length(T))
@@ -108,6 +108,7 @@ function growth_laws()
     # Make vector to store final growth rates and fractions
     λ1 = zeros(length(γs))
     ϕ1 = zeros(length(γs))
+    a1 = zeros(length(γs))
     # Setup plotting options
     pyplot(dpi=200)
     pR = L"\phi_R"
@@ -125,12 +126,14 @@ function growth_laws()
         # Save final λ and ϕR values
         λ1[i] = λa[end]
         ϕ1[i] = ϕR[end]
+        a1[i] = C[end,2]
     end
     # Now make set of ΔG values
     ΔGs = [ΔG,ΔG/1.5,ΔG/2,ΔG/3,ΔG/4,ΔG/5,ΔG/7.5,ΔG/10,ΔG/20,ΔG/50,ΔG/100]
     # Make vector to store final growth rates and fractions
     λ2 = zeros(length(ΔGs))
     ϕ2 = zeros(length(ΔGs))
+    a2 = zeros(length(ΔGs))
     for i = 1:length(ΔGs)
         ps = initialise_prot_gl(γm,ΔGs[i])
         C, T = prot_simulate_fix(ps,Tmax,ai,Ni,Si,Pi,ϕi)
@@ -144,6 +147,7 @@ function growth_laws()
         # Save final λ and ϕR values
         λ2[i] = λa[end]
         ϕ2[i] = ϕR[end]
+        a2[i] = C[end,2]
     end
     # Now want to do a least squares fit for both sets of data
     @. model(x, p) = p[1]*x + p[2]
@@ -175,8 +179,19 @@ function growth_laws()
     # Plot final values
     scatter!(p1,λ1,ϕ1,label="")
     scatter!(p1,λ2,ϕ2,label="")
+    # Make parameter set so that it can be used for plotting expressions
+    ps = initialise_prot_gl(γm,ΔG)
+    # Now plot lines from theory
+    ϕ = collect(0.0:0.05:0.35)
+    println("Theoretical slope = $(ps.γm*ps.Pb/ps.n[1])")
+    println("Actual slope = $(1/pr2[1])")
+    plot!(p1,(ps.γm*ps.Pb/ps.n[1])*ϕ,ϕ,label="Pred")
     # Finally save the graph
     savefig(p1,"Output/GrowthLaws.png")
+    # Now plot the energy concentration data
+    p2 = scatter(λ2,a2,label="Nut Quality")
+    # scatter!(p2,λ1,a1,label="Trans inhib")
+    savefig(p2,"Output/EnergyData.png")
     return(nothing)
 end
 

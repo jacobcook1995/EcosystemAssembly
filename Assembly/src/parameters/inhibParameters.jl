@@ -40,7 +40,8 @@ function make_Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
 end
 
 """
-    Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64})
+    Microbe(m::Float64,g::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},
+    qm::Vector{Float64},KS::Vector{Float64},kr::Vector{Float64})
 Type containing the parameters for a particular microbial strain.
 # Arguments
 - `m::Float64`: Maintenance energy cost of microbe

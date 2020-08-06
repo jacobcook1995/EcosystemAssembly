@@ -1,5 +1,10 @@
 module Assembly
 
+# First include scripts to make parameters
+include("parameters/inhibParameters.jl") # Parameters for Inhibition case
+include("parameters/protParameters.jl") # Parameters for proteome case
+include("parameters/fullParameters.jl") # Parameters for complete model
+
 using Distributions
 using DifferentialEquations
 using SymPy
@@ -7,9 +12,7 @@ using LinearAlgebra
 
 # Include scripts that contain other functions
 include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available
-include("parameters/inhibParameters.jl") # Parameters for Inhibition case
 include("parameters/make_inhib.jl") # Function to make parameters for model with inhibition
-include("parameters/protParameters.jl") # Parameters for proteome case
 include("parameters/make_prot.jl") # Function to make parameters for proteome model
 include("simulate/inhib.jl") # Include simulation code for our model
 include("simulate/analytic.jl") # Include analytic functions to assit simulations

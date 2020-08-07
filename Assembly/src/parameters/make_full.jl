@@ -83,10 +83,12 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Floa
         kcs = kc*ones(R)
         KSs = KS*ones(R)
         krs = kr*ones(R)
+        # Assume for now that all reactions are equally weighted
+        ϕP = (1/R)*ones(R)
         # Find corresponding η's for these reactions
         η = choose_ηs(reacs,Reacs,T)
         # Can finally generate microbe
-        mics[i] = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kcs,KSs,krs,n)
+        mics[i] = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP)
     end
     # Now make the parameter set
     ps = make_FullParameters(N,M,O,T,κ,δ,reacs,mics)

@@ -6,7 +6,7 @@ export MicrobeP, make_MicrobeP, FullParameters, make_FullParameters
 """
     MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,ϕH::Float64,KΩ::Float64,
     fd::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},
-    kr::Vector{Float64},n::Vector{Int64})
+    kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64})
 Type containing the parameters for a particular microbial strain, this now includes proteome parameters.
 # Arguments
 - `MC::Int64`: Mass of cell in amino acids.
@@ -24,7 +24,8 @@ Type containing the parameters for a particular microbial strain, this now inclu
 - `kc::Vector{Float64}`: Catalytic rate constants
 - `KS::Vector{Float64}`: Substrate saturation constants
 - `kr::Vector{Float64}`: reversibility factors
-- `n::Array{Int64,1}`: Array of number of amino acids per protein type, [r,p,h]
+- `n::Vector{Int64}`: Array of number of amino acids per protein type, [r,p,h]
+- `ϕP::Vector{Float64}`: Vector of metabolic fractions
 """
 struct MicrobeP
     MC::Int64;
@@ -43,19 +44,20 @@ struct MicrobeP
     KS::Vector{Float64}
     kr::Vector{Float64}
     n::Vector{Int64}
+    ϕP::Vector{Float64}
 end
 
 """
     make_MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,ϕH::Float64,KΩ::Float64,
     fd::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},
-    kr::Vector{Float64},n::Vector{Int64})
+    kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64})
 Helper function used internally. Takes values for parameters and returns a `MicrobeP` object.
 Also does checks internally to make sure the values are correct.
 """
 function make_MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,
                         ϕH::Float64,KΩ::Float64,fd::Float64,R::Int64,Reacs::Vector{Int64},
                         η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},kr::Vector{Float64},
-                        n::Vector{Int64})
+                        n::Vector{Int64},ϕP::Vector{Float64})
     # Check that physical parameters have been provided
     @assert R > 0 "Number of reactions must be postive"
     @assert MC > 0 "Cell mass must be positive"
@@ -73,6 +75,7 @@ function make_MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float
     @assert length(kc) == R "Vector of maximal rates (qm) is the wrong length"
     @assert length(KS) == R "Vector of saturation constants (KS) is the wrong length"
     @assert length(kr) == R "Vector of reversibilities (kr) is the wrong length"
+    @assert length(ϕP) == R "Vector of metabolic fractions is the wrong length"
     # Check that values in these vectors are plausible
     @assert all(η .>= 0.0) "η values cannot reasonably be negative"
     @assert all(kc .>= 0.0) "Catalytic rate constants cannot be negative"
@@ -81,7 +84,9 @@ function make_MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float
     @assert all(Reacs .> 0) "All reactions are supposed to be indicated by a positive numbers"
     @assert length(n) == 3 "Only considering 3 protein types"
     @assert all(n .> 0) "All proteins must have positive mass"
-    return(MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kc,KS,kr,n))
+    @assert all(ϕP .>= 0.0) "All metabolic fractions must be non-negative"
+    @assert sum(ϕP) == 1.0 "Metabolic fractions should sum to 1"
+    return(MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kc,KS,kr,n,ϕP))
 end
 
 """

@@ -18,6 +18,7 @@ include("parameters/make_full.jl") # Function to make parameters for full model
 include("simulate/inhib.jl") # Include simulation code for our model
 include("simulate/analytic.jl") # Include analytic functions to assit simulations
 include("simulate/proteome.jl") # Include simulation code for proteome model
+include("simulate/full.jl") # Include simulation code for full model
 
 # export global constants
 export Rgas, ΔGATP

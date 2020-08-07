@@ -49,7 +49,7 @@ end
     make_MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,ϕH::Float64,KΩ::Float64,
     fd::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},
     kr::Vector{Float64},n::Vector{Int64})
-Helper function used internally. Takes values for parameters and returns a `Reaction`object.
+Helper function used internally. Takes values for parameters and returns a `MicrobeP` object.
 Also does checks internally to make sure the values are correct.
 """
 function make_MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,
@@ -112,7 +112,7 @@ end
 """
     make_FullParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},
     reacs::Vector{Reaction},mics::Vector{MicrobeP})
-Helper function used internally. Takes values for parameters and returns a `InhibParameters`object.
+Helper function used internally. Takes values for parameters and returns a `FullParameters`object.
 Also does checks internally to make sure the values are correct.
 """
 function make_FullParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},

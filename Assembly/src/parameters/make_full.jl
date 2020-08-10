@@ -1,6 +1,44 @@
 # Script that makes the parameters needed for simulation of the full proteome model
 export initialise
 
+# Commented this out just so that I have it for reference
+# # function to choose η values for each reaction based on Gibbs free energy changes
+# function choose_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
+#     # Preallocate memory to store η's
+#     η = zeros(length(Reacs))
+#     # Set a constant lower bound
+#     ηl = 1/3
+#     # Set minimum equilibrium product to substrate ratio
+#     mratio = 1e-2
+#     # Make beta distribution for later, parameters chosen so that distribution skews right
+#     d = Beta(5,1)
+#     for i = 1:length(η)
+#         # Identify which reaction we are considering
+#         I = Reacs[i]
+#         # Find corresponding Gibbs free energy change
+#         dG = reacs[I].ΔG0
+#         # And use to determine an upper bound on η
+#         ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
+#         η[i] = (ηh-ηl)*rand(d) + ηl
+#     end
+#     return(η)
+# end
+
+# This one is just a toy function to generate fixed low values of η
+function choose_η_fix(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
+    # Preallocate memory to store η's
+    η = zeros(length(Reacs))
+    for i = 1:length(η)
+        # Identify which reaction we are considering
+        I = Reacs[i]
+        # Find corresponding Gibbs free energy change
+        dG = reacs[I].ΔG0
+        # And use to determine the value of η
+        η[i] = 0.9*(-dG/ΔGATP)
+    end
+    return(η)
+end
+
 # function to generate fix set of reaction for our model. Each metabolite can be broken
 # down into metabolites 1 or 2 steps down. The steps between metabolites are fixed.
 function fix_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
@@ -42,7 +80,8 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Floa
     n[1] = 7459
     # Other protein mass averaged from Brandt F, et al. (2009)
     n[2:3] .= 300
-    # Set death rate as equal to the dilution rate, just to control number of parameters really
+    # Need to think carefully about what a reasonable parameter value is here
+    # This has a large impact on the fraction, so should be careful with this one
     d = 6.0e-5
     # The number of ATP per translation step, including the cost of amino acid sythesis
     # This figure is taken from Lynch and Marinov 2015
@@ -86,7 +125,7 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Floa
         # Assume for now that all reactions are equally weighted
         ϕP = (1/R)*ones(R)
         # Find corresponding η's for these reactions
-        η = choose_ηs(reacs,Reacs,T)
+        η = choose_η_fix(reacs,Reacs,T)
         # Can finally generate microbe
         mics[i] = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP)
     end

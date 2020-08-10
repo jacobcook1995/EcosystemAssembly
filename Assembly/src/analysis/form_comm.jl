@@ -15,14 +15,14 @@ function test()
     # Choosing k = 500 means we match the maximum glucose uptake rate seen in Natarajan et al (2000)
     # of 3*10^7 molecules per second.
     # The above is a sensible argument but 1.0 gives a more reasonable ATP concentration.
-    kc = 1.0
+    kc = 10.0
     # The reversibility factor remains the same as previously
     kr = 10.0
     # Assume microbes have 2 reactions each
     mR = 2.0
     sdR = 0.0
     # Case of 8 metabolites and 1 strain
-    N = 1
+    N = 3
     M = 8
     # Use formula to find how many reactions this implies
     O = 2*M - 3
@@ -32,34 +32,83 @@ function test()
     while good == false
         ps = initialise(N,M,O,mR,sdR,kc,KS,kr)
         # This step is to ensure that the first metabolite can be broken down
-        if any((ps.reacs[ps.mics[1].Reacs].↦:Rct) .== 1)
-            good = true
+        for i = 1:N
+            if any((ps.reacs[ps.mics[i].Reacs].↦:Rct) .== 1)
+                good = true
+            end
         end
     end
     # Set time long enough to see dynamics
-    Tmax = 1000000.0
+    Tmax = 10000000.0
     # Fairly arbitary inital conditions
     pop = ones(N)
     conc = zeros(M)
     as = 1e5*ones(N)
-    ϕs = 0.2*ones(N)
+    ϕs = 0.05*ones(N)
     C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
     pyplot(dpi=200)
-    # Find and eliminate zeros so that they can be plotted on a log plot
-    x = zeros(length(T),N)
+    # Setup population plot
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
     for i = 1:N
-        x[:,i] = T
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,i] .> 0)
+        plot!(p1,T[inds],C[inds,i],label="")
     end
-    y = C[:,1:N]
-    inds = (y .> 0)
-    plot(x[inds],y[inds],xlabel="Time",label="",ylabel="Population",yaxis=:log10)
-    savefig("Output/PopvsTime.png")
+    savefig(p1,"Output/PopvsTime.png")
     plot(T,C[:,N+1:N+M],xlabel="Time",label="",ylabel="Concentration")
     savefig("Output/MetabolitevsTime.png")
     plot(T,C[:,N+M+1:2*N+M],xlabel="Time",label="",ylabel="Cell energy conc")
     savefig("Output/EnergyvsTime.png")
     plot(T,C[:,2*N+M+1:end],xlabel="Time",label="",ylabel=L"\phi_R")
     savefig("Output/FractionvsTime.png")
+    # Calculate growth rates
+    λ = zeros(length(C[:,1]),N)
+    for i = 1:length(C[:,1])
+        for j = 1:N
+            λ[i,j] = λs(C[i,N+M+j],C[i,2*N+M+j],ps.mics[j])
+        end
+    end
+    # Then plot growth rates
+    plot(T,λ,xlabel="Time",label="",ylabel=L"\lambda")
+    savefig("Output/GrowthvsTime.png")
+    # Calculate reaction inhibition
+    # Find surviving microbes
+    ms = []
+    for i = 1:N
+        if C[end,i] > 1e-8
+            ms = cat(ms,i,dims=1)
+        end
+    end
+    # Make array of bools to store results
+    # To generalise this I would have to figure out how to make
+    # an array with rows of differing lengths
+    rs = fill(false,(length(ms),ps.mics[1].R))
+    # Then for these microbes find viable reactions
+    for i = 1:length(ms)
+        # Find corresponding microbes
+        mic = ps.mics[ms[i]]
+        for j = 1:mic.R
+            # find reaction
+            r = ps.reacs[mic.Reacs[j]]
+            if C[end,N+r.Rct] > 1e-8 && C[end,N+r.Prd] > 1e-8
+                rs[i,j] = true
+            end
+        end
+    end
+    # Preallocate array of θs, this also will take some work to generalise
+    θs = zeros(length(C[:,1]),size(rs,1)*size(rs,2))
+    for i = 1:length(ms)
+        for j = 1:ps.mics[1].R
+            # Find appropriate reaction
+            r = ps.reacs[ps.mics[ms[i]].Reacs[j]]
+            for k = 1:length(C[:,1])
+                θs[k,(i-1)*ps.mics[1].R+j] = θ_smooth(C[k,N+r.Rct],C[k,N+r.Prd],ps.T,ps.mics[ms[i]].η[j],r.ΔG0)
+            end
+        end
+    end
+    # Then plot inhibitions
+    plot(T,θs,xlabel="Time",label="",ylabel=L"\theta")
+    savefig("Output/InhibvsTime.png")
     return(nothing)
 end
 

@@ -140,7 +140,7 @@ function choose_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
     # Make beta distribution for later, parameters chosen so that distribution skews right
     d = Beta(5,1)
     for i = 1:length(η)
-        # Indentify which reaction we are considering
+        # Identify which reaction we are considering
         I = Reacs[i]
         # Find corresponding Gibbs free energy change
         dG = reacs[I].ΔG0

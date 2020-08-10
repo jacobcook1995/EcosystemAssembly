@@ -450,4 +450,4 @@ end
      return(ps)
  end
 
-@time singpop_batch()
+@time singpop()

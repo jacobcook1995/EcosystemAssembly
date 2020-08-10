@@ -1,5 +1,19 @@
 # A script to run the dynamics for the full model.
-export full_simulate
+export full_simulate, θ_smooth
+
+# version of θ function, that smmothes output by setting values > 1 to 1
+function θ_smooth(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
+    # Catch perverse cases that sometimes arise
+    if S <= 0.0
+        θs = 1.0
+    elseif P <= 0.0
+        θs = 0.0
+    else
+        θs = Q(S,P)/Keq(T,η,ΔG0)
+    end
+    # In this case don't want to return θ values greater than 1
+    return(min(θs,1.0))
+end
 
 # function to find the rate of substrate consumption by a particular reaction
 function qs(S::Float64,P::Float64,E::Float64,i::Int64,ps::MicrobeP,T::Float64,r::Reaction)

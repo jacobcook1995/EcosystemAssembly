@@ -1,7 +1,7 @@
 # This script of the parameters for the full model, including proteome parameters
 # This script depends on the Reaction type that is defined before
 
-export MicrobeP, make_MicrobeP, FullParameters, make_FullParameters
+export MicrobeP, make_MicrobeP, FullParameters, make_FullParameters, extinction
 
 """
     MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,ϕH::Float64,KΩ::Float64,
@@ -146,4 +146,32 @@ function make_FullParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Fl
         @assert all((mics.↦:Reacs)[i] .<= O) "Microbe $i assigned to reaction that doesn't exist"
     end
     return(FullParameters(N,M,O,T,κ,δ,reacs,mics))
+end
+
+"""
+    extinction(ps::FullParameters,ext::BitArray{1})
+Helper function used internally. Recreate a FullParameters with extinct strains removed.
+"""
+function extinction(ps::FullParameters,ext::BitArray{1})
+    # The majority of the parameter set is unaffected by the extinctions
+    M = ps.M
+    O = ps.O
+    T = ps.T
+    κ = ps.κ
+    δ = ps.δ
+    reacs = ps.reacs
+    # Remove extinct strains from the count
+    N = ps.N - sum(ext)
+    # Preallocate array of new microbes
+    mics = Array{MicrobeP,1}(undef,N)
+    # Now loop over microbes to retain the surviving strains
+    k = 0
+    for i = 1:length(ext)
+        # Check if not marked as extinct
+        if ext[i] != 1
+            k += 1
+            mics[k] = ps.mics[i]
+        end
+    end
+    return(make_FullParameters(N,M,O,T,κ,δ,reacs,mics))
 end

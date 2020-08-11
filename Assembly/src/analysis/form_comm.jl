@@ -268,4 +268,4 @@ function interpret()
     return(nothing)
 end
 
-@time interpret()
+@time assemble()

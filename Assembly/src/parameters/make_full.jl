@@ -1,28 +1,85 @@
 # Script that makes the parameters needed for simulation of the full proteome model
 export initialise
 
-# Commented this out just so that I have it for reference
-# # function to choose η values for each reaction based on Gibbs free energy changes
-# function choose_ηs(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
-#     # Preallocate memory to store η's
-#     η = zeros(length(Reacs))
-#     # Set a constant lower bound
-#     ηl = 1/3
-#     # Set minimum equilibrium product to substrate ratio
-#     mratio = 1e-2
-#     # Make beta distribution for later, parameters chosen so that distribution skews right
-#     d = Beta(5,1)
-#     for i = 1:length(η)
-#         # Identify which reaction we are considering
-#         I = Reacs[i]
-#         # Find corresponding Gibbs free energy change
-#         dG = reacs[I].ΔG0
-#         # And use to determine an upper bound on η
-#         ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
-#         η[i] = (ηh-ηl)*rand(d) + ηl
-#     end
-#     return(η)
-# end
+# Function that chooses uniformly low values for η
+function choose_η_low(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
+    # Preallocate memory to store η's
+    η = zeros(length(Reacs))
+    # Set a constant lower bound
+    ηl = 1/3
+    # Loop over all reactions
+    for i = 1:length(η)
+        # Identify which reaction we are considering
+        I = Reacs[i]
+        # Find corresponding Gibbs free energy change
+        dG = reacs[I].ΔG0
+        ηh = 0.4*(-dG/ΔGATP)
+        # Considering uniformly distributed η's'
+        η[i] = (ηh-ηl)*rand() + ηl
+    end
+    return(η)
+end
+
+# function that chooses uniformly moderate values for η
+function choose_η_med(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
+    # Preallocate memory to store η's
+    η = zeros(length(Reacs))
+    # Loop over all reactions
+    for i = 1:length(η)
+        # Identify which reaction we are considering
+        I = Reacs[i]
+        # Find corresponding Gibbs free energy change
+        dG = reacs[I].ΔG0
+        # Use to find upper and lower bounds
+        ηl = 0.4*(-dG/ΔGATP)
+        ηh = 0.7*(-dG/ΔGATP)
+        # Considering uniformly distributed η's'
+        η[i] = (ηh-ηl)*rand() + ηl
+    end
+    return(η)
+end
+
+# function that chooses uniformly high values for η
+function choose_η_high(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
+    # Preallocate memory to store η's
+    η = zeros(length(Reacs))
+    # Set minimum equilibrium product to substrate ratio
+    mratio = 1e-2
+    # Loop over all reactions
+    for i = 1:length(η)
+        # Identify which reaction we are considering
+        I = Reacs[i]
+        # Find corresponding Gibbs free energy change
+        dG = reacs[I].ΔG0
+        # Use to find lower bound
+        ηl = 0.7*(-dG/ΔGATP)
+        # And then use to determine an upper bound on η
+        ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
+        η[i] = (ηh-ηl)*rand() + ηl
+    end
+    return(η)
+end
+
+# function that chooses uniformly mixed values for η
+function choose_η_mix(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
+    # Preallocate memory to store η's
+    η = zeros(length(Reacs))
+    # Set a constant lower bound
+    ηl = 1/3
+    # Set minimum equilibrium product to substrate ratio
+    mratio = 1e-2
+    # Loop over all reactions
+    for i = 1:length(η)
+        # Identify which reaction we are considering
+        I = Reacs[i]
+        # Find corresponding Gibbs free energy change
+        dG = reacs[I].ΔG0
+        # And then use to determine an upper bound on η
+        ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
+        η[i] = (ηh-ηl)*rand() + ηl
+    end
+    return(η)
+end
 
 # This one is just a toy function to generate fixed low values of η
 function choose_η_fix(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
@@ -65,7 +122,7 @@ function fix_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
 end
 
 # function to generate parameter set for the model with inhibition
-function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Float64,KS::Float64,kr::Float64)
+function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Float64,KS::Float64,kr::Float64,choice::Int64)
     @assert O >= mR + 5*sdR "Not enough reactions to ensure that microbes have on average mR reactions"
     # Assume that temperature T is constant at 20°C
     T = 293.15
@@ -104,7 +161,7 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Floa
     # All but resource 1 is not supplied
     κ[1] = 3.3e-7 # Metabolite supply rate
     # Chosen so that 100 steps yields slightly more free energy than respiring glucose
-    μrange = 3e6*(M/100)
+    μrange = 3e6*(M/25)
     # Generate fixed set of reactions
     RP, ΔG = fix_reactions(O,M,μrange,T)
     # Preallocate vector of reactions
@@ -122,10 +179,19 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Floa
         kcs = kc*ones(R)
         KSs = KS*ones(R)
         krs = kr*ones(R)
-        # Assume for now that all reactions are equally weighted
-        ϕP = (1/R)*ones(R)
+        # Reactions given random proportional weightings, done this in the simplest way possible
+        ϕP = rand(R)
+        ϕP = ϕP/sum(ϕP)
         # Find corresponding η's for these reactions
-        η = choose_η_fix(reacs,Reacs,T)
+        if choice == 1
+            η = choose_η_low(reacs,Reacs,T)
+        elseif choice == 2
+            η = choose_η_med(reacs,Reacs,T)
+        elseif choice == 3
+            η = choose_η_high(reacs,Reacs,T)
+        else
+            η = choose_η_mix(reacs,Reacs,T)
+        end
         # Can finally generate microbe
         mics[i] = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP)
     end

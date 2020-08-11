@@ -45,7 +45,7 @@ function test()
     pop = ones(N)
     conc = zeros(M)
     as = 1e5*ones(N)
-    ϕs = 0.05*ones(N)
+    ϕs = 0.1*ones(N)
     C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
     pyplot(dpi=200)
     # Setup population plot
@@ -142,6 +142,48 @@ function assemble()
     # Check that number of strains is greater than 0
     if rps < 1
         error("need to do at least 1 simulation")
+    end
+    # Now
+    println("Compiled and input read in!")
+    # Assume that half saturation occurs at a quarter κ/δ
+    KS = (1/4)*5.5e-3
+    # From wikipedia an average enzyme has a k to KS ratio of 10^5 M^-1 s^-1
+    # This would give us a k of 137.5, sensible to assume an above average rate
+    # Though should be reduced by the fact we include uptake as well as metabolism
+    # Choosing k = 500 means we match the maximum glucose uptake rate seen in Natarajan et al (2000)
+    # of 3*10^7 molecules per second.
+    # The above is a sensible argument but 1.0 gives a more reasonable ATP concentration.
+    kc = 10.0
+    # The reversibility factor remains the same as previously
+    kr = 10.0
+    # Assume microbes have 3 reactions each
+    # ALSO NEED TO WORK ON DIFFERENT CHOICES OF η
+    mR = 3.0
+    sdR = 0.0
+    # Case of 8 metabolites
+    M = 8
+    # Use formula to find how many reactions this implies
+    O = 2*M - 3
+    # Set time long enough for dynamics to equilbrate
+    Tmax = 10000000.0
+    # Fairly arbitary inital conditions
+    pop = ones(N)
+    conc = zeros(M)
+    as = 1e5*ones(N)
+    ϕs = 0.1*ones(N)
+    # Now loop over the number of repeats
+    for i = 1:rps
+        # Make parameter set
+        ps = initialise(N,M,O,mR,sdR,kc,KS,kr,st)
+        # Then run the simulation
+        C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+        # Plot the data as a test!
+        println("Run $i:")
+        println(C[end,1:N])
+        # ONCE I'VE DONE THAT SWITCH TO OUTPUTTING RELEVANT DATA
+        # OUTPUT EXTINCT STRAINS
+        # FULL PARAMETER SET MINUS THE EXTINCT STRAINS
+        # AND THE FINAL CONCENTRATIONS, IGNORING DATA FOR EXTINCT STRAINS
     end
     return(nothing)
 end

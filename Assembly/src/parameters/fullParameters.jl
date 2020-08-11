@@ -85,7 +85,7 @@ function make_MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float
     @assert length(n) == 3 "Only considering 3 protein types"
     @assert all(n .> 0) "All proteins must have positive mass"
     @assert all(ϕP .>= 0.0) "All metabolic fractions must be non-negative"
-    @assert sum(ϕP) == 1.0 "Metabolic fractions should sum to 1"
+    @assert sum(ϕP) ≈ 1.0 "Metabolic fractions should sum to 1"
     return(MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kc,KS,kr,n,ϕP))
 end
 

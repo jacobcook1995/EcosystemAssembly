@@ -5,6 +5,7 @@ using LaTeXStrings
 import PyPlot
 
 # function to test that the new stuff I'm writing actually works
+# Keeping this for the moment as the plotting stuff might be useful
 function test()
     println("Compiled!")
     # Assume that half saturation occurs at a quarter κ/δ
@@ -112,4 +113,37 @@ function test()
     return(nothing)
 end
 
-@time test()
+# Function to assemble specfic communities
+function assemble()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 3
+        error("need to specify type of community to assemble, number of species and number of repeats")
+    end
+    # Preallocate the variables I want to extract from the input
+    st = 0
+    N = 0
+    rps = 0
+    # Check that all arguments can be converted to integers
+    try
+        st = parse(Int64,ARGS[1])
+        N = parse(Int64,ARGS[2])
+        rps = parse(Int64,ARGS[3])
+    catch e
+           error("all three inputs must be integer")
+    end
+    # Check that simulation type is valid
+    if st > 4 || st < 1
+        error("invalid simulation type, specify 1 for low η, 2 for moderate η, 3 for high η, or 4 for mixed")
+    end
+    # Check that number of strains is greater than 0
+    if N < 1
+        error("number of strains should be greater than zero")
+    end
+    # Check that number of strains is greater than 0
+    if rps < 1
+        error("need to do at least 1 simulation")
+    end
+    return(nothing)
+end
+
+@time assemble()

@@ -144,7 +144,7 @@ function assemble()
     if rps < 1
         error("need to do at least 1 simulation")
     end
-    # Now
+    # Now start actual script
     println("Compiled and input read in!")
     # Assume that half saturation occurs at a quarter κ/δ
     KS = (1/4)*5.5e-3
@@ -225,47 +225,115 @@ function assemble()
     return(nothing)
 end
 
-# A function to read in saved data and interpret it
-function interpret()
-    println("Compiled!")
-    # Do this by hand for the moment
-    ps = load("Paras/ParasType1Run1.jld","ps")
-    out = load("Output/OutputType1Run1.jld","out")
-    println("Loaded data")
-    # Use these to run a simulation
-    Tmax = 10000.0
-    pop = out[1:ps.N]
-    conc = out[(ps.N+1):(ps.N+ps.M)]
-    as = out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
-    ϕs = out[(2*ps.N+ps.M+1):end]
-    C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
-    # Then plot the final output
-    pyplot(dpi=200)
-    # Setup population plot
-    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
-    for i = 1:ps.N
-        # Find and eliminate zeros so that they can be plotted on a log plot
-        inds = (C[:,i] .> 0)
-        plot!(p1,T[inds],C[inds,i],label="")
+# function to calculate the dissipation for an assembled ecosystem
+function dissipation(ps::FullParameters,out::Array{Float64,1})
+    # check that parameter set is sensible given the output
+    if length(out) != ps.M + 3*ps.N
+        error("parameter set doesn't match out put")
     end
-    savefig(p1,"Output/PopvsTime.png")
-    plot(T,C[:,ps.N+1:ps.N+ps.M],xlabel="Time",label="",ylabel="Concentration")
-    savefig("Output/MetabolitevsTime.png")
-    plot(T,C[:,ps.N+ps.M+1:2*ps.N+ps.M],xlabel="Time",label="",ylabel="Cell energy conc")
-    savefig("Output/EnergyvsTime.png")
-    plot(T,C[:,2*ps.N+ps.M+1:end],xlabel="Time",label="",ylabel=L"\phi_R")
-    savefig("Output/FractionvsTime.png")
-    # Calculate growth rates
-    λ = zeros(length(C[:,1]),ps.N)
-    for i = 1:length(C[:,1])
-        for j = 1:ps.N
-            λ[i,j] = λs(C[i,ps.N+ps.M+j],C[i,2*ps.N+ps.M+j],ps.mics[j])
+    # Set dissipation to zero
+    dsp = 0
+    # Loop over number of strains
+    for i = 1:ps.N
+        # Isolate this strain
+        mic = ps.mics[i]
+        # Loop over reactions of this strain
+        for j = 1:mic.R
+            # Find appropriate reaction
+            r = ps.reacs[mic.Reacs[j]]
+            # Find amount of energy that this reaction dissipates
+            Fd = -(r.ΔG0 + Rgas*ps.T*log(out[ps.N+r.Prd]/out[ps.N+r.Rct]) + mic.η[j]*ΔGATP)
+            # Find amount of enzyme E
+            E = Eα(out[2*ps.N+ps.M+i],mic,j)
+            # Then find the rate that this reaction proceeds at
+            q = qs(out[ps.N+r.Rct],out[ps.N+r.Prd],E,j,mic,ps.T,r)
+            if q != 0.0
+                dsp += q*Fd
+            end
         end
     end
-    # Then plot growth rates
-    plot(T,λ,xlabel="Time",label="",ylabel=L"\lambda")
-    savefig("Output/GrowthvsTime.png")
+    return(dsp)
+end
+
+# A function to read in saved data and interpret it
+function interpret()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 2
+        error("need to specify community and number of repeats")
+    end
+    # Preallocate the variables I want to extract from the input
+    st = 0
+    rps = 0
+    # Check that all arguments can be converted to integers
+    try
+        st = parse(Int64,ARGS[1])
+        rps = parse(Int64,ARGS[2])
+    catch e
+           error("both inputs must be integer")
+    end
+    # Check that simulation type is valid
+    if st > 4 || st < 1
+        error("invalid simulation type, specify 1 for low η, 2 for moderate η, 3 for high η, or 4 for mixed")
+    end
+    # Check that number of simulations is greater than 0
+    if rps < 1
+        error("need to do at least 1 simulation")
+    end
+    println("Compiled!")
+    # Preallocate memory to store the number of survivors in
+    srv = zeros(rps)
+    # Preallocate name
+    nme = ""
+    # Then find name for the community
+    if st == 1
+        nme = "Low η"
+    elseif st == 2
+        nme = "Moderate η"
+    elseif st == 3
+        nme = "High η"
+    else
+        nme = "Mixed η"
+    end
+    # Preallocate vector to store η values
+    ηs = []
+    # Preallocate vector of dissipation rates
+    dsp = zeros(rps)
+    # Now loop over repeats
+    for i = 1:rps
+        # First check that files exists
+        pfile = "Data/Type$(st)/ParasType$(st)Run$(i).jld"
+        if ~isfile(pfile)
+            error("Run $(i) is missing a parameter file")
+        end
+        ofile =  "Data/Type$(st)/OutputType$(st)Run$(i).jld"
+        if ~isfile(ofile)
+            error("Run $(i) is missing an output file")
+        end
+        # Then load in data
+        ps = load(pfile,"ps")
+        out = load(ofile,"out")
+        # Save number of surviving species
+        srv[i] = ps.N
+        # Store all η values
+        for j = 1:ps.N
+            ηs = cat(ηs,ps.mics[j].η,dims=1)
+        end
+        dsp[i] = dissipation(ps,out)
+    end
+    # Now move onto plotting
+    println("Data read in")
+    pyplot(dpi=200)
+    # Save number of surviving species as a histogram
+    histogram(srv,label="")
+    plot!(title=nme,xlabel="Number of surving strains")
+    savefig("Output/Type$(st)SvHist.png")
+    histogram(ηs,label="")
+    plot!(title=nme,xlabel=L"\eta")
+    savefig("Output/Type$(st)ηHist.png")
+    histogram(dsp,label="")
+    plot!(title=nme,xlabel="Dissipation rate")
+    savefig("Output/Type$(st)DispHist.png")
     return(nothing)
 end
 
-@time assemble()
+@time interpret()

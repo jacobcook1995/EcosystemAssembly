@@ -146,7 +146,7 @@ function full_simulate(ps::FullParameters,Tmax::Float64,pop::Array{Float64,1},co
     x0 = [pop;conc;as;ϕs]
     # Then setup and solve the problem
     prob = ODEProblem(dyns!,x0,tspan,ps)
-    # Think the solver needs to be told that our problem is stiff to stop singular matrix error
-    sol = DifferentialEquations.solve(prob,alg_hints=[:stiff])
+    # Still generates problems, not sure if I have to change a solver option or what
+    sol = DifferentialEquations.solve(prob)
     return(sol',sol.t)
 end

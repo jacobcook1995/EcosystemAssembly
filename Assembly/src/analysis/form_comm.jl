@@ -121,20 +121,20 @@ function assemble()
         error("need to specify type of community to assemble, number of species and number of repeats")
     end
     # Preallocate the variables I want to extract from the input
-    st = 0
+    R = 0
     N = 0
     rps = 0
     # Check that all arguments can be converted to integers
     try
-        st = parse(Int64,ARGS[1])
+        R = parse(Int64,ARGS[1])
         N = parse(Int64,ARGS[2])
         rps = parse(Int64,ARGS[3])
     catch e
            error("all three inputs must be integer")
     end
     # Check that simulation type is valid
-    if st > 4 || st < 1
-        error("invalid simulation type, specify 1 for low η, 2 for moderate η, 3 for high η, or 4 for mixed")
+    if R < 1
+        error("invalid number of reactions each strain must have more than 1 reaction")
     end
     # Check that number of strains is greater than 0
     if N < 1
@@ -159,7 +159,7 @@ function assemble()
     kr = 10.0
     # Assume microbes have 3 reactions each
     # ALSO NEED TO WORK ON DIFFERENT CHOICES OF η
-    mR = 3.0
+    mR = convert(Float64,R)
     sdR = 0.0
     # Case of 8 metabolites
     M = 8
@@ -176,6 +176,12 @@ function assemble()
     for i = 1:rps
         # Make parameter set
         ps = initialise(N,M,O,mR,sdR,kc,KS,kr,st)
+        # Before running the parameter sets should be saved so that if they crash
+        # they can be rerun and hopefully track down where they went wrong
+        # ONCE I'VE (HOPEFULLY) SOLVED THE PROBLEM DELETE THIS SECTION
+        jldopen("Paras/ParasType$(R)Run$(i).jld","w") do file
+            write(file,"ps",ps)
+        end
         # Then run the simulation
         C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
         # Establish which microbes are extinct
@@ -210,16 +216,20 @@ function assemble()
             end
         end
         # Save extinct strains
-        jldopen("Output/ExtinctType$(st)Run$(i).jld","w") do file
+        jldopen("Output/ExtinctType$(R)Run$(i).jld","w") do file
             write(file,"ded",ded)
         end
         # the reduced parameter sets
-        jldopen("Paras/ParasType$(st)Run$(i).jld","w") do file
+        jldopen("Paras/ParasType$(R)Run$(i).jld","w") do file
             write(file,"ps",ps)
         end
-        # and the final output
-        jldopen("Output/OutputType$(st)Run$(i).jld","w") do file
+        # and the full output
+        jldopen("Output/OutputType$(R)Run$(i).jld","w") do file
+            # Final output
             write(file,"out",out)
+            # Time data and dynamics data
+            write(file,"T",T)
+            write(file,"C",C)
         end
     end
     return(nothing)
@@ -247,6 +257,7 @@ function dissipation(ps::FullParameters,out::Array{Float64,1})
             E = Eα(out[2*ps.N+ps.M+i],mic,j)
             # Then find the rate that this reaction proceeds at
             q = qs(out[ps.N+r.Rct],out[ps.N+r.Prd],E,j,mic,ps.T,r)
+            # Check if reaction actually occurs
             if q != 0.0
                 dsp += q*Fd
             end
@@ -262,18 +273,18 @@ function interpret()
         error("need to specify community and number of repeats")
     end
     # Preallocate the variables I want to extract from the input
-    st = 0
+    R = 0
     rps = 0
     # Check that all arguments can be converted to integers
     try
-        st = parse(Int64,ARGS[1])
+        R = parse(Int64,ARGS[1])
         rps = parse(Int64,ARGS[2])
     catch e
            error("both inputs must be integer")
     end
     # Check that simulation type is valid
-    if st > 4 || st < 1
-        error("invalid simulation type, specify 1 for low η, 2 for moderate η, 3 for high η, or 4 for mixed")
+    if R < 1
+        error("each strain must have more than 1 reaction")
     end
     # Check that number of simulations is greater than 0
     if rps < 1
@@ -282,18 +293,6 @@ function interpret()
     println("Compiled!")
     # Preallocate memory to store the number of survivors in
     srv = zeros(rps)
-    # Preallocate name
-    nme = ""
-    # Then find name for the community
-    if st == 1
-        nme = "Low η"
-    elseif st == 2
-        nme = "Moderate η"
-    elseif st == 3
-        nme = "High η"
-    else
-        nme = "Mixed η"
-    end
     # Preallocate vector to store η values
     ηs = []
     # Preallocate vector of dissipation rates
@@ -301,11 +300,11 @@ function interpret()
     # Now loop over repeats
     for i = 1:rps
         # First check that files exists
-        pfile = "Data/Type$(st)/ParasType$(st)Run$(i).jld"
+        pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
         if ~isfile(pfile)
             error("Run $(i) is missing a parameter file")
         end
-        ofile =  "Data/Type$(st)/OutputType$(st)Run$(i).jld"
+        ofile =  "Data/Type$(R)/OutputType$(R)Run$(i).jld"
         if ~isfile(ofile)
             error("Run $(i) is missing an output file")
         end
@@ -318,6 +317,17 @@ function interpret()
         for j = 1:ps.N
             ηs = cat(ηs,ps.mics[j].η,dims=1)
         end
+        if any(out .< 0.0)
+            println("Run $i:")
+            println("Strains:")
+            println(out[1:ps.N])
+            println("Concentrations")
+            println(out[ps.N+1:ps.N+ps.M])
+            println("Energies")
+            println(out[(ps.N+ps.M+1):(2*ps.N+ps.M)])
+            println("Fractions")
+            println(out[(2*ps.N+ps.M+1):(3*ps.N+ps.M)])
+        end
         dsp[i] = dissipation(ps,out)
     end
     # Now move onto plotting
@@ -326,13 +336,13 @@ function interpret()
     # Save number of surviving species as a histogram
     histogram(srv,label="")
     plot!(title=nme,xlabel="Number of surving strains")
-    savefig("Output/Type$(st)SvHist.png")
+    savefig("Output/Type$(R)SvHist.png")
     histogram(ηs,label="")
     plot!(title=nme,xlabel=L"\eta")
-    savefig("Output/Type$(st)ηHist.png")
+    savefig("Output/Type$(R)ηHist.png")
     histogram(dsp,label="")
     plot!(title=nme,xlabel="Dissipation rate")
-    savefig("Output/Type$(st)DispHist.png")
+    savefig("Output/Type$(R)DispHist.png")
     return(nothing)
 end
 

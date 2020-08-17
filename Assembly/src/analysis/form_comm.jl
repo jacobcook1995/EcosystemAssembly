@@ -174,8 +174,10 @@ function assemble()
     ϕs = 0.1*ones(N)
     # Now loop over the number of repeats
     for i = 1:rps
+        # Print that the new run has been started
+        println("Run $i started!")
         # Make parameter set
-        ps = initialise(N,M,O,mR,sdR,kc,KS,kr,st)
+        ps = initialise(N,M,O,mR,sdR,kc,KS,kr)
         # Before running the parameter sets should be saved so that if they crash
         # they can be rerun and hopefully track down where they went wrong
         # ONCE I'VE (HOPEFULLY) SOLVED THE PROBLEM DELETE THIS SECTION
@@ -225,12 +227,14 @@ function assemble()
         end
         # and the full output
         jldopen("Output/OutputType$(R)Run$(i).jld","w") do file
-            # Final output
+            # Save final output
             write(file,"out",out)
-            # Time data and dynamics data
+            # # Save time data and dynamics data
             write(file,"T",T)
-            write(file,"C",C)
+            write(file,"C",C[1:end,1:end])
         end
+        # Print to show that run has been successfully completed
+        println("Run $i completed!")
     end
     return(nothing)
 end

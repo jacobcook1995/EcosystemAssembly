@@ -146,7 +146,6 @@ function assemble()
     end
     # Now start actual script
     println("Compiled and input read in!")
-    # Hopefully this means my prints will actually show, might need one after every statement though
     flush(stdout)
     # Assume that half saturation occurs at a quarter κ/δ
     KS = (1/4)*5.5e-3
@@ -178,6 +177,7 @@ function assemble()
     for i = 1:rps
         # Print that the new run has been started
         println("Run $i started!")
+        flush(stdout)
         # Make parameter set
         ps = initialise(N,M,O,mR,sdR,kc,KS,kr)
         # Before running the parameter sets should be saved so that if they crash
@@ -186,8 +186,14 @@ function assemble()
         jldopen("Paras/ParasType$(R)Run$(i).jld","w") do file
             write(file,"ps",ps)
         end
+        # Find starting time
+        ti = time()
         # Then run the simulation
         C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+        # And then print time elapsed
+        tf = time()
+        println("Time elapsed on run $i: $(tf-ti) s")
+        flush(stdout)
         # Establish which microbes are extinct
         ext = (C[end,1:N] .== 0.0)
         # Preallocate vector to store extinct microbes
@@ -236,7 +242,8 @@ function assemble()
             write(file,"C",C[1:end,1:end])
         end
         # Print to show that run has been successfully completed
-        println("Run $i completed!")
+        println("Run $i completed and saved!")
+        flush(stdout)
     end
     return(nothing)
 end

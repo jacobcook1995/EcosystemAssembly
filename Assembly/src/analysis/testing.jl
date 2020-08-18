@@ -2,7 +2,11 @@
 using Assembly
 using Plots
 using JLD
+using LaTeXStrings
 import PyPlot
+
+# IF MY SIMULATIONS RUN TO SLOW AN IMPORTANT THING TO TEST IS WHAT HAPPENS WHEN
+# ENERGY HITS ZERO, THIS MIGHT BE CAUSING A PROBLEM!
 
 function test()
     # Check that sufficent arguments have been provided
@@ -54,6 +58,21 @@ function test()
     println("Min energy: $(minimum(C[end,(ps.N+ps.M+1):(2*ps.N+ps.M)]))")
     println("Max fraction: $(maximum(C[end,(2*ps.N+ps.M+1):end]))")
     println("Min fraction: $(minimum(C[end,(2*ps.N+ps.M+1):end]))")
+    # Doing pretty naive plotting to begin with
+    # Setup population plot
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
+    for i = 1:ps.N
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,i] .> 0)
+        plot!(p1,T[inds],C[inds,i],label="")
+    end
+    savefig(p1,"Output/PopvsTime.png")
+    plot(T,C[:,ps.N+1:ps.N+ps.M],xlabel="Time",label="",ylabel="Concentration")
+    savefig("Output/MetabolitevsTime.png")
+    plot(T,C[:,ps.N+ps.M+1:2*ps.N+ps.M],xlabel="Time",label="",ylabel="Cell energy conc")
+    savefig("Output/EnergyvsTime.png")
+    plot(T,C[:,2*ps.N+ps.M+1:end],xlabel="Time",label="",ylabel=L"\phi_R")
+    savefig("Output/FractionvsTime.png")
     # Sensible plotting will require removal of dead species
     # Metabolites comparatively easy to plot though
     # Questionable if I want to show all the fractions on the same plot, they seem "internal"

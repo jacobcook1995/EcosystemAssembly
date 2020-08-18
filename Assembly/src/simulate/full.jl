@@ -119,9 +119,10 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::FullParamet
             dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Rct] -= rate[i,ps.mics[i].Reacs[j]]*x[i]/NA
         end
     end
-    # Final step to correct for any concentrations that have gone negative
+    # Final step to correct for any concentrations that have dropped below threshold (1e-15)
     for i = ps.N+1:ps.N+ps.M
-        if x[i] < 0.0
+        # If the rate of change is above a threshold (1e-20) they are not altered
+        if x[i] < 1e-15 && dx[i] <= 1e-20
             x[i] = 0.0
             dx[i] = 0.0
         end
@@ -219,9 +220,10 @@ function test_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::FullParamet
             dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Rct] -= rate[i,ps.mics[i].Reacs[j]]*x[i]/NA
         end
     end
-    # Final step to correct for any concentrations that have gone negative
+    # Final step to correct for any concentrations that have dropped below threshold (1e-15)
     for i = ps.N+1:ps.N+ps.M
-        if x[i] < 0.0
+        # If the rate of change is above a threshold (1e-20) they are not altered
+        if x[i] < 1e-15 && dx[i] <= 1e-20
             x[i] = 0.0
             dx[i] = 0.0
         end

@@ -118,7 +118,7 @@ import PyPlot
 function assemble()
     # Check that sufficent arguments have been provided
     if length(ARGS) < 3
-        error("need to specify type of community to assemble, number of species and number of repeats")
+        error("need to specify number of reactions, number of strains and number of repeats")
     end
     # Preallocate the variables I want to extract from the input
     R = 0
@@ -146,6 +146,8 @@ function assemble()
     end
     # Now start actual script
     println("Compiled and input read in!")
+    # Hopefully this means my prints will actually show, might need one after every statement though
+    flush(stdout)
     # Assume that half saturation occurs at a quarter κ/δ
     KS = (1/4)*5.5e-3
     # From wikipedia an average enzyme has a k to KS ratio of 10^5 M^-1 s^-1
@@ -166,7 +168,7 @@ function assemble()
     # Use formula to find how many reactions this implies
     O = 2*M - 3
     # Set time long enough for dynamics to equilbrate
-    Tmax = 10000000.0
+    Tmax = 1e7
     # Fairly arbitary inital conditions
     pop = ones(N)
     conc = zeros(M)

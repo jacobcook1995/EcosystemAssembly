@@ -5,9 +5,6 @@ using JLD
 using LaTeXStrings
 import PyPlot
 
-# IF MY SIMULATIONS RUN TO SLOW AN IMPORTANT THING TO TEST IS WHAT HAPPENS WHEN
-# ENERGY HITS ZERO, THIS MIGHT BE CAUSING A PROBLEM!
-
 function test()
     # Check that sufficent arguments have been provided
     if length(ARGS) < 2

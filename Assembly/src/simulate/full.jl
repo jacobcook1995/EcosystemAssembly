@@ -127,6 +127,13 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::FullParamet
             dx[i] = 0.0
         end
     end
+    # Any ATP numbers that have gone below 0.33 should be removed
+    for i = (ps.N+ps.M+1):(2*ps.N+ps.M)
+        if x[i] < 0.33
+            x[i] = 0.0
+            dx[i] = 0.0
+        end
+    end
     return(dx)
 end
 
@@ -224,6 +231,13 @@ function test_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::FullParamet
     for i = ps.N+1:ps.N+ps.M
         # If the rate of change is above a threshold (1e-20) they are not altered
         if x[i] < 1e-15 && dx[i] <= 1e-20
+            x[i] = 0.0
+            dx[i] = 0.0
+        end
+    end
+    # Any ATP numbers that have gone below 0.33 should be removed
+    for i = (ps.N+ps.M+1):(2*ps.N+ps.M)
+        if x[i] < 0.33
             x[i] = 0.0
             dx[i] = 0.0
         end

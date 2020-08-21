@@ -3,6 +3,7 @@ using Assembly
 using Plots
 using LaTeXStrings
 using JLD
+using SymPy
 import PyPlot
 
 # # function to test that the new stuff I'm writing actually works
@@ -49,20 +50,6 @@ import PyPlot
 #     ϕs = 0.1*ones(N)
 #     C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
 #     pyplot(dpi=200)
-#     # Setup population plot
-#     p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
-#     for i = 1:N
-#         # Find and eliminate zeros so that they can be plotted on a log plot
-#         inds = (C[:,i] .> 0)
-#         plot!(p1,T[inds],C[inds,i],label="")
-#     end
-#     savefig(p1,"Output/PopvsTime.png")
-#     plot(T,C[:,N+1:N+M],xlabel="Time",label="",ylabel="Concentration")
-#     savefig("Output/MetabolitevsTime.png")
-#     plot(T,C[:,N+M+1:2*N+M],xlabel="Time",label="",ylabel="Cell energy conc")
-#     savefig("Output/EnergyvsTime.png")
-#     plot(T,C[:,2*N+M+1:end],xlabel="Time",label="",ylabel=L"\phi_R")
-#     savefig("Output/FractionvsTime.png")
 #     # Calculate growth rates
 #     λ = zeros(length(C[:,1]),N)
 #     for i = 1:length(C[:,1])
@@ -252,7 +239,7 @@ end
 function dissipation(ps::FullParameters,out::Array{Float64,1})
     # check that parameter set is sensible given the output
     if length(out) != ps.M + 3*ps.N
-        error("parameter set doesn't match out put")
+        error("parameter set doesn't match output")
     end
     # Set dissipation to zero
     dsp = 0
@@ -306,8 +293,8 @@ function interpret()
     println("Compiled!")
     # Preallocate memory to store the number of survivors in
     srv = zeros(rps)
-    # Preallocate vector to store η values
-    ηs = []
+    # Preallocate vector to store percentage of free energy dissipated (under standard conditions)
+    pd = []
     # Preallocate vector of dissipation rates
     dsp = zeros(rps)
     # Now loop over repeats
@@ -315,48 +302,114 @@ function interpret()
         # First check that files exists
         pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
         if ~isfile(pfile)
-            error("Run $(i) is missing a parameter file")
+            error("run $(i) is missing a parameter file")
         end
-        ofile =  "Data/Type$(R)/OutputType$(R)Run$(i).jld"
+        ofile = "Data/Type$(R)/OutputType$(R)Run$(i).jld"
         if ~isfile(ofile)
-            error("Run $(i) is missing an output file")
+            error("run $(i) is missing an output file")
+        end
+        efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
+        if ~isfile(ofile)
+            error("run $(i) is missing an extinct file")
         end
         # Then load in data
         ps = load(pfile,"ps")
         out = load(ofile,"out")
         # Save number of surviving species
         srv[i] = ps.N
-        # Store all η values
+        # Store all percentage dissipations
         for j = 1:ps.N
-            ηs = cat(ηs,ps.mics[j].η,dims=1)
+            # Find vector of η values
+            ηs = ps.mics[j].η
+            # make temporary vector for percentages
+            pdt = zeros(length(ηs))
+            # loop over η values
+            for k = 1:length(ηs)
+                # Find standard Gibbs free energy
+                dG = ps.reacs[ps.mics[j].Reacs[k]].ΔG0
+                # Calculate percentage dissipated (under standard conditions)
+                pdt[k] = -dG/(ηs[k]*ΔGATP)
+            end
+            pd = cat(pd,pdt,dims=1)
         end
-        if any(out .< 0.0)
-            println("Run $i:")
-            println("Strains:")
-            println(out[1:ps.N])
-            println("Concentrations")
-            println(out[ps.N+1:ps.N+ps.M])
-            println("Energies")
-            println(out[(ps.N+ps.M+1):(2*ps.N+ps.M)])
-            println("Fractions")
-            println(out[(2*ps.N+ps.M+1):(3*ps.N+ps.M)])
+        # Remove any negative metabolite concentrations
+        for i = (ps.N+1):(ps.N+ps.M)
+            if out[i] < 0.0
+                out[i] = 0.0
+            end
         end
+        # Now its safe to calculate the dissipation
         dsp[i] = dissipation(ps,out)
+        # Going to do this only for the final step for now
+        if i == rps
+            # Preallocate vector of forces
+            F = Array{Sym,1}(undef,3*ps.N+ps.M)
+            # Find forces using function
+            F = Force(ps,F)
+            # Use final simulation results to find local forces
+            f = nForce(F,out,ps)
+            # Preallocate necessary data structures
+            dx = zeros(length(f))
+            rate = zeros(ps.N,ps.O)
+            t = 0.0 # No explict time dependance so this doesn't matter
+            dx = test_dynamics!(dx,out,ps,rate,t)
+            println(f)
+            println(dx)
+            println(f./dx)
+            # # Check maximum force
+            # stabN = (maximum(abs.(f[1:ps.N])) <= 2.0)
+            # println("Populations stable = $(stabN)")
+            # println(abs.(f[1:ps.N]))
+            # # No seems to work now
+            # stabM = (maximum(abs.(f[ps.N+1:ps.N+ps.M])) <= 1.0e-5)
+            # println("Concentrations stable = $(stabM)")
+            # println(abs.(f[ps.N+1:ps.N+ps.M]))
+            # staba = (maximum(abs.(f[(ps.N+ps.M+1):(2*ps.N+ps.M)])) <= 1.0e-5)
+            # println("Energies stable = $(staba)")
+            # println(abs.(f[(ps.N+ps.M+1):(2*ps.N+ps.M)]))
+            # stabϕ = (maximum(abs.(f[(2*ps.N+ps.M+1):end])) <= 1.0e-5)
+            # println("Fractions stable = $(stabϕ)")
+            # println(abs.(f[(2*ps.N+ps.M+1):end]))
+            # # Find corresponding data
+            # T = load(ofile,"T")
+            # C = load(ofile,"C")
+            # # Useful to also have the extinction data available
+            # ded = load(efile,"ded")
+            # # Setup population plot
+            # pyplot(dpi=200)
+            # p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
+            # # Find number of ignored microbes
+            # N = ps.N + length(ded)
+            # for i = 1:N
+            #     # Find and eliminate zeros so that they can be plotted on a log plot
+            #     inds = (C[:,i] .> 0)
+            #     plot!(p1,T[inds],C[inds,i],label="")
+            # end
+            # savefig(p1,"Output/PopvsTime.png")
+            # # Now plot the metabolites
+            # plot(T,C[:,(N+1):(N+ps.M)],xlabel="Time",label="",ylabel="Concentration")
+            # savefig("Output/MetabolitevsTime.png")
+            # # Now plot the energy concentrations
+            # plot(T,C[:,(N+ps.M+1):(2*N+ps.M)],xlabel="Time",label="",ylabel="Cell energy conc")
+            # savefig("Output/EnergyvsTime.png")
+            # plot(T,C[:,2*N+ps.M+1:end],xlabel="Time",label="",ylabel=L"\phi_R")
+            # savefig("Output/FractionvsTime.png")
+        end
     end
     # Now move onto plotting
     println("Data read in")
     pyplot(dpi=200)
     # Save number of surviving species as a histogram
     histogram(srv,label="")
-    plot!(title=nme,xlabel="Number of surving strains")
+    plot!(title="$(R) reactions",xlabel="Number of surving strains")
     savefig("Output/Type$(R)SvHist.png")
-    histogram(ηs,label="")
-    plot!(title=nme,xlabel=L"\eta")
+    histogram(pd,label="")
+    plot!(title="$(R) reactions",xlabel="Percentage of free energy dissipated")
     savefig("Output/Type$(R)ηHist.png")
     histogram(dsp,label="")
-    plot!(title=nme,xlabel="Dissipation rate")
+    plot!(title="$(R) reactions",xlabel="Dissipation rate")
     savefig("Output/Type$(R)DispHist.png")
     return(nothing)
 end
 
-@time assemble()
+@time interpret()

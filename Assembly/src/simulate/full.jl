@@ -1,6 +1,8 @@
 # A script to run the dynamics for the full model.
 export full_simulate, θ_smooth, qs, test_full_simulate
 
+export test_dynamics!
+
 # version of θ function, that smmothes output by setting values > 1 to 1
 function θ_smooth(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
     # Catch perverse cases that sometimes arise

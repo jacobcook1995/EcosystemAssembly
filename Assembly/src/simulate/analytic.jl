@@ -19,9 +19,9 @@ end
 # function to return the rate in symbolic form
 function symb_rate(S::Sym,θ::Sym)
     # Define kinetic/thermodynamic parameters
-    qm, KS, kr, Kq = symbols("qm, KS, kr, Kq")
+    kc, KS, kr = symbols("kc, KS, kr")
     # Start with numerator
-    n = qm*S*(1 - θ)
+    n = kc*S*(1 - θ)
     # Then find denominator
     d = KS + S*(1 + kr*θ)
     # Divide numerator by denominator
@@ -35,7 +35,7 @@ function Force(ps::InhibParameters,F::Array{Sym,1})
     @assert length(F) == ps.N+ps.M "Preallocated force vector incorrect size"
     m, g, N, η, κ, M, δ = symbols("m, g, N, η, κ, M, δ")
     # And reaction level symbols
-    qm, KS, kr, Kq = symbols("qm, KS, kr, Kq")
+    qm, KS, kr = symbols("qm, KS, kr")
     # Loop over all microbes to begin with
     for i = 1:ps.N
         ex = -m
@@ -135,6 +135,164 @@ function nForce(F::Array{Sym,1},C::Array{Float64,1},ps::InhibParameters)
             for k = 1:ps.N+ps.M
                 f[k] = subs(f[k],"$(rc.Rct)θ$(rc.Prd)N$(i)"=>θ)
             end
+        end
+    end
+    # convert vector into a float
+    f = convert(Array{Float64},f)
+    return(f)
+end
+
+# STILL COMES OUT SLIGHTLY WRONG
+# function to find the forces symbolically
+function Force(ps::FullParameters,F::Array{Sym,1})
+    # Check Jacobian provided is the right size
+    @assert length(F) == 3*ps.N + ps.M "Preallocated force vector incorrect size"
+    # Define ecosystem and microbe level symbols
+    N, η, κ, M, δ, d, γ, a, Kγ, Pb, ϕR, nr, np = symbols("N, η, κ, M, δ, d, γ, a, Kγ, fb, ϕR, nr, np")
+    MC, ϕH, ρ, KΩ, fd = symbols("MC, ϕH, ρ, KΩ, fd")
+    # And reaction level symbols
+    kc, KS, kr, ϕP = symbols("kc, KS, kr, ϕP")
+    # Loop over all microbes to begin with
+    for i = 1:ps.N
+        ex = -d
+        ex += (γ*a/(a + Kγ))*ϕR*Pb/nr
+        ex *= N
+        # Sub in strain/environment level variables
+        ex = subs(ex,γ=>ps.mics[i].γm,Kγ=>ps.mics[i].Kγ,Pb=>ps.mics[i].Pb,nr=>ps.mics[i].n[1])
+        F[i] = subs(ex,d=>ps.mics[i].d,a=>"a$(i)",N=>"N$(i)",ϕR=>"ϕR$(i)")
+    end
+    # Then loop over metabolites
+    for i = ps.N+1:ps.N+ps.M
+        # Set metabolite number
+        Mn = i-ps.N
+        # Add external dynamics
+        ex = κ - δ*M
+        # Sub in relevant values
+        ex = subs(ex,κ=>ps.κ[Mn],δ=>ps.δ[Mn],M=>"M$(Mn)")
+        # Loop over all strains
+        for j = 1:ps.N
+            # Then loop over each reaction for each strain
+            for k = 1:ps.mics[j].R
+                # Find reactant metabolite number
+                nR = ps.reacs[ps.mics[j].Reacs[k]].Rct
+                # Find product metabolite number
+                nP = ps.reacs[ps.mics[j].Reacs[k]].Prd
+                # Check if metabolite is used as reactant
+                if nR == Mn
+                    # Make symbols for substrate and product
+                    S = symbols("M$(nR)")
+                    θ = symbols("$(nR)θ$(nP)N$j")
+                    # Then make symbolic rate
+                    q = symb_rate(S,θ)
+                    # Then multiply by population, and amount of enzyme
+                    ex -= q*N*MC*ϕP*(1-ϕR-ϕH)/(np*NA)
+                    # sub in microbe identifier and parameters
+                    ex = subs(ex,N=>"N$(j)",MC=>ps.mics[j].MC,ϕR=>"ϕR$(j)")
+                    ex = subs(ex,ϕH=>ps.mics[j].ϕH,np=>ps.mics[j].n[2])
+                    # Then sub in all metabolite level parameters
+                    ex = subs(ex,kc=>ps.mics[j].kc[k],KS=>ps.mics[j].KS[k])
+                    ex = subs(ex,kr=>ps.mics[j].kr[k],ϕP=>ps.mics[j].ϕP[k])
+                # Or if metabolite is produced as product
+                elseif nP == Mn
+                    # Make symbols for substrate and product
+                    S = symbols("M$(nR)")
+                    θ = symbols("$(nR)θ$(nP)N$j")
+                    # Then make symbolic rate
+                    q = symb_rate(S,θ)
+                    # Then multiply by population, and amount of enzyme
+                    ex -= q*N*MC*ϕP*(1-ϕR-ϕH)/(np*NA)
+                    # sub in microbe identifier and parameters
+                    ex = subs(ex,N=>"N$(j)",MC=>ps.mics[j].MC,ϕR=>"ϕR$(j)")
+                    ex = subs(ex,ϕH=>ps.mics[j].ϕH,np=>ps.mics[j].n[2])
+                    # Then sub in all metabolite level parameters
+                    ex = subs(ex,kc=>ps.mics[j].kc[k],KS=>ps.mics[j].KS[k])
+                    ex = subs(ex,kr=>ps.mics[j].kr[k],ϕP=>ps.mics[j].ϕP[k])
+                end
+            end
+        end
+        # No further substitutions required
+        F[i] = ex
+    end
+    # Next loop over the energy concentrations
+    for i = (ps.N+ps.M+1):(2*ps.N+ps.M)
+        # Find relevant microbe
+        mic = ps.mics[i-ps.N-ps.M]
+        # First set out growth rate
+        ex = -(γ*a/(a + Kγ))*Pb*ϕR/nr
+        # Multiply it by translation cost and concentration
+        ex *= (ρ*MC + a)
+        # Then loop over reactions
+        for j = 1:mic.R
+            # Find the jth reaction
+            rc = ps.reacs[mic.Reacs[j]]
+            # Make symbols for substrate and product
+            S = symbols("M$(rc.Rct)")
+            θ = symbols("$(rc.Rct)θ$(rc.Prd)N$(i-ps.N-ps.M)")
+            # Then make symbolic rate
+            q = symb_rate(S,θ)
+            # Multiple expression by relevant factors, including amount of enzyme
+            ex += η*q*MC*ϕP*(1-ϕR-ϕH)/(np)
+            # Now sub in all the reaction level parameters
+            ex = subs(ex,kc=>mic.kc[j],KS=>mic.KS[j],kr=>mic.kr[j],η=>mic.η[j],ϕP=>mic.ϕP[j])
+        end
+        # Sub in all the relevant variables
+        ex = subs(ex,γ=>mic.γm,a=>"a$(i-ps.N-ps.M)",Kγ=>mic.Kγ,Pb=>mic.Pb,nr=>mic.n[1])
+        F[i] = subs(ex,ϕR=>"ϕR$(i-ps.N-ps.M)",ρ=>mic.ρ,MC=>mic.MC,ϕH=>mic.ϕH,np=>mic.n[2])
+    end
+    # Finally do the same for the ribosome fractions
+    for i = (2*ps.N+ps.M+1):(3*ps.N+ps.M)
+        # Find relevant microbe
+        mic = ps.mics[i-2*ps.N-ps.M]
+        # Substract current ribosome fraction
+        ex = -ϕR
+        # Add the "optimal" ribosome fraction
+        ex += (a/(a + KΩ))*(1 - ϕH)
+        # Then divide by the charcteristic time scale
+        ex /= fd*nr/((γ*a/(a + Kγ))*Pb*ϕR)
+        # Sub in all the relevant variable
+        ex = subs(ex,ϕR=>"ϕR$(i-2*ps.N-ps.M)",a=>"a$(i-2*ps.N-ps.M)",KΩ=>mic.KΩ)
+        F[i] = subs(ex,ϕH=>mic.ϕH,fd=>mic.fd,nr=>mic.n[1],γ=>mic.γm,Kγ=>mic.Kγ,Pb=>mic.Pb)
+    end
+    return(F)
+end
+
+
+# function to find numerical values of forces at a particular point in the space
+function nForce(F::Array{Sym,1},C::Array{Float64,1},ps::FullParameters)
+    # Copy F to a new object to prevent overwriting
+    f = copy(F)
+    # Sub in steady state population values
+    for i = 1:ps.N
+        for j = 1:(3*ps.N+ps.M)
+            f[j] = subs(f[j],"N$i"=>C[i])
+        end
+    end
+    # Sub in steady state concentrations values
+    for i = ps.N+1:ps.N+ps.M
+        for j = 1:(3*ps.N+ps.M)
+            f[j] = subs(f[j],"M$(i-ps.N)"=>C[i])
+        end
+    end
+    # Then sub in theta values
+    for i = 1:ps.N
+        for j = 1:ps.mics[i].R
+            rc = ps.reacs[ps.mics[i].Reacs[j]]
+            θ = bound_θ(C[ps.N+rc.Rct],C[ps.N+rc.Prd],ps.T,ps.mics[i].η[j],rc.ΔG0)
+            for k = 1:(3*ps.N+ps.M)
+                f[k] = subs(f[k],"$(rc.Rct)θ$(rc.Prd)N$(i)"=>θ)
+            end
+        end
+    end
+    # Next sub in energies
+    for i = (ps.N+ps.M+1):(2*ps.N+ps.M)
+        for j = 1:(3*ps.N+ps.M)
+            f[j] = subs(f[j],"a$(i-ps.N-ps.M)"=>C[i])
+        end
+    end
+    # Finally sub in ribosome fractions
+    for i = (2*ps.N+ps.M+1):(3*ps.N+ps.M)
+        for j = 1:(3*ps.N+ps.M)
+            f[j] = subs(f[j],"ϕR$(i-2*ps.N-ps.M)"=>C[i])
         end
     end
     # convert vector into a float

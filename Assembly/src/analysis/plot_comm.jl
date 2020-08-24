@@ -89,7 +89,7 @@ function interpret()
             error("run $(i) is missing an output file")
         end
         efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
-        if ~isfile(ofile)
+        if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
         # Then load in data
@@ -141,7 +141,74 @@ function interpret()
     histogram(sT,label="$(Ns)/$(length(sT)) stable")
     plot!(title="$(R) reactions",xlabel="Time for system to stabilize")
     savefig("Output/Type$(R)StabHist.png")
-    # NEXT I WANT TO PLOT ILLUSTRATIVE EXAMPLES OF THE 
+    # Check if there are non-stable cases and plot one
+    if Ns != length(sT)
+        # Pick random number to select parameter set
+        r = rand(1:(length(sT)-Ns))
+        ns = findall(isnan,sT)
+        # Read in relevant files
+        pfile = "Data/Type$(R)/ParasType$(R)Run$(ns[r]).jld"
+        if ~isfile(pfile)
+            error("run $(ns[r]) is missing a parameter file")
+        end
+        ofile = "Data/Type$(R)/OutputType$(R)Run$(ns[r]).jld"
+        if ~isfile(ofile)
+            error("run $(ns[r]) is missing an output file")
+        end
+        efile = "Data/Type$(R)/ExtinctType$(R)Run$(ns[r]).jld"
+        if ~isfile(efile)
+            error("run $(ns[r]) is missing an extinct file")
+        end
+        ps = load(pfile,"ps")
+        C = load(ofile,"C")
+        T = load(ofile,"T")
+        ded = load(efile,"ded")
+        # Setup population plot
+        p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
+        # Find number of ignored microbes
+        N = ps.N + length(ded)
+        for i = 1:N
+            # Find and eliminate zeros so that they can be plotted on a log plot
+            inds = (C[:,i] .> 0)
+            plot!(p1,T[inds],C[inds,i],label="")
+        end
+        savefig(p1,"Output/UnstabPopvsTime.png")
+    end
+    # Check if there are stable cases and plot one
+    if Ns != 0
+        # Pick random number to select parameter set
+        r = rand(1:Ns)
+        ns = findall(!isnan,sT)
+        # Read in relevant files
+        pfile = "Data/Type$(R)/ParasType$(R)Run$(ns[r]).jld"
+        if ~isfile(pfile)
+            error("run $(ns[r]) is missing a parameter file")
+        end
+        ofile = "Data/Type$(R)/OutputType$(R)Run$(ns[r]).jld"
+        if ~isfile(ofile)
+            error("run $(ns[r]) is missing an output file")
+        end
+        efile = "Data/Type$(R)/ExtinctType$(R)Run$(ns[r]).jld"
+        if ~isfile(efile)
+            error("run $(ns[r]) is missing an extinct file")
+        end
+        ps = load(pfile,"ps")
+        C = load(ofile,"C")
+        T = load(ofile,"T")
+        ded = load(efile,"ded")
+        # Setup population plot
+        p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
+        # Find number of ignored microbes
+        N = ps.N + length(ded)
+        for i = 1:N
+            # Find and eliminate zeros so that they can be plotted on a log plot
+            inds = (C[:,i] .> 0)
+            plot!(p1,T[inds],C[inds,i],label="")
+        end
+        vline!([sT[ns[r]]],label="",color=:red)
+        savefig(p1,"Output/StabPopvsTime.png")
+    end
+    # Mark on these the time point of stabilization
     return(nothing)
 end
 
@@ -150,17 +217,7 @@ end
 # SAVE THIS FOR LATER
 # # Useful to also have the extinction data available
 # ded = load(efile,"ded")
-# # Setup population plot
-# pyplot(dpi=200)
-# p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
-# # Find number of ignored microbes
-# N = ps.N + length(ded)
-# for i = 1:N
-#     # Find and eliminate zeros so that they can be plotted on a log plot
-#     inds = (C[:,i] .> 0)
-#     plot!(p1,T[inds],C[inds,i],label="")
-# end
-# savefig(p1,"Output/PopvsTime.png")
+
 # # Now plot the metabolites
 # plot(T,C[:,(N+1):(N+ps.M)],xlabel="Time",label="",ylabel="Concentration")
 # savefig("Output/MetabolitevsTime.png")

@@ -141,6 +141,7 @@ function interpret()
     histogram(sT,label="$(Ns)/$(length(sT)) stable")
     plot!(title="$(R) reactions",xlabel="Time for system to stabilize")
     savefig("Output/Type$(R)StabHist.png")
+    # NEXT I WANT TO PLOT ILLUSTRATIVE EXAMPLES OF THE 
     return(nothing)
 end
 

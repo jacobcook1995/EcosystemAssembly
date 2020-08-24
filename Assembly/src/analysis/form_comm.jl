@@ -168,15 +168,15 @@ function stability()
     # Now loop over repeats
     for i = 1:rps
         # First check that files exists
-        pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
+        pfile = "Paras/ParasType$(R)Run$(i).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/Type$(R)/OutputType$(R)Run$(i).jld"
+        ofile = "Output/OutputType$(R)Run$(i).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
+        efile = "Output/ExtinctType$(R)Run$(i).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an extinct file")
         end

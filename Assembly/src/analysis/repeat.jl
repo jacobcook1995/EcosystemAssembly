@@ -190,51 +190,6 @@ function repeat()
     return(nothing)
 end
 
-# function repeat_test()
-#     # Load in previous data
-#     ps = load("Temp/Paras/ps$(ARGS[1]).jld","ps")
-#     MD = load("Temp/Paras/MD$(ARGS[1]).jld","MD")
-#     # Then simulate to steady state
-#     Tmax = 100.0
-#     # Initialise vectors of concentrations and populations
-#     pop = ones(ps.N)
-#     conc = zeros(ps.M) # No chemical to begin with
-#     # Now find first steady state
-#     C1, T1 = stead(ps,Tmax,pop,conc)
-#     # Make vector of addition times for microbes
-#     t = [0.0]
-#     # Run for first five microbes
-#     for i = 1:10
-#         pop = C1[end,1:ps.N]
-#         conc = C1[end,ps.N+1:end]
-#         # Use function to construct random microbe based on parameter set
-#         mic = MD.data[i+1].mic
-#         # Add microbe to temporary parameter set
-#         ps2 = add_Microbe(ps,mic)
-#         # Now use function to check if this microbe will grow
-#         chk = check(ps2,pop,conc)
-#         if chk == true
-#             t = cat(t,T1[end],dims=1)
-#             println("Microbe $i should grow.")
-#             # Update parameter set
-#             ps = ps2
-#             Cn, Tn = stead(ps,Tmax,[pop;1.0],conc)
-#             # Can just cat T straight on
-#             T1 = cat(T1,Tn.+T1[end],dims=1)
-#             # Need to update C1 so that it can be cat'ed to
-#             CT = zeros(size(C1,1),size(C1,2)+1)
-#             CT[:,1:ps.N-1] = C1[:,1:ps.N-1]
-#             CT[:,ps.N] .= 0.0
-#             CT[:,ps.N+1:end] = C1[:,ps.N:end]
-#             # Then finally cat CT here
-#             C1 = cat(CT,Cn,dims=1)
-#         else
-#             println("Microbe $i could not grow.")
-#         end
-#     end
-#     return(nothing)
-# end
-
 # Plotting function
 function plot_repeat()
     if length(ARGS) == 0

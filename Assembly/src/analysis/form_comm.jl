@@ -1,105 +1,7 @@
 # A script to form stable communities using the full model that then saves them for later use
 using Assembly
-using Plots
-using LaTeXStrings
 using JLD
 using SymPy
-import PyPlot
-
-# # function to test that the new stuff I'm writing actually works
-# # Keeping this for the moment as the plotting stuff might be useful
-# function test()
-#     println("Compiled!")
-#     # Assume that half saturation occurs at a quarter κ/δ
-#     KS = (1/4)*5.5e-3
-#     # From wikipedia an average enzyme has a k to KS ratio of 10^5 M^-1 s^-1
-#     # This would give us a k of 137.5, sensible to assume an above average rate
-#     # Though should be reduced by the fact we include uptake as well as metabolism
-#     # Choosing k = 500 means we match the maximum glucose uptake rate seen in Natarajan et al (2000)
-#     # of 3*10^7 molecules per second.
-#     # The above is a sensible argument but 1.0 gives a more reasonable ATP concentration.
-#     kc = 10.0
-#     # The reversibility factor remains the same as previously
-#     kr = 10.0
-#     # Assume microbes have 2 reactions each
-#     mR = 2.0
-#     sdR = 0.0
-#     # Case of 8 metabolites and 1 strain
-#     N = 3
-#     M = 8
-#     # Use formula to find how many reactions this implies
-#     O = 2*M - 3
-#     good = false
-#     # Make parameter set
-#     ps = 0
-#     while good == false
-#         ps = initialise(N,M,O,mR,sdR,kc,KS,kr)
-#         # This step is to ensure that the first metabolite can be broken down
-#         for i = 1:N
-#             if any((ps.reacs[ps.mics[i].Reacs].↦:Rct) .== 1)
-#                 good = true
-#             end
-#         end
-#     end
-#     # Set time long enough to see dynamics
-#     Tmax = 10000000.0
-#     # Fairly arbitary inital conditions
-#     pop = ones(N)
-#     conc = zeros(M)
-#     as = 1e5*ones(N)
-#     ϕs = 0.1*ones(N)
-#     C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
-#     pyplot(dpi=200)
-#     # Calculate growth rates
-#     λ = zeros(length(C[:,1]),N)
-#     for i = 1:length(C[:,1])
-#         for j = 1:N
-#             λ[i,j] = λs(C[i,N+M+j],C[i,2*N+M+j],ps.mics[j])
-#         end
-#     end
-#     # Then plot growth rates
-#     plot(T,λ,xlabel="Time",label="",ylabel=L"\lambda")
-#     savefig("Output/GrowthvsTime.png")
-#     # Calculate reaction inhibition
-#     # Find surviving microbes
-#     ms = []
-#     for i = 1:N
-#         if C[end,i] > 1e-8
-#             ms = cat(ms,i,dims=1)
-#         end
-#     end
-#     # Make array of bools to store results
-#     # To generalise this I would have to figure out how to make
-#     # an array with rows of differing lengths
-#     rs = fill(false,(length(ms),ps.mics[1].R))
-#     # Then for these microbes find viable reactions
-#     for i = 1:length(ms)
-#         # Find corresponding microbes
-#         mic = ps.mics[ms[i]]
-#         for j = 1:mic.R
-#             # find reaction
-#             r = ps.reacs[mic.Reacs[j]]
-#             if C[end,N+r.Rct] > 1e-8 && C[end,N+r.Prd] > 1e-8
-#                 rs[i,j] = true
-#             end
-#         end
-#     end
-#     # Preallocate array of θs, this also will take some work to generalise
-#     θs = zeros(length(C[:,1]),size(rs,1)*size(rs,2))
-#     for i = 1:length(ms)
-#         for j = 1:ps.mics[1].R
-#             # Find appropriate reaction
-#             r = ps.reacs[ps.mics[ms[i]].Reacs[j]]
-#             for k = 1:length(C[:,1])
-#                 θs[k,(i-1)*ps.mics[1].R+j] = θ_smooth(C[k,N+r.Rct],C[k,N+r.Prd],ps.T,ps.mics[ms[i]].η[j],r.ΔG0)
-#             end
-#         end
-#     end
-#     # Then plot inhibitions
-#     plot(T,θs,xlabel="Time",label="",ylabel=L"\theta")
-#     savefig("Output/InhibvsTime.png")
-#     return(nothing)
-# end
 
 # Function to assemble specfic communities
 function assemble()
@@ -154,7 +56,7 @@ function assemble()
     # Use formula to find how many reactions this implies
     O = 2*M - 3
     # Set time long enough for dynamics to equilbrate
-    Tmax = 1e7
+    Tmax = 1e8
     # Fairly arbitary inital conditions
     pop = ones(N)
     conc = zeros(M)
@@ -235,39 +137,10 @@ function assemble()
     return(nothing)
 end
 
-# function to calculate the dissipation for an assembled ecosystem
-function dissipation(ps::FullParameters,out::Array{Float64,1})
-    # check that parameter set is sensible given the output
-    if length(out) != ps.M + 3*ps.N
-        error("parameter set doesn't match output")
-    end
-    # Set dissipation to zero
-    dsp = 0
-    # Loop over number of strains
-    for i = 1:ps.N
-        # Isolate this strain
-        mic = ps.mics[i]
-        # Loop over reactions of this strain
-        for j = 1:mic.R
-            # Find appropriate reaction
-            r = ps.reacs[mic.Reacs[j]]
-            # Find amount of energy that this reaction dissipates
-            Fd = -(r.ΔG0 + Rgas*ps.T*log(out[ps.N+r.Prd]/out[ps.N+r.Rct]) + mic.η[j]*ΔGATP)
-            # Find amount of enzyme E
-            E = Eα(out[2*ps.N+ps.M+i],mic,j)
-            # Then find the rate that this reaction proceeds at
-            q = qs(out[ps.N+r.Rct],out[ps.N+r.Prd],E,j,mic,ps.T,r)
-            # Check if reaction actually occurs
-            if q != 0.0
-                dsp += q*Fd
-            end
-        end
-    end
-    return(dsp)
-end
-
-# A function to read in saved data and interpret it
-function interpret()
+# Function to find the stability times of the various simulations
+function stability()
+    println("Starting stability checking script")
+    flush(stdout)
     # Check that sufficent arguments have been provided
     if length(ARGS) < 2
         error("need to specify community and number of repeats")
@@ -290,13 +163,8 @@ function interpret()
     if rps < 1
         error("need to do at least 1 simulation")
     end
-    println("Compiled!")
-    # Preallocate memory to store the number of survivors in
-    srv = zeros(rps)
-    # Preallocate vector to store percentage of free energy dissipated (under standard conditions)
-    pd = []
-    # Preallocate vector of dissipation rates
-    dsp = zeros(rps)
+    # Preallocate stability times
+    sT = zeros(rps)
     # Now loop over repeats
     for i = 1:rps
         # First check that files exists
@@ -315,101 +183,68 @@ function interpret()
         # Then load in data
         ps = load(pfile,"ps")
         out = load(ofile,"out")
-        # Save number of surviving species
-        srv[i] = ps.N
-        # Store all percentage dissipations
-        for j = 1:ps.N
-            # Find vector of η values
-            ηs = ps.mics[j].η
-            # make temporary vector for percentages
-            pdt = zeros(length(ηs))
-            # loop over η values
-            for k = 1:length(ηs)
-                # Find standard Gibbs free energy
-                dG = ps.reacs[ps.mics[j].Reacs[k]].ΔG0
-                # Calculate percentage dissipated (under standard conditions)
-                pdt[k] = -dG/(ηs[k]*ΔGATP)
+        # Now preallocate vector of forces
+        F = Array{Sym,1}(undef,3*ps.N+ps.M)
+        # Find forces using function
+        F = Force(ps,F)
+        # Use final simulation results to find local forces
+        f = nForce(F,out,ps)
+        # Check maximum force on population
+        stabN = (maximum(abs.(f[1:ps.N])) <= 2.0)
+        # And the maximum force on the energies
+        staba = (maximum(abs.(f[(ps.N+ps.M+1):(2*ps.N+ps.M)])) <= 1.0e-5)
+        # Check if the populations and the energies are stable
+        if staba == true && stabN == true
+            # Find corresponding data
+            T = load(ofile,"T")
+            C = load(ofile,"C")
+            # Setup while loop
+            j = length(T)
+            stab = false
+            # Find orginal number of species
+            N = round(Int64,(size(C)[2]-ps.M)/3)
+            # Find index where final population matches saved out put
+            inds = indexin(out[1:ps.N],C[end,1:N])
+            println("Number of time points $(length(T))")
+            flush(stdout)
+            # Now want to track down the first time point that the system stabilises at
+            # THIS NEEDS TO CHANGE TO RUN BACKWARDS FOR THE SAKE OF SPEED
+            while stab == false
+                j -= 1
+                # Select the part of the data that we care about
+                out = [C[j,inds];C[j,N+1:N+ps.M];C[j,inds.+N.+ps.M];C[j,inds.+2*N.+ps.M]]
+                # If the above is wrong expect a "Wrong length" error here
+                f = nForce(F,out,ps)
+                # Check maximum force on population
+                stabN = (maximum(abs.(f[1:ps.N])) <= 2.0)
+                # And the maximum force on the energies
+                staba = (maximum(abs.(f[(ps.N+ps.M+1):(2*ps.N+ps.M)])) <= 1.0e-5)
+                # Looking for first unstable point
+                if staba == false || stabN == false
+                    stab = true
+                    # Add previous time step to the list of stable times
+                    sT[i] = T[j+1]
+                    println("Time point for stability $(j+1)")
+                    flush(stdout)
+                end
             end
-            pd = cat(pd,pdt,dims=1)
-        end
-        # Remove any negative metabolite concentrations
-        for i = (ps.N+1):(ps.N+ps.M)
-            if out[i] < 0.0
-                out[i] = 0.0
-            end
-        end
-        # Now its safe to calculate the dissipation
-        dsp[i] = dissipation(ps,out)
-        # Going to do this only for the final step for now
-        if i == rps
-            # Preallocate vector of forces
-            F = Array{Sym,1}(undef,3*ps.N+ps.M)
-            # Find forces using function
-            F = Force(ps,F)
-            # Use final simulation results to find local forces
-            f = nForce(F,out,ps)
-            # Preallocate necessary data structures
-            dx = zeros(length(f))
-            rate = zeros(ps.N,ps.O)
-            t = 0.0 # No explict time dependance so this doesn't matter
-            dx = test_dynamics!(dx,out,ps,rate,t)
-            println(f)
-            println(dx)
-            println(f./dx)
-            # # Check maximum force
-            # stabN = (maximum(abs.(f[1:ps.N])) <= 2.0)
-            # println("Populations stable = $(stabN)")
-            # println(abs.(f[1:ps.N]))
-            # # No seems to work now
-            # stabM = (maximum(abs.(f[ps.N+1:ps.N+ps.M])) <= 1.0e-5)
-            # println("Concentrations stable = $(stabM)")
-            # println(abs.(f[ps.N+1:ps.N+ps.M]))
-            # staba = (maximum(abs.(f[(ps.N+ps.M+1):(2*ps.N+ps.M)])) <= 1.0e-5)
-            # println("Energies stable = $(staba)")
-            # println(abs.(f[(ps.N+ps.M+1):(2*ps.N+ps.M)]))
-            # stabϕ = (maximum(abs.(f[(2*ps.N+ps.M+1):end])) <= 1.0e-5)
-            # println("Fractions stable = $(stabϕ)")
-            # println(abs.(f[(2*ps.N+ps.M+1):end]))
-            # # Find corresponding data
-            # T = load(ofile,"T")
-            # C = load(ofile,"C")
-            # # Useful to also have the extinction data available
-            # ded = load(efile,"ded")
-            # # Setup population plot
-            # pyplot(dpi=200)
-            # p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
-            # # Find number of ignored microbes
-            # N = ps.N + length(ded)
-            # for i = 1:N
-            #     # Find and eliminate zeros so that they can be plotted on a log plot
-            #     inds = (C[:,i] .> 0)
-            #     plot!(p1,T[inds],C[inds,i],label="")
-            # end
-            # savefig(p1,"Output/PopvsTime.png")
-            # # Now plot the metabolites
-            # plot(T,C[:,(N+1):(N+ps.M)],xlabel="Time",label="",ylabel="Concentration")
-            # savefig("Output/MetabolitevsTime.png")
-            # # Now plot the energy concentrations
-            # plot(T,C[:,(N+ps.M+1):(2*N+ps.M)],xlabel="Time",label="",ylabel="Cell energy conc")
-            # savefig("Output/EnergyvsTime.png")
-            # plot(T,C[:,2*N+ps.M+1:end],xlabel="Time",label="",ylabel=L"\phi_R")
-            # savefig("Output/FractionvsTime.png")
+        else
+            # For systems that arn't stable leave blank
+            sT[i] = NaN
         end
     end
-    # Now move onto plotting
-    println("Data read in")
-    pyplot(dpi=200)
-    # Save number of surviving species as a histogram
-    histogram(srv,label="")
-    plot!(title="$(R) reactions",xlabel="Number of surving strains")
-    savefig("Output/Type$(R)SvHist.png")
-    histogram(pd,label="")
-    plot!(title="$(R) reactions",xlabel="Percentage of free energy dissipated")
-    savefig("Output/Type$(R)ηHist.png")
-    histogram(dsp,label="")
-    plot!(title="$(R) reactions",xlabel="Dissipation rate")
-    savefig("Output/Type$(R)DispHist.png")
+    # Calculate and output the number of stable systems
+    Ns = length(sT)-sum(isnan.(sT))
+    println("$(Ns) systems out of $(rps) are stable")
+    # Output the data
+    jldopen("Output/StabTimesType$(R).jld","w") do file
+        write(file,"sT",sT)
+    end
     return(nothing)
 end
 
-@time interpret()
+if length(ARGS) == 3
+    @time assemble()
+elseif length(ARGS) == 2
+    @time stability()
+end

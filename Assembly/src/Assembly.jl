@@ -21,7 +21,7 @@ include("simulate/proteome.jl") # Include simulation code for proteome model
 include("simulate/full.jl") # Include simulation code for full model
 
 # export global constants
-export Rgas, ΔGATP
+export Rgas, ΔGATP, NA
 
 # Decleration of useful constants
 global Rgas = 8.31446261815324 # gas constant in J.K^-1.mol^-1

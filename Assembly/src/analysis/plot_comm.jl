@@ -7,38 +7,46 @@ using SymPy
 import PyPlot
 
 # function to calculate the dissipation for an assembled ecosystem
-function dissipation(ps::FullParameters,out::Array{Float64,1})
+function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64,1})
+    # Define number of strains
+    N = length(ms)
     # check that parameter set is sensible given the output
-    if length(out) != ps.M + 3*ps.N
+    if length(out) != ps.M + 3*N
         error("parameter set doesn't match output")
     end
     # Set dissipation to zero
     dsp = 0
     # Loop over number of strains
-    for i = 1:ps.N
+    for i = 1:N
         # Isolate this strain
-        mic = ps.mics[i]
+        mic = ms[i]
         # Loop over reactions of this strain
         for j = 1:mic.R
             # Find appropriate reaction
             r = ps.reacs[mic.Reacs[j]]
-            # Find amount of energy that this reaction dissipates
-            Fd = -(r.ΔG0 + Rgas*ps.T*log(out[ps.N+r.Prd]/out[ps.N+r.Rct]) + mic.η[j]*ΔGATP)
-            # Find amount of enzyme E
-            E = Eα(out[2*ps.N+ps.M+i],mic,j)
-            # Then find the rate that this reaction proceeds at
-            q = qs(out[ps.N+r.Rct],out[ps.N+r.Prd],E,j,mic,ps.T,r)
-            # Check if reaction actually occurs
-            if q != 0.0
-                dsp += q*Fd
+            # If there's no product Gibbs free energy becomes infinite. Justified to ignore
+            # this as if product hasn't built up reaction can't be happening to a sigificant degree
+            if out[N+r.Prd] != 0.0
+                # Find amount of energy that this reaction dissipates
+                Fd = -(r.ΔG0 + Rgas*ps.T*log(out[N+r.Prd]/out[N+r.Rct]) + mic.η[j]*ΔGATP)
+                # Find amount of enzyme E
+                E = Eα(out[2*N+ps.M+i],mic,j)
+                # Then find the rate that this reaction proceeds at
+                q = qs(out[N+r.Rct],out[N+r.Prd],E,j,mic,ps.T,r)
+                # Check if reaction actually occurs
+                if q != 0.0
+                    dsp += q*Fd*out[i]
+                end
             end
         end
     end
+    # Convert from molecule units to moles
+    dsp /= NA
     return(dsp)
 end
 
-# A function to read in saved data and interpret it
-function interpret()
+# A function to plot the stability time graphs
+function stab_plots()
     # Check that sufficent arguments have been provided
     if length(ARGS) < 2
         error("need to specify community and number of repeats")
@@ -67,73 +75,8 @@ function interpret()
         error("no stability time file")
     end
     println("Compiled!")
-    # Preallocate memory to store the number of survivors in
-    srv = zeros(rps)
-    # Preallocate vector to store percentage of free energy dissipated (under standard conditions)
-    pd = []
-    # Preallocate vector of dissipation rates
-    dsp = zeros(rps)
-    # Set count of stable systems to zero
-    cnt = 0
-    # Preallocate vector to store stability times
-    sT = []
-    # Now loop over repeats
-    for i = 1:rps
-        # First check that files exists
-        pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
-        if ~isfile(pfile)
-            error("run $(i) is missing a parameter file")
-        end
-        ofile = "Data/Type$(R)/OutputType$(R)Run$(i).jld"
-        if ~isfile(ofile)
-            error("run $(i) is missing an output file")
-        end
-        efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
-        if ~isfile(efile)
-            error("run $(i) is missing an extinct file")
-        end
-        # Then load in data
-        ps = load(pfile,"ps")
-        out = load(ofile,"out")
-        # Save number of surviving species
-        srv[i] = ps.N
-        # Store all percentage dissipations
-        for j = 1:ps.N
-            # Find vector of η values
-            ηs = ps.mics[j].η
-            # make temporary vector for percentages
-            pdt = zeros(length(ηs))
-            # loop over η values
-            for k = 1:length(ηs)
-                # Find standard Gibbs free energy
-                dG = ps.reacs[ps.mics[j].Reacs[k]].ΔG0
-                # Calculate percentage dissipated (under standard conditions)
-                pdt[k] = -dG/(ηs[k]*ΔGATP)
-            end
-            pd = cat(pd,pdt,dims=1)
-        end
-        # Remove any negative metabolite concentrations
-        for i = (ps.N+1):(ps.N+ps.M)
-            if out[i] < 0.0
-                out[i] = 0.0
-            end
-        end
-        # Now its safe to calculate the dissipation
-        dsp[i] = dissipation(ps,out)
-    end
     # Now move onto plotting
-    println("Data read in")
     pyplot(dpi=200)
-    # Save number of surviving species as a histogram
-    histogram(srv,label="")
-    plot!(title="$(R) reactions",xlabel="Number of surving strains")
-    savefig("Output/Type$(R)SvHist.png")
-    histogram(pd,label="")
-    plot!(title="$(R) reactions",xlabel="Percentage of free energy dissipated")
-    savefig("Output/Type$(R)ηHist.png")
-    histogram(dsp,label="")
-    plot!(title="$(R) reactions",xlabel="Dissipation rate")
-    savefig("Output/Type$(R)DispHist.png")
     # Read in stability time data
     sT = load(tfile,"sT")
     Ns = length(sT) - sum(isnan.(sT))
@@ -172,7 +115,7 @@ function interpret()
             inds = (C[:,i] .> 0)
             plot!(p1,T[inds],C[inds,i],label="")
         end
-        savefig(p1,"Output/UnstabPopvsTime.png")
+        savefig(p1,"Output/UnstabType$(R).png")
     end
     # Check if there are stable cases and plot one
     if Ns != 0
@@ -206,13 +149,160 @@ function interpret()
             plot!(p1,T[inds],C[inds,i],label="")
         end
         vline!([sT[ns[r]]],label="",color=:red)
-        savefig(p1,"Output/StabPopvsTime.png")
+        savefig(p1,"Output/StabPopType$(R).png")
     end
     # Mark on these the time point of stabilization
     return(nothing)
 end
 
-@time interpret()
+# New function to plot histograms over time
+function hist_time()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 2
+        error("need to specify community and number of repeats")
+    end
+    # Preallocate the variables I want to extract from the input
+    R = 0
+    rps = 0
+    # Check that all arguments can be converted to integers
+    try
+        R = parse(Int64,ARGS[1])
+        rps = parse(Int64,ARGS[2])
+    catch e
+           error("both inputs must be integer")
+    end
+    # Check that simulation type is valid
+    if R < 1
+        error("each strain must have more than 1 reaction")
+    end
+    # Check that number of simulations is greater than 0
+    if rps < 1
+        error("need to do at least 1 simulation")
+    end
+    println("Compiled!")
+    # Choose time steps
+    Ts = [1e4,1e5,1e6,1e7,1e8]
+    # Preallocate memory to store the number of survivors in
+    srv = zeros(rps,length(Ts))
+    # Preallocate vector to store percentage of free energy dissipated (under standard conditions)
+    pd = fill(Float64[],length(Ts))
+    # Preallocate vector of dissipation rates
+    dsp = zeros(rps,length(Ts))
+    # And the same for dissipation rate per unit biomass
+    b_dsp = zeros(rps,length(Ts))
+    # Now loop over repeats
+    for i = 1:rps
+        # First check that files exists
+        pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
+        if ~isfile(pfile)
+            error("run $(i) is missing a parameter file")
+        end
+        ofile = "Data/Type$(R)/OutputType$(R)Run$(i).jld"
+        if ~isfile(ofile)
+            error("run $(i) is missing an output file")
+        end
+        efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
+        if ~isfile(efile)
+            error("run $(i) is missing an extinct file")
+        end
+        # Then load in data
+        ps = load(pfile,"ps")
+        out = load(ofile,"out")
+        T = load(ofile,"T")
+        C = load(ofile,"C")
+        ded = load(efile,"ded")
+        # Find number of intial strains
+        N = ps.N + length(ded)
+        # Preallocate vector of microbes
+        ms = Array{MicrobeP,1}(undef,N)
+        # Find indices of surviving microbes
+        inds = indexin(out[1:ps.N],C[end,1:N])
+        # Set up loop over all microbes
+        k = 0
+        for j = 1:length(ms)
+            # Add surviving strains in
+            if j ∈ inds
+                ms[j] = ps.mics[j-k]
+            # and extinct strains
+            else
+                k += 1
+                ms[j] = ded[k]
+            end
+        end
+        # Loop over time steps
+        for j = 1:length(Ts)
+            # Find index of first point that is a greater time
+            indT = findfirst(x->x>=Ts[j],T)
+            # Find distance between this point and the prior point
+            dT = T[indT] - T[indT-1]
+            # Use this to find weight this time point should be given
+            w = 1 - (T[indT] - Ts[j])/dT
+            # Make new vectors for populations and metabolites
+            pops = w*C[indT,1:N] .+ (1-w)*C[indT-1,1:N]
+            concs = w*C[indT,N+1:N+ps.M] .+ (1-w)*C[indT-1,N+1:N+ps.M]
+            # And the same for energies and ribosome fractions
+            as = w*C[indT,(N+ps.M+1):(2*N+ps.M)] .+ (1-w)*C[indT-1,(N+ps.M+1):(2*N+ps.M)]
+            ϕs = w*C[indT,(2*N+ps.M+1):end] .+ (1-w)*C[indT-1,(2*N+ps.M+1):end]
+            # Then count the number of surviving species
+            srv[i,j] = count(x->(x>0.0),pops)
+            # Remove any negative metabolite concentrations
+            for i = 1:ps.M
+                if concs[i] < 0.0
+                    concs[i] = 0.0
+                end
+            end
+            # Now its safe to calculate the dissipation
+            dsp[i,j] = dissipation(ps,ms,[pops;concs;as;ϕs])
+            # Find dissipation rate per unit biomass
+            b_dsp[i,j] = dsp[i,j]/sum(pops)
+            # Now want to find and store all the fractional dissipations
+            for k = 1:N
+                # Need to determine the non-zero populations
+                if pops[k] != 0.0
+                    # Find vector of η values
+                    ηs = ms[k].η
+                    # make temporary vector for percentages
+                    pdt = zeros(length(ηs))
+                    # loop over η values
+                    for l = 1:length(ηs)
+                        # Find standard Gibbs free energy
+                        dG = ps.reacs[ms[k].Reacs[l]].ΔG0
+                        # Calculate percentage dissipated (under standard conditions)
+                        pdt[l] = -dG/(ηs[l]*ΔGATP)
+                    end
+                    # Here I cat into the preallocate array of arrays
+                    pd[j] = cat(pd[j],pdt,dims=1)
+                end
+            end
+        end
+    end
+    pyplot(dpi=200)
+    # Preallocate vector of labels
+    Tlbs = Array{String,2}(undef,1,length(Ts))
+    # Insert all elements to it
+    for i = 1:length(Ts)
+        Tlbs[i] = "T = $(Ts[i])s"
+    end
+    # Now plot the histograms
+    m1 = L"^{-1}"
+    histogram(srv,labels=Tlbs,fillalpha=0.75)
+    plot!(title="$(R) reactions",xlabel="Number of surviving strains")
+    savefig("Output/SvType$(R).png")
+    histogram(dsp,labels=Tlbs,fillalpha=0.75)
+    plot!(title="$(R) reactions",xlabel="Dissipation rate (Js$(m1))")
+    savefig("Output/DispType$(R).png")
+    histogram(b_dsp,labels=Tlbs,fillalpha=0.75)
+    plot!(title="$(R) reactions",xlabel="Dissipation rate (Js$(m1)) per cell")
+    savefig("Output/BDispType$(R).png")
+    histogram(pd,labels=Tlbs,fillalpha=0.75)
+    plot!(title="$(R) reactions",xlabel="Percentage of free energy dissipated")
+    savefig("Output/RDispType$(R).png")
+    return(nothing)
+end
+# WHAT OTHER PLOTS ARE THERE TO MAKE?
+# 2) How many syntrophic links are there? THIS IS A TASK FOR THURSDAY
+
+@time stab_plots()
 
 # SAVE THIS FOR LATER
 # # Useful to also have the extinction data available

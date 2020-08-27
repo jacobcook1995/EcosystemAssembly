@@ -190,6 +190,10 @@ function hist_time()
     dsp = zeros(rps,length(Ts))
     # And the same for dissipation rate per unit biomass
     b_dsp = zeros(rps,length(Ts))
+    # Preallocate catagories
+    inact = zeros(rps,length(Ts))
+    ob = zeros(rps,length(Ts))
+    nob = zeros(rps,length(Ts))
     # Now loop over repeats
     for i = 1:rps
         # First check that files exists
@@ -214,7 +218,7 @@ function hist_time()
         # Find number of intial strains
         N = ps.N + length(ded)
         # Preallocate vector of microbes
-        ms = Array{MicrobeP,1}(undef,N)
+        ms = Vector{MicrobeP}(undef,N)
         # Find indices of surviving microbes
         inds = indexin(out[1:ps.N],C[end,1:N])
         # Set up loop over all microbes
@@ -272,6 +276,34 @@ function hist_time()
                     end
                     # Here I cat into the preallocate array of arrays
                     pd[j] = cat(pd[j],pdt,dims=1)
+                    # Next want to catagorise this surviving microbes reactions
+                    for l = 1:ms[k].R
+                        # Find substrate concentration
+                        S = concs[ps.reacs[ms[k].Reacs[l]].Rct]
+                        # Check for case where the reaction has no substrate
+                        if S == 0.0
+                            inact[i,j] += 1.0
+                        else
+                            # Find product concentration
+                            P = concs[ps.reacs[ms[k].Reacs[l]].Prd]
+                            ΔG0 = ps.reacs[ms[k].Reacs[l]].ΔG0
+                            # Find thermodynamic inhibition factor for this reaction
+                            θ1 = θ(S,P,ps.T,ms[k].η[l],ΔG0)
+                            # Use this factor to find obligate and non-obligate reactions
+                            if θ1 >= 0.99
+                                inact[i,j] += 1.0
+                            else
+                                # Find thermodynamic inhibition factor in case where product has built up
+                                P = ps.κ[1]/ps.δ[1]
+                                θ2 = θ(S,P,ps.T,ms[k].η[l],ΔG0)
+                                if θ2 >= 0.5
+                                    ob[i,j] += 1.0
+                                else
+                                    nob[i,j] += 1.0
+                                end
+                            end
+                        end
+                    end
                 end
             end
         end
@@ -297,12 +329,19 @@ function hist_time()
     histogram(pd,labels=Tlbs,fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Percentage of free energy dissipated")
     savefig("Output/RDispType$(R).png")
+    Find and plot percentage active
+    histogram(100*(1 .- inact./(inact.+ob.+nob)),labels=Tlbs,fillalpha=0.75)
+    plot!(title="$(R) reactions",xlabel="Percentage of reactions active")
+    savefig("Output/PerActType$(R).png")
+    histogram(100*ob./(ob.+nob),labels=Tlbs,fillalpha=0.75)
+    plot!(title="$(R) reactions",xlabel="Percentage of reactions obligate")
+    savefig("Output/PerObType$(R).png")
     return(nothing)
 end
-# WHAT OTHER PLOTS ARE THERE TO MAKE?
-# 2) How many syntrophic links are there? THIS IS A TASK FOR THURSDAY
 
+# At the moment want to run both plotting scripts in succession
 @time stab_plots()
+@time hist_time()
 
 # SAVE THIS FOR LATER
 # # Useful to also have the extinction data available

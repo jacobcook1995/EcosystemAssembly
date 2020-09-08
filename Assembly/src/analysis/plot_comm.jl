@@ -69,89 +69,168 @@ function stab_plots()
     if rps < 1
         error("need to do at least 1 simulation")
     end
-    # Check that stability data exists
-    tfile = "Data/Type$(R)/StabTimesType$(R).jld"
-    if ~isfile(tfile)
-        error("no stability time file")
-    end
     println("Compiled!")
     # Now move onto plotting
     pyplot(dpi=200)
-    # Read in stability time data
-    sT = load(tfile,"sT")
-    Ns = length(sT) - sum(isnan.(sT))
-    # Then plot histogram
-    histogram(sT,label="$(Ns)/$(length(sT)) stable")
-    plot!(title="$(R) reactions",xlabel="Time for system to stabilize")
-    savefig("Output/Type$(R)StabHist.png")
-    # Check if there are non-stable cases and plot one
-    if Ns != length(sT)
-        # Pick random number to select parameter set
-        r = rand(1:(length(sT)-Ns))
-        ns = findall(isnan,sT)
-        # Read in relevant files
-        pfile = "Data/Type$(R)/ParasType$(R)Run$(ns[r]).jld"
-        if ~isfile(pfile)
-            error("run $(ns[r]) is missing a parameter file")
-        end
-        ofile = "Data/Type$(R)/OutputType$(R)Run$(ns[r]).jld"
-        if ~isfile(ofile)
-            error("run $(ns[r]) is missing an output file")
-        end
-        efile = "Data/Type$(R)/ExtinctType$(R)Run$(ns[r]).jld"
-        if ~isfile(efile)
-            error("run $(ns[r]) is missing an extinct file")
-        end
-        ps = load(pfile,"ps")
-        C = load(ofile,"C")
-        T = load(ofile,"T")
-        ded = load(efile,"ded")
-        # Setup population plot
-        p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
-        # Find number of ignored microbes
-        N = ps.N + length(ded)
-        for i = 1:N
-            # Find and eliminate zeros so that they can be plotted on a log plot
-            inds = (C[:,i] .> 0)
-            plot!(p1,T[inds],C[inds,i],label="")
-        end
-        savefig(p1,"Output/UnstabType$(R).png")
+    # Pick random number to select parameter set
+    r = rand(1:rps)
+    # Read in relevant files
+    pfile = "Data/Type$(R)/ParasType$(R)Run$(r).jld"
+    if ~isfile(pfile)
+        error("run $(r) is missing a parameter file")
     end
-    # Check if there are stable cases and plot one
-    if Ns != 0
-        # Pick random number to select parameter set
-        r = rand(1:Ns)
-        ns = findall(!isnan,sT)
-        # Read in relevant files
-        pfile = "Data/Type$(R)/ParasType$(R)Run$(ns[r]).jld"
-        if ~isfile(pfile)
-            error("run $(ns[r]) is missing a parameter file")
-        end
-        ofile = "Data/Type$(R)/OutputType$(R)Run$(ns[r]).jld"
-        if ~isfile(ofile)
-            error("run $(ns[r]) is missing an output file")
-        end
-        efile = "Data/Type$(R)/ExtinctType$(R)Run$(ns[r]).jld"
-        if ~isfile(efile)
-            error("run $(ns[r]) is missing an extinct file")
-        end
-        ps = load(pfile,"ps")
-        C = load(ofile,"C")
-        T = load(ofile,"T")
-        ded = load(efile,"ded")
-        # Setup population plot
-        p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10)
-        # Find number of ignored microbes
-        N = ps.N + length(ded)
-        for i = 1:N
-            # Find and eliminate zeros so that they can be plotted on a log plot
-            inds = (C[:,i] .> 0)
-            plot!(p1,T[inds],C[inds,i],label="")
-        end
-        vline!([sT[ns[r]]],label="",color=:red)
-        savefig(p1,"Output/StabPopType$(R).png")
+    ofile = "Data/Type$(R)/OutputType$(R)Run$(r).jld"
+    if ~isfile(ofile)
+        error("run $(r) is missing an output file")
     end
-    # Mark on these the time point of stabilization
+    efile = "Data/Type$(R)/ExtinctType$(R)Run$(r).jld"
+    if ~isfile(efile)
+        error("run $(r) is missing an extinct file")
+    end
+    ps = load(pfile,"ps")
+    C = load(ofile,"C")
+    T = load(ofile,"T")
+    out = load(ofile,"out")
+    ded = load(efile,"ded")
+    # Setup population plot
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10,title="$(R) reactions")
+    # Find number of ignored microbes
+    N = ps.N + length(ded)
+    for i = 1:N
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,i] .> 0)
+        plot!(p1,T[inds],C[inds,i],label="")
+    end
+    savefig(p1,"Output/SeriesType$(R).png")
+    # Now plot total population
+    plot(xlabel="Time",ylabel="Total population",yaxis=:log10,title="$(R) reactions")
+    plot!(T,sum(C[:,1:N],dims=2),label="")
+    savefig("Output/SeriesType$(R)Total.png")
+    # Preallocate vector of total population growth rates
+    λs = zeros(length(T))
+    # Now find growth rates for total population
+    for i = 2:length(T)
+        λs[i] = abs((sum(C[i,1:N]) - sum(C[i-1,1:N]))/(T[i] - T[i-1]))
+        # Remove zero entries
+        if λs[i] == 0.0
+            λs[i] = 1e-10
+        end
+    end
+    # Now plot growth rate of total populations
+    plot(xlabel="Time",ylabel="Population change (cells/s)",yaxis=:log10,title="$(R) reactions")
+    plot!(T[2:end],λs[2:end],label="")
+    savefig("Output/SeriesType$(R)Pcnt.png")
+    # First time frame 0 to 1e5
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10,title="$(R) reactions")
+    p2 = plot(xlabel="Time",ylabel="Total Population",yaxis=:log10,title="$(R) reactions")
+    p3 = plot(xlabel="Time",ylabel="Population change (cells/s)",yaxis=:log10,title="$(R) reactions")
+    # Find number of ignored microbes
+    N = ps.N + length(ded)
+    for i = 1:N
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,i] .> 0) .& (T .< 5e5)
+        plot!(p1,T[inds],C[inds,i],label="")
+    end
+    # Find indices of points less than particular time
+    inds = (T .< 5e5)
+    plot!(p2,T[inds],sum(C[inds,:],dims=2),label="")
+    # Change indicesso that the first point is ignored
+    inds2 = inds
+    inds2[1] = false
+    plot!(p3,T[inds],λs[inds],label="")
+    savefig(p1,"Output/SeriesType$(R)F1.png")
+    savefig(p2,"Output/SeriesType$(R)TotalF1.png")
+    savefig(p3,"Output/SeriesType$(R)PcntF1.png")
+    # Second time frame 0 to 1e7
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10,title="$(R) reactions")
+    p2 = plot(xlabel="Time",ylabel="Total Population",yaxis=:log10,title="$(R) reactions")
+    p3 = plot(xlabel="Time",ylabel="Population change (cells/s)",yaxis=:log10,title="$(R) reactions")
+    # Find number of ignored microbes
+    N = ps.N + length(ded)
+    for i = 1:N
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,i] .> 0) .& (T .< 5e6)
+        plot!(p1,T[inds],C[inds,i],label="")
+    end
+    # Find indices of points less than particular time
+    inds = (T .< 5e6)
+    plot!(p2,T[inds],sum(C[inds,:],dims=2),label="")
+    # Change indices that the first point is ignored
+    inds2 = inds
+    inds2[1] = false
+    plot!(p3,T[inds],λs[inds],label="")
+    savefig(p1,"Output/SeriesType$(R)F2.png")
+    savefig(p2,"Output/SeriesType$(R)TotalF2.png")
+    savefig(p3,"Output/SeriesType$(R)PcntF2.png")
+    # Third time frame 5e7 to maximum
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10,title="$(R) reactions")
+    p2 = plot(xlabel="Time",ylabel="Total Population",yaxis=:log10,title="$(R) reactions")
+    p3 = plot(xlabel="Time",ylabel="Population change (cells/s)",yaxis=:log10,title="$(R) reactions")
+    # Find number of ignored microbes
+    N = ps.N + length(ded)
+    for i = 1:N
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,i] .> 0) .& (T .> 5e7)
+        plot!(p1,T[inds],C[inds,i],label="")
+    end
+    # Find indices of points greater than particular time
+    inds = (T .> 5e7)
+    plot!(p2,T[inds],sum(C[inds,:],dims=2),label="")
+    # Change indices that the first point is ignored
+    inds2 = inds
+    inds2[1] = false
+    plot!(p3,T[inds],λs[inds],label="")
+    savefig(p1,"Output/SeriesType$(R)F3.png")
+    savefig(p2,"Output/SeriesType$(R)TotalF3.png")
+    savefig(p3,"Output/SeriesType$(R)PcntF3.png")
+    # Preallocate vector of extinctions
+    ext = BitArray(undef,ps.N)
+    # Loop over every microbe
+    for i = 1:ps.N
+        # Find microbes index in full dynamics
+        ind = findfirst(x->x==out[i],C[end,:])
+        # Calculate rate change in final two steps of the dynamics
+        dC = ((C[end,ind] - C[end-1,ind])/(T[end] - T[end-1]))/(C[end,ind])
+        println(dC)
+        # If strain decreasing at greater than threshold rate then assume extinct
+        if dC <= -5e-9
+            ext[i] = 1
+        else
+            ext[i] = 0
+        end
+    end
+    # Now need to find reduced parameter set
+    ps = extinction(ps,ext)
+    # Needs to run for a good while to confirm stability
+    Tmax = 1e7
+    # Preallocate vectors to store the intial conditions
+    pop = zeros(ps.N)
+    as = zeros(ps.N)
+    ϕs = zeros(ps.N)
+    # Concentration data can be imediatly filled in
+    conc = out[length(ext)+1:length(ext)+ps.M]
+    # counter function
+    k = 0
+    # Now fill in the data
+    for i = 1:length(ext)
+        if ext[i] == 0
+            pop[i-k] = out[i]
+            as[i-k] = out[length(ext)+ps.M+i]
+            ϕs[i-k] = out[2*length(ext)+ps.M+i]
+        else
+            k += 1
+        end
+    end
+    # Run the simulation
+    C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+    # Now do standard population plot
+    p1 = plot(xlabel="Time",ylabel="Population",yaxis=:log10,title="Stablity check $(R) reactions")
+    for i = 1:ps.N
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,i] .> 0)
+        plot!(p1,T[inds],C[inds,i],label="")
+    end
+    savefig("Output/StabCheckType$(R).png")
     return(nothing)
 end
 
@@ -316,6 +395,7 @@ function hist_time()
         Tlbs[i] = "T = $(Ts[i])s"
     end
     # Now plot the histograms
+    # SHOULD CHANGE THE COLOR PALLATE TO BE RG COLOUR-BLIND APPROPRIATE
     m1 = L"^{-1}"
     histogram(srv,labels=Tlbs,fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Number of surviving strains")
@@ -329,7 +409,7 @@ function hist_time()
     histogram(pd,labels=Tlbs,fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Percentage of free energy dissipated")
     savefig("Output/RDispType$(R).png")
-    Find and plot percentage active
+    # Find and plot percentage active
     histogram(100*(1 .- inact./(inact.+ob.+nob)),labels=Tlbs,fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Percentage of reactions active")
     savefig("Output/PerActType$(R).png")
@@ -341,7 +421,7 @@ end
 
 # At the moment want to run both plotting scripts in succession
 @time stab_plots()
-@time hist_time()
+# @time hist_time()
 
 # SAVE THIS FOR LATER
 # # Useful to also have the extinction data available

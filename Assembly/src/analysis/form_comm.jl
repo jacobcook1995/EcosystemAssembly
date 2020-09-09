@@ -71,7 +71,6 @@ function assemble()
         ps = initialise(N,M,O,mR,sdR,kc,KS,kr)
         # Before running the parameter sets should be saved so that if they crash
         # they can be rerun and hopefully track down where they went wrong
-        # ONCE I'VE (HOPEFULLY) SOLVED THE PROBLEM DELETE THIS SECTION
         jldopen("Paras/ParasType$(R)Run$(i).jld","w") do file
             write(file,"ps",ps)
         end

@@ -191,7 +191,6 @@ function stab_plots()
         ind = findfirst(x->x==out[i],C[end,:])
         # Calculate rate change in final two steps of the dynamics
         dC = ((C[end,ind] - C[end-1,ind])/(T[end] - T[end-1]))/(C[end,ind])
-        println(dC)
         # If strain decreasing at greater than threshold rate then assume extinct
         if dC <= -5e-9
             ext[i] = 1
@@ -263,6 +262,8 @@ function hist_time()
     Ts = [1e4,1e5,1e6,1e7,1e8]
     # Preallocate memory to store the number of survivors in
     srv = zeros(rps,length(Ts))
+    # Memory to store number of expected survivors (at infinity)
+    svinf = zeros(rps,length(Ts))
     # Preallocate vector to store percentage of free energy dissipated (under standard conditions)
     pd = fill(Float64[],length(Ts))
     # Preallocate vector of dissipation rates
@@ -328,10 +329,17 @@ function hist_time()
             ϕs = w*C[indT,(2*N+ps.M+1):end] .+ (1-w)*C[indT-1,(2*N+ps.M+1):end]
             # Then count the number of surviving species
             srv[i,j] = count(x->(x>0.0),pops)
+            # Calculate rate of change in previous two steps of the dynamics
+            dC = ((C[indT,1:N] .- C[indT-1,1:N])/(T[indT] - T[indT-1]))./(C[indT,1:N])
+            # Two conditions, strain alive, strain not dieing off
+            a = pops .> 0.0
+            b = dC .>= -5e-9
+            # Count number of strains fufilling both conditions
+            svinf[i,j] = count(x->x==2,a.+b)
             # Remove any negative metabolite concentrations
-            for i = 1:ps.M
-                if concs[i] < 0.0
-                    concs[i] = 0.0
+            for k = 1:ps.M
+                if concs[k] < 0.0
+                    concs[k] = 0.0
                 end
             end
             # Now its safe to calculate the dissipation
@@ -351,7 +359,7 @@ function hist_time()
                         # Find standard Gibbs free energy
                         dG = ps.reacs[ms[k].Reacs[l]].ΔG0
                         # Calculate percentage dissipated (under standard conditions)
-                        pdt[l] = -dG/(ηs[l]*ΔGATP)
+                        pdt[l] = (ηs[l]*ΔGATP+dG)/(dG)
                     end
                     # Here I cat into the preallocate array of arrays
                     pd[j] = cat(pd[j],pdt,dims=1)
@@ -387,7 +395,10 @@ function hist_time()
             end
         end
     end
-    pyplot(dpi=200)
+    # Set up plotting
+    pyplot()
+    # Set a color-blind friendly palette
+    theme(:wong2,dpi=200)
     # Preallocate vector of labels
     Tlbs = Array{String,2}(undef,1,length(Ts))
     # Insert all elements to it
@@ -395,46 +406,46 @@ function hist_time()
         Tlbs[i] = "T = $(Ts[i])s"
     end
     # Now plot the histograms
-    # SHOULD CHANGE THE COLOR PALLATE TO BE RG COLOUR-BLIND APPROPRIATE
     m1 = L"^{-1}"
-    histogram(srv,labels=Tlbs,fillalpha=0.75)
+    # Pick appropriate indices
+    inds = [3,5]
+    histogram(srv[:,inds],labels=Tlbs[:,inds],fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Number of surviving strains")
     savefig("Output/SvType$(R).png")
-    histogram(dsp,labels=Tlbs,fillalpha=0.75)
+    inds = [5]
+    histogram(svinf[:,inds],labels="",fillalpha=0.75)
+    plot!(title="$(R) reactions",xlabel="Survivors at infinity")
+    savefig("Output/InfSvType$(R).png")
+    inds = [2,5]
+    histogram(dsp[:,inds],labels=Tlbs[:,inds],fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Dissipation rate (Js$(m1))")
     savefig("Output/DispType$(R).png")
-    histogram(b_dsp,labels=Tlbs,fillalpha=0.75)
+    inds = [1,5]
+    histogram(b_dsp[:,inds],labels=Tlbs[:,inds],fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Dissipation rate (Js$(m1)) per cell")
     savefig("Output/BDispType$(R).png")
-    histogram(pd,labels=Tlbs,fillalpha=0.75)
+    inds = [1,5]
+    histogram(pd[inds],labels=Tlbs[:,inds],fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Percentage of free energy dissipated")
     savefig("Output/RDispType$(R).png")
     # Find and plot percentage active
-    histogram(100*(1 .- inact./(inact.+ob.+nob)),labels=Tlbs,fillalpha=0.75)
+    inds = [2,5]
+    pa = 100*(1 .- inact[:,inds]./(inact[:,inds].+ob[:,inds].+nob[:,inds]))
+    histogram(pa,labels=Tlbs[:,inds],fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Percentage of reactions active")
     savefig("Output/PerActType$(R).png")
-    histogram(100*ob./(ob.+nob),labels=Tlbs,fillalpha=0.75)
+    po = 100*ob[:,inds]./(ob[:,inds].+nob[:,inds])
+    histogram(po,labels=Tlbs[:,inds],fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Percentage of reactions obligate")
     savefig("Output/PerObType$(R).png")
     return(nothing)
 end
 
 # At the moment want to run both plotting scripts in succession
-@time stab_plots()
-# @time hist_time()
+# @time stab_plots()
+@time hist_time()
 
 # SAVE THIS FOR LATER
-# # Useful to also have the extinction data available
-# ded = load(efile,"ded")
-
-# # Now plot the metabolites
-# plot(T,C[:,(N+1):(N+ps.M)],xlabel="Time",label="",ylabel="Concentration")
-# savefig("Output/MetabolitevsTime.png")
-# # Now plot the energy concentrations
-# plot(T,C[:,(N+ps.M+1):(2*N+ps.M)],xlabel="Time",label="",ylabel="Cell energy conc")
-# savefig("Output/EnergyvsTime.png")
-# plot(T,C[:,2*N+ps.M+1:end],xlabel="Time",label="",ylabel=L"\phi_R")
-# savefig("Output/FractionvsTime.png")
 # # Calculate reaction inhibition
 # # Find surviving microbes
 # ms = []

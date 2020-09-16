@@ -441,46 +441,103 @@ function hist_time()
     return(nothing)
 end
 
-# At the moment want to run both plotting scripts in succession
-# @time stab_plots()
-@time hist_time()
+# Function to analyse and
+function net_vis()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 2
+        error("need to specify community and number of repeats")
+    end
+    # Preallocate the variables I want to extract from the input
+    R = 0
+    nR = 0
+    # Check that all arguments can be converted to integers
+    try
+        R = parse(Int64,ARGS[1])
+        nR = parse(Int64,ARGS[2])
+    catch e
+           error("both inputs must be integer")
+    end
+    # Check that simulation type is valid
+    if R < 1
+        error("each strain must have more than 1 reaction")
+    end
+    # Check that number of simulations is greater than 0
+    if nR < 1
+        error("Number of repeats cannot be less than 1")
+    end
+    println("Compiled!")
+    # Preallocate vectors to store data for histograms
+    cA = zeros(nR)
+    mf = zeros(nR)
+    O = 0
+    # Loop over
+    for i = 1:nR
+        # Read in relevant files
+        pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
+        if ~isfile(pfile)
+            error("run $(i) is missing a parameter file")
+        end
+        ofile = "Data/Type$(R)/OutputType$(R)Run$(i).jld"
+        if ~isfile(ofile)
+            error("run $(i) is missing an output file")
+        end
+        efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
+        if ~isfile(efile)
+            error("run $(i) is missing an extinct file")
+        end
+        # Basically just loading everything out as I'm not sure what I'll need
+        ps = load(pfile,"ps")
+        C = load(ofile,"C")
+        T = load(ofile,"T")
+        out = load(ofile,"out")
+        ded = load(efile,"ded")
+        # Preallocate flows through reactions
+        fR = zeros(ps.O)
+        # Loop over all reactions
+        for j = 1:ps.O
+            # Loop over microbes
+            for k = 1:ps.N
+                # Check if reaction exists in microbe
+                if any(ps.mics[k].Reacs .== j) == true
+                    # If so then find reaction
+                    ind = findfirst(x->x==j,ps.mics[k].Reacs)
+                    # Find final ribosome fraction for this strain
+                    ϕR = out[2*ps.N+ps.M+k]
+                    # Find amount of enzyme dedicated to reaction
+                    E = Eα(ϕR,ps.mics[k],ind)
+                    # Find substrate and product
+                    S = out[ps.N+ps.reacs[j].Rct]
+                    P = out[ps.N+ps.reacs[j].Prd]
+                    # find reaction rate
+                    q = qs(S,P,E,ind,ps.mics[k],ps.T,ps.reacs[j])
+                    # Flux is reaction rate * population
+                    fR[j] += q*out[k]
+                end
+            end
+        end
+        # Now want to put fluxes in units of moles
+        fR = fR./NA
+        # count the number of active reactions
+        cA[i] = count(x->x>0.0,fR)
+        # Find reaction with the maximum flux
+        _, mf[i] = findmax(fR)
+        # Update max number of reactions if needed
+        if ps.O > O
+            O = ps.O
+        end
+    end
+    # Set up plotting
+    pyplot()
+    # Set a color-blind friendly palette
+    theme(:wong2,dpi=200)
+    # Plot histogram of the number of active reactions
+    histogram(cA,bins=range(0,stop=O+1,length=O+2))
+    plot!(title="$(R) reactions",xlabel="Number of active reactions")
+    savefig("Output/ActiveReactionsType$(R).png")
+    histogram(mf,bins=range(1,stop=O+1,length=O+1))
+    plot!(title="$(R) reactions",xlabel="Reaction with greatest flux")
+    savefig("Output/MaxFluxType$(R).png")
+    return(nothing)
+end
 
-# SAVE THIS FOR LATER
-# # Calculate reaction inhibition
-# # Find surviving microbes
-# ms = []
-# for i = 1:N
-#     if C[end,i] > 1e-8
-#         ms = cat(ms,i,dims=1)
-#     end
-# end
-# # Make array of bools to store results
-# # To generalise this I would have to figure out how to make
-# # an array with rows of differing lengths
-# rs = fill(false,(length(ms),ps.mics[1].R))
-# # Then for these microbes find viable reactions
-# for i = 1:length(ms)
-#     # Find corresponding microbes
-#     mic = ps.mics[ms[i]]
-#     for j = 1:mic.R
-#         # find reaction
-#         r = ps.reacs[mic.Reacs[j]]
-#         if C[end,N+r.Rct] > 1e-8 && C[end,N+r.Prd] > 1e-8
-#             rs[i,j] = true
-#         end
-#     end
-# end
-# # Preallocate array of θs, this also will take some work to generalise
-# θs = zeros(length(C[:,1]),size(rs,1)*size(rs,2))
-# for i = 1:length(ms)
-#     for j = 1:ps.mics[1].R
-#         # Find appropriate reaction
-#         r = ps.reacs[ps.mics[ms[i]].Reacs[j]]
-#         for k = 1:length(C[:,1])
-#             θs[k,(i-1)*ps.mics[1].R+j] = θ_smooth(C[k,N+r.Rct],C[k,N+r.Prd],ps.T,ps.mics[ms[i]].η[j],r.ΔG0)
-#         end
-#     end
-# end
-# # Then plot inhibitions
-# plot(T,θs,xlabel="Time",label="",ylabel=L"\theta")
-# savefig("Output/InhibvsTime.png")
+@time net_vis()

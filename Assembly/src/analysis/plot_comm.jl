@@ -466,10 +466,19 @@ function net_vis()
         error("Number of repeats cannot be less than 1")
     end
     println("Compiled!")
+    # Read in standard parameter file
+    pfile = "Data/Type$(R)/ParasType$(R)Run1.jld"
+    if ~isfile(pfile)
+        error("run 1 is missing a parameter file")
+    end
+    ps = load(pfile,"ps")
     # Preallocate vectors to store data for histograms
     cA = zeros(nR)
     mf = zeros(nR)
-    O = 0
+    O = ps.O
+    # Preallocate flows through reactions
+    fR = zeros(ps.O)
+    fRT = zeros(ps.O)
     # Loop over
     for i = 1:nR
         # Read in relevant files
@@ -491,8 +500,6 @@ function net_vis()
         T = load(ofile,"T")
         out = load(ofile,"out")
         ded = load(efile,"ded")
-        # Preallocate flows through reactions
-        fR = zeros(ps.O)
         # Loop over all reactions
         for j = 1:ps.O
             # Loop over microbes
@@ -517,13 +524,20 @@ function net_vis()
         end
         # Now want to put fluxes in units of moles
         fR = fR./NA
+        fRT = fRT .+ fR
         # count the number of active reactions
         cA[i] = count(x->x>0.0,fR)
         # Find reaction with the maximum flux
         _, mf[i] = findmax(fR)
-        # Update max number of reactions if needed
-        if ps.O > O
-            O = ps.O
+        # Plot bar charts for specfic individual ecosystems
+        if i == 20
+            # Set up plotting
+            pyplot()
+            # Set a color-blind friendly palette
+            theme(:wong2,dpi=200)
+            bar(fR,label="",xlabel="Reaction number",ylabel="Flux")
+            plot!(title="$(R) reactions")
+            savefig("Output/ReacsType$(R).png")
         end
     end
     # Set up plotting
@@ -537,6 +551,11 @@ function net_vis()
     histogram(mf,bins=range(1,stop=O+1,length=O+1))
     plot!(title="$(R) reactions",xlabel="Reaction with greatest flux")
     savefig("Output/MaxFluxType$(R).png")
+    # Now find and plot average flux
+    fRT /= nR
+    bar(fRT,label="",xlabel="Reaction number",ylabel="Average flux")
+    plot!(title="$(R) reactions")
+    savefig("Output/AverageReacsType$(R).png")
     return(nothing)
 end
 

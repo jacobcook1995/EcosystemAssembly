@@ -43,8 +43,10 @@ function bi_net()
     # Make empty lists
     mp = Array{Int64,1}(undef,0) # Metabolite posistions
     ml = Array{Int64,1}(undef,0) # Metabolite links
+    mf = Array{Float64,1}(undef,0) # Consumption fluxes
     sp = Array{Int64,1}(undef,0) # Strain posistions
     sl = Array{Int64,1}(undef,0) # Strain links
+    sf = Array{Float64,1}(undef,0) # Production fluxes
     # Metabolite to strain link => consumption
     # Strain to metabolite link => production
     # Loop over all species
@@ -62,12 +64,19 @@ function bi_net()
             θ1 = θ(out[ps.N+indS],out[ps.N+indP],ps.T,η,ΔG0)
             # Check that reaction actually runs
             if out[ps.N+indS] > 0.0 && θ1 < 0.99
+                # Find enzyme as we need this for the flux
+                E = Eα(out[2*ps.N+ps.M+i],ps.mics[i],j)
+                # Find flux, same for both cases as we are looking at a one to one reaction
+                q = qs(out[ps.N+indS],out[ps.N+indP],E::Float64,j,ps.mics[i],ps.T,ps.reacs[ps.mics[i].Reacs[j]])
+                f = out[j]*q/NA
                 # Add consumption link
                 mp = cat(mp,indS,dims=1)
                 ml = cat(ml,i,dims=1)
+                mf = cat(mf,f,dims=1)
                 # Add production link
                 sp = cat(sp,i,dims=1)
                 sl = cat(sl,indP,dims=1)
+                sf = cat(sf,f,dims=1)
             end
         end
     end
@@ -77,9 +86,13 @@ function bi_net()
     A[2,:] = ml
     A[3,:] = sp
     A[4,:] = sl
-    println(A)
+    # Add 2 fluxes lists to also be output
+    B = zeros(Float64,2,length(mp))
+    B[1,:] = mf
+    B[2,:] = sf
     # Then write out as a csv file
-    CSV.write("Output/NetworkR=$(R)rpt=$(rpt).csv", DataFrame(A),writeheader=false)
+    CSV.write("Output/NetworkR=$(R)rpt=$(rpt).csv",DataFrame(A),writeheader=false)
+    CSV.write("Output/NetworkR=$(R)rpt=$(rpt).csv",DataFrame(B),writeheader=false,append=true)
     return(nothing)
 end
 

@@ -559,4 +559,82 @@ function net_vis()
     return(nothing)
 end
 
-@time net_vis()
+# Function to make plots to show the shape of the thermodynamic tradeoff
+function plt_trdff()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 2
+        error("need to specify community and number of repeats")
+    end
+    # Preallocate the variables I want to extract from the input
+    R = 0
+    nR = 0
+    # Check that all arguments can be converted to integers
+    try
+        R = parse(Int64,ARGS[1])
+        nR = parse(Int64,ARGS[2])
+    catch e
+           error("both inputs must be integer")
+    end
+    # Check that simulation type is valid
+    if R < 1
+        error("each strain must have more than 1 reaction")
+    end
+    # Check that number of simulations is greater than 0
+    if nR < 1
+        error("Repeat number cannot be less than 1")
+    end
+    println("Compiled!")
+    # Read in standard parameter file
+    pfile = "Data/Type$(R)/ParasType$(R)Run$(nR).jld"
+    if ~isfile(pfile)
+        error("run $(nR) is missing a parameter file")
+    end
+    # Read in output data
+    ofile = "Data/Type$(R)/OutputType$(R)Run$(nR).jld"
+    if ~isfile(ofile)
+        error("run $(nR) is missing an output file")
+    end
+    # Read in relevant data
+    ps = load(pfile,"ps")
+    out = load(ofile,"out")
+    # Pick first reaction of the first microbe (guarenteed to exist)
+    rc = ps.reacs[ps.mics[1].Reacs[1]]
+    # Find substrate and product concentrations
+    S = out[ps.N+rc.Rct]
+    P = out[ps.N+rc.Prd]
+    # Also store Gibbs free energy
+    ΔG = rc.ΔG0
+    # Amount of enzyme is chosen and fixed
+    E = 100000.0
+    # Set minimum equilibrium product to substrate ratio
+    mratio = 1e-10
+    # Use to generate appropriate set of η values
+    ηmax = -(ΔG + Rgas*ps.T*log(mratio))/(ΔGATP)
+    ηs = collect(range(0.33;length=200,stop=ηmax))
+    # Preallocate vectors to store
+    rs = zeros(length(ηs))
+    θs = zeros(length(ηs))
+    # Loop over η values
+    for i = 1:length(ηs)
+        # Calculate thermodynamic inhibition
+        θs[i] = θ_smooth(S,P,ps.T,ηs[i],ΔG)
+        # Then use to calculate rate
+        rs[i] = qs(ps.mics[1],S,P,E,θs[i])
+    end
+    # Make a vector of η*rate
+    as = ηs.*rs
+    # Rescale vectors as fractions of maximum
+    rs = rs/maximum(rs)
+    as = as/maximum(as)
+    # Now setup plotting
+    pyplot()
+    # Set a color-blind friendly palette
+    theme(:wong2,dpi=200)
+    plot(ηs,rs,label="Reaction rate")
+    plot!(ηs,θs,label="Inhibition")
+    plot!(ηs,as,label="ATP rate",xlabel=L"\eta")
+    savefig("Output/TrdOff.png")
+    return(nothing)
+end
+
+@time plt_trdff()

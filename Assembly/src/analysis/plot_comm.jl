@@ -441,7 +441,7 @@ function hist_time()
     return(nothing)
 end
 
-# Function to analyse and
+# Function to analyse and plot the flux through networks
 function net_vis()
     # Check that sufficent arguments have been provided
     if length(ARGS) < 2
@@ -551,8 +551,9 @@ function net_vis()
     histogram(mf,bins=range(1,stop=O+1,length=O+1))
     plot!(title="$(R) reactions",xlabel="Reaction with greatest flux")
     savefig("Output/MaxFluxType$(R).png")
-    # Now find and plot average flux
+    # Now find average flux
     fRT /= nR
+    # Then plot
     bar(fRT,label="",xlabel="Reaction number",ylabel="Average flux")
     plot!(title="$(R) reactions")
     savefig("Output/AverageReacsType$(R).png")
@@ -754,4 +755,4 @@ function react_scat()
     return(nothing)
 end
 
-@time react_scat()
+@time net_vis()

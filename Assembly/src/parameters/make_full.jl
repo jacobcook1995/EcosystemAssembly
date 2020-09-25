@@ -62,6 +62,19 @@ function fix_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
     return(RP,ΔG)
 end
 
+# function to take in average kinetic parameters and return randomised vectors of them
+function kin_rand(kc::Float64,KS::Float64,kr::Float64,R::Int64)
+    # Make probability distribution
+    d = Normal()
+    # Generate array of random numbers
+    rs = rand(d,R,3)
+    # Then use to generate randomly varibles that have same probability to be half as double average
+    kcs = kc*(2.0.^rs[:,1])
+    KSs = KS*(2.0.^rs[:,2])
+    krs = kr*(2.0.^rs[:,3])
+    return(kcs,KSs,krs)
+end
+
 # function to generate parameter set for the model with inhibition
 function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Float64,KS::Float64,kr::Float64)
     @assert O >= mR + 5*sdR "Not enough reactions to ensure that microbes have on average mR reactions"
@@ -117,9 +130,7 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Floa
         # For each microbe generate random set of reactions
         R, Reacs = choose_reactions(O,mR,sdR)
         # Make vectors of the (fixed) kinetic parameters
-        kcs = kc*ones(R)
-        KSs = KS*ones(R)
-        krs = kr*ones(R)
+        kcs, KSs, krs = kin_rand(kc,KS,kr,R)
         # Reactions given random proportional weightings, done this in the simplest way possible
         ϕP = rand(R)
         ϕP = ϕP/sum(ϕP)

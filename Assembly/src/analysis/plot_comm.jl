@@ -6,6 +6,12 @@ using JLD
 using SymPy
 import PyPlot
 
+# Extra function to find rate from thermodynamic inhibition, just useful for plotting
+function qs(ps::MicrobeP,S::Float64,P::Float64,E::Float64,θs::Float64)
+    q = ps.kc[1]*E*S*(1-θs)/(ps.KS[1] + S*(1+ps.kr[1]*θs))
+    return(max(q,0.0))
+end
+
 # function to calculate the dissipation for an assembled ecosystem
 function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64,1})
     # Define number of strains
@@ -755,4 +761,4 @@ function react_scat()
     return(nothing)
 end
 
-@time net_vis()
+@time plt_trdff()

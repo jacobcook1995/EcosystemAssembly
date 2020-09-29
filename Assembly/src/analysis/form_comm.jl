@@ -1,7 +1,6 @@
 # A script to form stable communities using the full model that then saves them for later use
 using Assembly
 using JLD
-using SymPy
 
 # Function to assemble specfic communities
 function assemble()

@@ -2,7 +2,6 @@
 # in if they can successfully invade
 using Assembly
 using JLD
-using SymPy
 
 # function to run simulation to steady state
 function stead(ps::InhibParameters,Tmax::Float64,pop::Array{Float64,1},conc::Array{Float64,1})

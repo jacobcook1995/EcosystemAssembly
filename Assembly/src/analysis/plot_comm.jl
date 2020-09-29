@@ -3,7 +3,6 @@ using Assembly
 using Plots
 using LaTeXStrings
 using JLD
-using SymPy
 import PyPlot
 
 # Extra function to find rate from thermodynamic inhibition, just useful for plotting

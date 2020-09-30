@@ -47,6 +47,7 @@ function bi_net()
     sp = Array{Int64,1}(undef,0) # Strain posistions
     sl = Array{Int64,1}(undef,0) # Strain links
     sf = Array{Float64,1}(undef,0) # Production fluxes
+    rs = Array{Int64,1}(undef,0) # Reaction IDs
     # Metabolite to strain link => consumption
     # Strain to metabolite link => production
     # Loop over all species
@@ -67,7 +68,7 @@ function bi_net()
                 # Find enzyme as we need this for the flux
                 E = Eα(out[2*ps.N+ps.M+i],ps.mics[i],j)
                 # Find flux, same for both cases as we are looking at a one to one reaction
-                q = qs(out[ps.N+indS],out[ps.N+indP],E::Float64,j,ps.mics[i],ps.T,ps.reacs[ps.mics[i].Reacs[j]])
+                q = qs(out[ps.N+indS],out[ps.N+indP],E,j,ps.mics[i],ps.T,ps.reacs[ps.mics[i].Reacs[j]])
                 f = out[j]*q/NA
                 # Add consumption link
                 mp = cat(mp,indS,dims=1)
@@ -77,15 +78,18 @@ function bi_net()
                 sp = cat(sp,i,dims=1)
                 sl = cat(sl,indP,dims=1)
                 sf = cat(sf,f,dims=1)
+                # Save reaction ID
+                rs = cat(rs,ps.mics[i].Reacs[j],dims=1)
             end
         end
     end
     # Combine all 4 lists into one matrix to output
-    A = zeros(Int64,4,length(mp))
+    A = zeros(Int64,5,length(mp))
     A[1,:] = mp
     A[2,:] = ml
     A[3,:] = sp
     A[4,:] = sl
+    A[5,:] = rs
     # Add 2 fluxes lists to also be output
     B = zeros(Float64,2,length(mp))
     B[1,:] = mf

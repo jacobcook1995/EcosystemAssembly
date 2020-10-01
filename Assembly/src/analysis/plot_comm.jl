@@ -620,26 +620,54 @@ function plt_trdff()
     # Preallocate vectors to store
     rs = zeros(length(ηs))
     θs = zeros(length(ηs))
+    # Extra data to show impact of syntrophy
+    Ps = [100.0*P,10.0*P,P,P/10.0,P/100.0]
+    rs2 = zeros(length(ηs),length(Ps))
     # Loop over η values
     for i = 1:length(ηs)
         # Calculate thermodynamic inhibition
         θs[i] = θ_smooth(S,P,ps.T,ηs[i],ΔG)
         # Then use to calculate rate
         rs[i] = qs(ps.mics[1],S,P,E,θs[i])
+        # Calculate the data needed to show the effect of syntrophy
+        for j = 1:size(rs2,2)
+            # Find temporary θ value for this case
+            θt = θ_smooth(S,Ps[j],ps.T,ηs[i],ΔG)
+            rs2[i,j] = qs(ps.mics[1],S,Ps[j],E,θt)
+        end
     end
     # Make a vector of η*rate
     as = ηs.*rs
     # Rescale vectors as fractions of maximum
     rs = rs/maximum(rs)
-    as = as/maximum(as)
+    as2 = as/maximum(as)
     # Now setup plotting
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=200)
     plot(ηs,rs,label="Reaction rate")
     plot!(ηs,θs,label="Inhibition")
-    plot!(ηs,as,label="ATP rate",xlabel=L"\eta")
+    plot!(ηs,as2,label="ATP rate",xlabel=L"\eta")
     savefig("Output/TrdOff.png")
+    # Do plot of just the tradeoff
+    plot(ηs,as,label="",xlabel=L"\eta",ylabel="ATP production rate")
+    savefig("Output/BareTrdOff.png")
+    # Want a detailed visulisation of the peak
+    inds = findall(x->(3.25<=x<=3.75),ηs)
+    plot(ηs[inds],rs[inds],label="Reaction rate")
+    plot!(ηs[inds],θs[inds],label="Inhibition")
+    plot!(ηs[inds],as2[inds],label="ATP rate",xlabel=L"\eta")
+    savefig("Output/PeakTrdOff.png")
+    # Make a vector of η*rate
+    as3 = ηs.*rs2
+    # Define labels for the plot
+    lbs = Array{String,2}(undef,1,5)
+    for i = 1:5
+        lbs[i] = "Prd conc = $(round(Ps[i],sigdigits=3))"
+    end
+    # Now calculate and plot syntrophy stuff
+    plot(ηs,as3,xlabel=L"\eta",labels=lbs)
+    savefig("Output/SynTrdOff.png")
     return(nothing)
 end
 

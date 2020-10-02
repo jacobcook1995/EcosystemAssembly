@@ -17,6 +17,12 @@ function θ_smooth(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
     return(min(θs,1.0))
 end
 
+# Extra function to find rate from thermodynamic inhibition, just useful for plotting
+function qs(ps::MicrobeP,S::Float64,P::Float64,E::Float64,θs::Float64)
+    q = ps.kc[1]*E*S*(1-θs)/(ps.KS[1] + S*(1+ps.kr[1]*θs))
+    return(max(q,0.0))
+end
+
 # function to find the rate of substrate consumption by a particular reaction
 function qs(S::Float64,P::Float64,E::Float64,i::Int64,ps::MicrobeP,T::Float64,r::Reaction)
     # To speed things I don't have a check here to ensure that r.ID matches ps.Reac[i]

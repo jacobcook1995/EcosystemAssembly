@@ -5,12 +5,6 @@ using LaTeXStrings
 using JLD
 import PyPlot
 
-# Extra function to find rate from thermodynamic inhibition, just useful for plotting
-function qs(ps::MicrobeP,S::Float64,P::Float64,E::Float64,θs::Float64)
-    q = ps.kc[1]*E*S*(1-θs)/(ps.KS[1] + S*(1+ps.kr[1]*θs))
-    return(max(q,0.0))
-end
-
 # function to calculate the dissipation for an assembled ecosystem
 function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64,1})
     # Define number of strains
@@ -271,6 +265,8 @@ function hist_time()
     svinf = zeros(rps,length(Ts))
     # Preallocate vector to store percentage of free energy dissipated (under standard conditions)
     pd = fill(Float64[],length(Ts))
+    # Similar vector to store populations
+    pps = fill(Float64[],length(Ts))
     # Preallocate vector of dissipation rates
     dsp = zeros(rps,length(Ts))
     # And the same for dissipation rate per unit biomass
@@ -336,7 +332,7 @@ function hist_time()
             srv[i,j] = count(x->(x>0.0),pops)
             # Calculate rate of change in previous two steps of the dynamics
             dC = ((C[indT,1:N] .- C[indT-1,1:N])/(T[indT] - T[indT-1]))./(C[indT,1:N])
-            # Two conditions, strain alive, strain not dieing off
+            # Two conditions, strain alive, strain not dying off
             a = pops .> 0.0
             b = dC .>= -5e-9
             # Count number of strains fufilling both conditions
@@ -355,6 +351,8 @@ function hist_time()
             for k = 1:N
                 # Need to determine the non-zero populations
                 if pops[k] != 0.0
+                    # Add population to vector of populations
+                    pps[j] = cat(pps[j],log10(pops[k]),dims=1)
                     # Find vector of η values
                     ηs = ms[k].η
                     # make temporary vector for percentages
@@ -443,6 +441,11 @@ function hist_time()
     histogram(po,labels=Tlbs[:,inds],fillalpha=0.75)
     plot!(title="$(R) reactions",xlabel="Percentage of reactions obligate")
     savefig("Output/PerObType$(R).png")
+    # Final plot histogram of the populations (as measure of fitness)
+    inds = [5]
+    histogram(pps[inds],labels=Tlbs[:,inds],fillalpha=0.75)
+    plot!(title="$(R) reactions",xlabel="Population (log scale)")
+    savefig("Output/PopsType$(R).png")
     return(nothing)
 end
 
@@ -788,4 +791,4 @@ function react_scat()
     return(nothing)
 end
 
-@time plt_trdff()
+@time hist_time()

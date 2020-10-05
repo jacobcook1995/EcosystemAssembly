@@ -267,6 +267,10 @@ function hist_time()
     pd = fill(Float64[],length(Ts))
     # Similar vector to store populations
     pps = fill(Float64[],length(Ts))
+    # Similar vectors for kinetic parameters
+    kc = fill(Float64[],length(Ts))
+    KS = fill(Float64[],length(Ts))
+    kr = fill(Float64[],length(Ts))
     # Preallocate vector of dissipation rates
     dsp = zeros(rps,length(Ts))
     # And the same for dissipation rate per unit biomass
@@ -366,6 +370,10 @@ function hist_time()
                     end
                     # Here I cat into the preallocated array of arrays
                     pd[j] = cat(pd[j],pdt,dims=1)
+                    # Find kinetic variables and cat in
+                    kc[j] = cat(kc[j],ms[k].kc,dims=1)
+                    KS[j] = cat(KS[j],ms[k].KS,dims=1)
+                    kr[j] = cat(kr[j],ms[k].kr,dims=1)
                     # Next want to catagorise this surviving microbes reactions
                     for l = 1:ms[k].R
                         # Find substrate concentration
@@ -413,39 +421,54 @@ function hist_time()
     # Pick appropriate indices
     inds = [3,5]
     histogram(srv[:,inds],labels=Tlbs[:,inds],fillalpha=0.75)
-    plot!(title="$(R) reactions",xlabel="Number of surviving strains")
+    plot!(title="$(R) reactions per strain",xlabel="Number of surviving strains")
     savefig("Output/SvType$(R).png")
     inds = [5]
     histogram(svinf[:,inds],labels="",fillalpha=0.75)
-    plot!(title="$(R) reactions",xlabel="Survivors at infinity")
+    plot!(title="$(R) reactions per strain",xlabel="Survivors at infinity")
     savefig("Output/InfSvType$(R).png")
     inds = [2,5]
     histogram(dsp[:,inds],labels=Tlbs[:,inds],fillalpha=0.75)
-    plot!(title="$(R) reactions",xlabel="Dissipation rate (Js$(m1))")
+    plot!(title="$(R) reactions per strain",xlabel="Dissipation rate (Js$(m1))")
     savefig("Output/DispType$(R).png")
     inds = [1,5]
     histogram(b_dsp[:,inds],labels=Tlbs[:,inds],fillalpha=0.75)
-    plot!(title="$(R) reactions",xlabel="Dissipation rate (Js$(m1)) per cell")
+    plot!(title="$(R) reactions per strain",xlabel="Dissipation rate (Js$(m1)) per cell")
     savefig("Output/BDispType$(R).png")
     inds = [1,5]
     histogram(pd[inds],labels=Tlbs[:,inds],fillalpha=0.75)
-    plot!(title="$(R) reactions",xlabel="Percentage of free energy dissipated")
+    plot!(title="$(R) reactions per strain",xlabel="Percentage of free energy dissipated")
     savefig("Output/RDispType$(R).png")
     # Find and plot percentage active
     inds = [2,5]
     pa = 100*(1 .- inact[:,inds]./(inact[:,inds].+ob[:,inds].+nob[:,inds]))
     histogram(pa,labels=Tlbs[:,inds],fillalpha=0.75)
-    plot!(title="$(R) reactions",xlabel="Percentage of reactions active")
+    plot!(title="$(R) reactions per strain",xlabel="Percentage of reactions active")
     savefig("Output/PerActType$(R).png")
     po = 100*ob[:,inds]./(ob[:,inds].+nob[:,inds])
     histogram(po,labels=Tlbs[:,inds],fillalpha=0.75)
-    plot!(title="$(R) reactions",xlabel="Percentage of reactions obligate")
+    plot!(title="$(R) reactions per strain",xlabel="Percentage of reactions obligate")
     savefig("Output/PerObType$(R).png")
-    # Final plot histogram of the populations (as measure of fitness)
+    # plot histogram of the populations (as measure of fitness)
     inds = [5]
     histogram(pps[inds],labels=Tlbs[:,inds],fillalpha=0.75)
-    plot!(title="$(R) reactions",xlabel="Population (log scale)")
+    plot!(title="$(R) reactions per strain",xlabel="Population (log scale)")
     savefig("Output/PopsType$(R).png")
+    # Plot histograms of the kinetic parameters
+    inds = [1,2,3,4,5]
+    histogram(kc[inds],labels=Tlbs[:,inds],fillalpha=0.75)
+    plot!(title="$(R) reactions per strain",xlabel=L"k_c")
+    savefig("Output/kcType$(R).png")
+    # Saturation constant
+    inds = [1,2,3,4,5]
+    histogram(KS[inds],labels=Tlbs[:,inds],fillalpha=0.75)
+    plot!(title="$(R) reactions per strain",xlabel=L"K_S")
+    savefig("Output/KSType$(R).png")
+    # reversibility factot
+    inds = [1,2,3,4,5]
+    histogram(kr[inds],labels=Tlbs[:,inds],fillalpha=0.75)
+    plot!(title="$(R) reactions per strain",xlabel=L"k_r")
+    savefig("Output/krType$(R).png")
     return(nothing)
 end
 
@@ -481,13 +504,18 @@ function net_vis()
     end
     ps = load(pfile,"ps")
     # Preallocate vectors to store data for histograms
-    cA = zeros(nR)
-    mf = zeros(nR)
+    cA = zeros(Int64,nR)
+    mf = zeros(Int64,nR)
     O = ps.O
     # Preallocate flows through reactions
     fR = zeros(ps.O)
     fRT = zeros(ps.O)
-    # Loop over
+    # Preallocate count of number of species possing particular reaction
+    rs = [2,6,10,13]
+    crs = zeros(Int64,nR,length(rs))
+    rs2 = [3,7,11]
+    crs2 = zeros(Int64,nR,length(rs2))
+    # Loop over repeats
     for i = 1:nR
         # Read in relevant files
         pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
@@ -527,6 +555,18 @@ function net_vis()
                     q = qs(S,P,E,ind,ps.mics[k],ps.T,ps.reacs[j])
                     # Flux is reaction rate * population
                     fR[j] += q*out[k]
+                    # Check if reaction is one of those I'm interested in
+                    if j ∈ rs
+                        # Then find index if so
+                        ind2 = findfirst(x->x==j,rs)
+                        # Then update to show that reaction is possessed by strain
+                        crs[i,ind2] += 1
+                    elseif j ∈ rs2
+                        # Then find index if so
+                        ind2 = findfirst(x->x==j,rs2)
+                        # Then update to show that reaction is possessed by strain
+                        crs2[i,ind2] += 1
+                    end
                 end
             end
         end
@@ -537,16 +577,6 @@ function net_vis()
         cA[i] = count(x->x>0.0,fR)
         # Find reaction with the maximum flux
         _, mf[i] = findmax(fR)
-        # Plot bar charts for specfic individual ecosystems
-        if i == 20
-            # Set up plotting
-            pyplot()
-            # Set a color-blind friendly palette
-            theme(:wong2,dpi=200)
-            bar(fR,label="",xlabel="Reaction number",ylabel="Flux")
-            plot!(title="$(R) reactions")
-            savefig("Output/ReacsType$(R).png")
-        end
     end
     # Set up plotting
     pyplot()
@@ -554,17 +584,25 @@ function net_vis()
     theme(:wong2,dpi=200)
     # Plot histogram of the number of active reactions
     histogram(cA,bins=range(0,stop=O+1,length=O+2))
-    plot!(title="$(R) reactions",xlabel="Number of active reactions")
+    plot!(title="$(R) reactions per strain",xlabel="Number of active reactions")
     savefig("Output/ActiveReactionsType$(R).png")
     histogram(mf,bins=range(1,stop=O+1,length=O+1))
-    plot!(title="$(R) reactions",xlabel="Reaction with greatest flux")
+    plot!(title="$(R) reactions per strain",xlabel="Reaction with greatest flux")
     savefig("Output/MaxFluxType$(R).png")
     # Now find average flux
     fRT /= nR
     # Then plot
     bar(fRT,label="",xlabel="Reaction number",ylabel="Average flux")
-    plot!(title="$(R) reactions")
+    plot!(title="$(R) reactions per strain")
     savefig("Output/AverageReacsType$(R).png")
+    # Now plot how many strains have each reaction
+    histogram(crs,labels=rs',fillalpha=0.75)
+    plot!(title="$(R) reactions per strain",xlabel="Number of strains with reaction")
+    savefig("Output/StrainReactionsType$(R).png")
+    # Now plot how many strains have each reaction
+    histogram(crs2,labels=rs2',fillalpha=0.75)
+    plot!(title="$(R) reactions per strain",xlabel="Number of strains with reaction")
+    savefig("Output/AltStrainReactionsType$(R).png")
     return(nothing)
 end
 

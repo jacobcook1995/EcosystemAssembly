@@ -508,13 +508,19 @@ function net_vis()
     mf = zeros(Int64,nR)
     O = ps.O
     # Preallocate flows through reactions
-    fR = zeros(ps.O)
     fRT = zeros(ps.O)
+    # Percentage flow through most contributing strain
+    prf = zeros(nR,ps.O)
     # Preallocate count of number of species possing particular reaction
     rs = [2,6,10,13]
     crs = zeros(Int64,nR,length(rs))
     rs2 = [3,7,11]
     crs2 = zeros(Int64,nR,length(rs2))
+    # Preallocate storage for best kinetic parameters
+    KSs = []
+    krs = []
+    kcs = []
+    ϕps = []
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files
@@ -536,6 +542,21 @@ function net_vis()
         T = load(ofile,"T")
         out = load(ofile,"out")
         ded = load(efile,"ded")
+        # Temporary way of storing the fluxes for this realisation
+        fR = zeros(ps.O)
+        # Highest flux from one reaction (for particular strain)
+        bstf = zeros(ps.N)
+        # reaction that acheives this
+        bstr = zeros(Int64,ps.N)
+        # Highest flux through one strain
+        hghf = zeros(ps.O)
+        # microbes that acheive that flux
+        bstm = zeros(Int64,ps.O)
+        # Make temp vectors for kinetic parameters
+        ϕp = zeros(ps.N)
+        KS = zeros(ps.N)
+        kr = zeros(ps.N)
+        kc = zeros(ps.N)
         # Loop over all reactions
         for j = 1:ps.O
             # Loop over microbes
@@ -555,6 +576,16 @@ function net_vis()
                     q = qs(S,P,E,ind,ps.mics[k],ps.T,ps.reacs[j])
                     # Flux is reaction rate * population
                     fR[j] += q*out[k]
+                    # Check if reaction flux is higher than other reactions for strain
+                    if q*out[k] > bstf[k]
+                        bstf[k] = q*out[k]
+                        bstr[k] = j
+                    end
+                    # Check if reaction flux is higher than other reactions for strain
+                    if q*out[k] > hghf[j]
+                        hghf[j] = q*out[k]
+                        bstm[j] = k
+                    end
                     # Check if reaction is one of those I'm interested in
                     if j ∈ rs
                         # Then find index if so
@@ -570,8 +601,29 @@ function net_vis()
                 end
             end
         end
+        # Now want to find percentage of total flux carried by greatest contributing strain
+        for j = 1:ps.O
+            if fR[j] > 0.0
+                prf[i,j] = (hghf[j]/fR[j])*100.0
+            end
+        end
+        # Now for each strain want to find relevant parameters
+        for j = 1:ps.N
+            # Find where in the vector the reaction number is found
+            ind = findfirst(x->(x==bstr[j]),ps.mics[j].Reacs)
+            KS[j] = ps.mics[j].KS[ind]
+            kc[j] = ps.mics[j].kc[ind]
+            kr[j] = ps.mics[j].kr[ind]
+            ϕp[j] = ps.mics[j].ϕP[ind]
+        end
+        # Add these kinetic parameters to storage
+        KSs = cat(KSs,KS,dims=1)
+        kcs = cat(kcs,kc,dims=1)
+        krs = cat(krs,kr,dims=1)
+        ϕps = cat(ϕps,ϕp,dims=1)
         # Now want to put fluxes in units of moles
         fR = fR./NA
+        # Then add to the total
         fRT = fRT .+ fR
         # count the number of active reactions
         cA[i] = count(x->x>0.0,fR)
@@ -603,6 +655,30 @@ function net_vis()
     histogram(crs2,labels=rs2',fillalpha=0.75)
     plot!(title="$(R) reactions per strain",xlabel="Number of strains with reaction")
     savefig("Output/AltStrainReactionsType$(R).png")
+    # Preallocate percent data to plot
+    perc = zeros(ps.O)
+    for i = 1:ps.O
+        # Count zero elements and remove from sum
+        ct = count(x->x==0.0,prf[:,i])
+        if ct != nR
+            perc[i] = sum(prf[:,i])/(nR-ct)
+        else
+            perc[i] = 0.0
+        end
+    end
+    # Now plot how many strains have each reaction
+    bar(perc,label="",ylabel="Average percentage of flux through top strain")
+    plot!(title="$(R) reactions per strain",xlabel="Reaction number")
+    savefig("Output/PercentFluxType$(R).png")
+    # Kinetic plots (CLEANUP LATER)
+    histogram(KSs)
+    savefig("Output/test1.png")
+    histogram(kcs)
+    savefig("Output/test2.png")
+    histogram(krs)
+    savefig("Output/test3.png")
+    histogram(ϕps)
+    savefig("Output/test4.png")
     return(nothing)
 end
 
@@ -829,4 +905,4 @@ function react_scat()
     return(nothing)
 end
 
-@time hist_time()
+@time net_vis()

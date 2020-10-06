@@ -3,6 +3,7 @@ using Assembly
 using Plots
 using LaTeXStrings
 using JLD
+using StatsBase
 import PyPlot
 
 # function to calculate the dissipation for an assembled ecosystem
@@ -670,15 +671,57 @@ function net_vis()
     bar(perc,label="",ylabel="Average percentage of flux through top strain")
     plot!(title="$(R) reactions per strain",xlabel="Reaction number")
     savefig("Output/PercentFluxType$(R).png")
-    # Kinetic plots (CLEANUP LATER)
-    histogram(KSs)
-    savefig("Output/test1.png")
-    histogram(kcs)
-    savefig("Output/test2.png")
-    histogram(krs)
-    savefig("Output/test3.png")
-    histogram(ϕps)
-    savefig("Output/test4.png")
+    # Define distribution functions
+    @. f_ln(x,μ,σ) = (1/(x*σ*sqrt(2*π)))*exp(-((log(x)-μ)^2)/(2*σ^2))
+    @. f_nm(x,μ,σ) = (1/(σ*sqrt(2*π)))*exp(-(1/2)*((x-μ)/(σ))^2)
+    # Then manually calculate histograms
+    bins1 = range(1e-4,stop=maximum(KSs),length=500)
+    h1 = fit(Histogram,KSs,bins1,closed=:right)
+    bins2 = range(1e-4,stop=maximum(kcs),length=500)
+    h2 = fit(Histogram,kcs,bins2,closed=:right)
+    bins3 = range(1e-4,stop=maximum(krs),length=500)
+    h3 = fit(Histogram,krs,bins3,closed=:right)
+    bins4 = range(1e-4,stop=maximum(ϕps),length=500)
+    h4 = fit(Histogram,ϕps,bins4,closed=:right)
+    # Then plot as bar charts, with inital distribution included
+    bar(h1,label="Main reaction")
+    # Find variables needed for the distribution
+    μ1 = log((1/4)*5.5e-3)
+    σ1 = log(2)
+    # Renormalise distribution for plotting
+    d1 = f_ln(bins1,μ1,σ1)
+    d1 /= maximum(d1)
+    plot!(bins1,maximum(h1.weights)*d1,label="Orginal distribution")
+    plot!(title="$(R) reactions per strain",xlabel=L"K_S")
+    savefig("Output/TopKSType$(R).png")
+    bar(h2,label="Main reaction")
+    μ2 = log(10.0)
+    σ2 = log(2)
+    d2 = f_ln(bins2,μ2,σ2)
+    d2 /= maximum(d2)
+    plot!(bins2,maximum(h2.weights)*d2,label="Orginal distribution")
+    plot!(title="$(R) reactions per strain",xlabel=L"k_c")
+    savefig("Output/TopkcType$(R).png")
+    bar(h3,label="Main reaction")
+    μ3 = log(10.0)
+    σ3 = log(2)
+    d3 = f_ln(bins3,μ3,σ3)
+    d3 /= maximum(d3)
+    plot!(bins3,maximum(h3.weights)*d3,label="Orginal distribution")
+    plot!(title="$(R) reactions per strain",xlabel=L"k_r")
+    savefig("Output/TopkrType$(R).png")
+    bar(h4,label="Main reaction")
+    μ4 = 1/R
+    # No variation unless R > 1
+    σ4 = 0.0
+    if R != 1
+        σ4 = (1/(R*sqrt(3)))*sqrt(1+(1/R))
+    end
+    d4 = f_nm(bins4,μ4,σ4)
+    d4 /= maximum(d4)
+    plot!(bins4,maximum(h4.weights)*d4,label="Orginal distribution")
+    plot!(title="$(R) reactions per strain",xlabel=L"\phi_p")
+    savefig("Output/TopPhiPType$(R).png")
     return(nothing)
 end
 

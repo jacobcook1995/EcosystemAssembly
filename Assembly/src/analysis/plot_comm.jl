@@ -948,4 +948,23 @@ function react_scat()
     return(nothing)
 end
 
-@time net_vis()
+# Function to make legend describing reactions
+function legend()
+    # Choose backend
+    pyplot()
+    # Set a color-blind friendly palette, dpi huge so I can crop legend
+    theme(:wong2,dpi=200)
+    a = [0,1]
+    b = [0,1]
+    ra = L"\rightarrow"
+    plot(title="Arbitary data ignore")
+    for i = 1:13
+        s = floor(Int64,(i+1)/2)
+        p = 1 + ceil(Int64,(i+1)/2)
+        plot!(a,b,label="$i: $(s)$(ra)$(p)",color=:white)
+    end
+    savefig("Output/Legend.png")
+    return(nothing)
+end
+
+@time legend()

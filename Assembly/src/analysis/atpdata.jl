@@ -41,9 +41,9 @@ function hampel_filter(x::Array{Float64,1},k::Int64)
     return(kp)
 end
 
+# Need to work out how to remove the correct points
 function atp_read()
     # Read in csv file
-    # dataf = CSV.read("Data/dataset_22C_3d_atp_2.csv")
     dataf = DataFrame!(CSV.File("Data/dataset_22C_3d_atp_2.csv"))
     # Count the number of unique ID's
     ids = unique(dataf.ID)
@@ -51,60 +51,95 @@ function atp_read()
     # count the number of trait names
     tns = unique(dataf.trait_name)
     nt = length(tns)
-    # Call PyPlot
-    pyplot(dpi=150)
-    # Then plot all the graphs at once
-    for i = 1:nt
-        for j = 1:ni
-            # Find all data of a certain type for a particular ID
-            I = (dataf.ID .== ids[j]) .& (dataf.trait_name .== tns[i])
-            # Find genus name to use as a title
-            gen = dataf.bacterial_genus[I][1]
-            # Find trait name to use as a y label
-            yl = dataf.trait_name[I][1]
-            # Add the appropriate titles
-            plot(xlabel="Time (hours)",ylabel=yl,title=gen)
+    # Need to make a data structure to contain all the data
+    data = fill(Float64[],ni,nt,4,2)
+    # Structure to store genus names
+    genus = Array{String,1}(undef,ni)
+    # Store genus names
+    for i = 1:ni
+        # Find all data of a certain type for a particular ID
+        It = (dataf.ID .== ids[i])
+        # Find genus name to use as a title
+        genus[i] = dataf.bacterial_genus[It][1]
+    end
+    # Make a bool of valid points
+    val = fill(true,length(dataf.ID))
+    # Locate anamolous points
+    an1 = (dataf.bacterial_genus .== "Flavobacterium") .& (dataf.replicate .== 2) .&
+    (dataf.minute .>= 3012) .& (dataf.trait_name .== tns[3])
+    an2 = (dataf.bacterial_genus .== "Pseudomonas(2)") .& (dataf.replicate .== 1) .&
+    (dataf.minute .>= 3012) .& (dataf.trait_name .== tns[3])
+    an3 = (dataf.bacterial_genus .== "Serratia") .& (dataf.replicate .== 1) .&
+    (dataf.trait_name .== tns[3])
+    # Set these points as invalid
+    val[an1] .= false
+    val[an2] .= false
+    val[an3] .= false
+    # Loop over all three conditions
+    for m = 1:3
+        for i = 1:ni
+            # Find all cell count data with species ID
+            I = (dataf.ID .== ids[i]) .& (dataf.trait_name .== tns[m])
             # Count number of replicates
             rps = unique(dataf.replicate[I])
             nr = length(rps)
             # Find unique times and order them
             ts = sort(unique(dataf.minute[I]))
-            # Now loop over times
-            for k = 1:length(ts)
-                # Group samples by time
-                IT = I .& (dataf.minute .== ts[k])
-                # Then perform hampel filter on sample
-                kp = hampel_filter(dataf.trait_value[IT],3)
-                # Loop over this output
-                for m = 1:length(kp)
-                    # Overwrite the replicate number with 0
-                    if kp[m] == 0
-                        (dataf.replicate[IT])[m] = 0
+            # Only remove points if they are ATP data
+            if m == 3
+                # Now loop over times
+                for j = 1:length(ts)
+                    # Group samples by time
+                    IT = I .& (dataf.minute .== ts[j])
+                    # Then perform hampel filter on sample
+                    kp = hampel_filter(dataf.trait_value[IT],3)
+                    # Loop over this output
+                    for k = 1:length(kp)
+                        # Overwrite the replicate number with 0
+                        if kp[k] == 0
+                            # Find indices of true values in IT
+                            inds = findall(x->x==true,IT)
+                            # The k'th index should then be marked false
+                            val[inds[k]] = false
+                        end
                     end
                 end
             end
-            # IT DOESN'T FULLY WORK, I THINK THIS IS BECAUSE I NEED TO RUN IT ON
-            # ONLY THE CELL COUNT AND THEN DELETE CORRESPONDING ATP VALUES
-            # Now loop over the replicates
-            for k = 1:nr
-                # Find data for particular index
-                I2 = I .& (dataf.replicate .== rps[k])
-                # Then plot the data
-                if i == 3
-                    scatter!((dataf.minute[I2])/60.0,(dataf.trait_value[I2])*1e-9,label="")
-                elseif i == 1
-                    scatter!((dataf.minute[I2])/60.0,(dataf.trait_value[I2]),label="")
+            # Loop over replicates
+            for j = 1:nr
+                # Only save valid cases with particular replicate number
+                I2 = I .& (dataf.replicate .== rps[j]) .& val
+                # Save times
+                data[i,m,j,1] = dataf.minute[I2]
+                # and save corresponding values
+                if m == 3
+                    data[i,m,j,2] = 1e-9.*dataf.trait_value[I2]
                 else
-                    scatter!(dataf.minute[I2]/60.0,dataf.trait_value[I2],label="")
+                    data[i,m,j,2] = dataf.trait_value[I2]
                 end
             end
-            # Finally save the plot
-            if i == 1
-                savefig("Output/ATPDataPlots/$(gen)Cells.png")
-            elseif i == 2
-                savefig("Output/ATPDataPlots/$(gen)Biomass.png")
+        end
+    end
+    # Call PyPlot
+    pyplot()
+    # Set a color-blind friendly palette
+    theme(:wong2,dpi=150)
+    # Plot all graphs
+    for k = 1:3
+        for i = 1:ni
+            # Add appropriate times and labels
+            plot(xlabel="Time (hours)",ylabel=tns[3],title=genus[i])
+            # Loop over repeats to plot replicates
+            for j = 1:4
+                scatter!(data[i,k,j,1]/60.0,data[i,k,j,2],label="")
+            end
+            # Then save plot
+            if k == 1
+                savefig("Output/ATPDataPlots/Cells/$(genus[i]).png")
+            elseif k == 2
+                savefig("Output/ATPDataPlots/Biomass/$(genus[i]).png")
             else
-                savefig("Output/ATPDataPlots/$(gen)ATP.png")
+                savefig("Output/ATPDataPlots/ATP/$(genus[i]).png")
             end
         end
     end

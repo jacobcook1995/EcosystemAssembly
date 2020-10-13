@@ -1,4 +1,5 @@
 # Script to read in organise and plot the ATP data
+using Assembly
 using CSV
 using DataFrames
 using Plots
@@ -7,7 +8,6 @@ using StatsBase
 import PyPlot
 
 # Writing a function to perform a hampel filter on a data set
-# IF I USE THIS IN A PAPER I NEED TO CHECK IT THROUGH CAREFULLY
 function hampel_filter(x::Array{Float64,1},k::Int64)
     # Preallocate vector of points to keep
     kp = fill(true,length(x))
@@ -39,6 +39,42 @@ function hampel_filter(x::Array{Float64,1},k::Int64)
         end
     end
     return(kp)
+end
+
+# function to evaluate energy concentration with time
+function dadt!(dx::Array{Float64,1},x::Array{Float64,1},m::MicrobeP,t::Float64)
+    # Need to find E
+    E = Eα(x[2],m,1)
+    # Assume far from equilbrium
+    θs = 0.0
+    # Find rate of energy aquisition
+    J = m.η[1]*qs(m,S,P,E,θs)
+    # Find elongation rate
+    γ = γs(x[1],m)
+    # Calculate growth rate
+    λ = λs(x[1],x[2],m)
+    # Calculate total change in energy concentration
+    dx[1] = J - (m.ρ*m.MC+a)*λ
+    # Calculate optimal ribosome fraction
+    ϕR_opt = ϕ_R(x[1],m)
+    # Find time delay
+    τ = m.fd/λ
+    # Also update ribosome fraction
+    dx[2] = (ϕR - x[2])/τ
+    return(dx)
+end
+
+# function to use steppest descent to find optimal paramters to fit the emperical curves
+function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::Array{Float64,1})
+    # Choose initial ϕR value (not treating as a parameter)
+    ϕR0 = 0.05
+    # NEED TO DECIDE ON EXTERNAL CONCENTRATION
+    # ALSO NEED TO MAKE A MICROBE, DECIDE ON PARAMETERS ETC
+    # Calculate time span in seconds
+    Tspan = (maximum(times)-pt)*60.0
+    Kγ = 0.0
+    KΩ = 0.0
+    return(Kγ,ΚΩ)
 end
 
 # Need to work out how to remove the correct points
@@ -120,6 +156,70 @@ function atp_read()
             end
         end
     end
+    # Now want to find peak ATP values
+    pt = zeros(ni)
+    av = zeros(ni)
+    for i = 1:ni
+        # find all time points represented in ATP data
+        ts = unique([data[i,3,1,1];data[i,3,2,1];data[i,3,3,1];data[i,3,4,1]])
+        # loop over these time points
+        for j = 1:length(ts)
+            n = 0
+            aT = 0.0
+            # Loop over replicates
+            for k = 1:4
+                # Check if this time point is in the data
+                if ts[j] ∈ data[i,3,k,1]
+                    # increment count of points
+                    n += 1
+                    # Find index of point
+                    ind = findfirst(x->x==ts[j],data[i,3,k,1])
+                    # Add relevant point to the total
+                    aT += (data[i,3,k,2])[ind]
+                end
+            end
+            # Update values if average height is higher
+            if aT/n > av[i]
+                av[i] = aT/n
+                pt[i] = ts[j]
+            end
+        end
+    end
+    # Now find means and standard deviations of plots so that best fits can be found
+    for i = 1:ni
+        # find all time points represented in ATP data
+        ts = unique([data[i,3,1,1];data[i,3,2,1];data[i,3,3,1];data[i,3,4,1]])
+        mA = zeros(length(ts))
+        sdA = zeros(length(ts))
+        # loop over time points
+        for j = 1:length(ts)
+            dataA = []
+            n = 0
+            for k = 1:4
+                # Find if point it represented in the data
+                if ts[j] ∈ data[i,3,k,1]
+                    # If so increment counter
+                    n += 1
+                    # find relevant data point
+                    ind = findfirst(x->x==ts[j],data[i,3,k,1])
+                    # and add to the vector
+                    dataA = cat(dataA,(data[i,3,k,2])[ind],dims=1)
+                end
+            end
+            # Calculate mean
+            mA[j] = sum(dataA)/n
+            if n != 1
+                # Find standard deviation in case where it can be calculated
+                sdA[j] = stdm(dataA,mA[j])
+            else
+                # In case when mean calculated from one point, fix sd to high but not absurd value
+                sdA[j] = 0.5*mA[j]
+            end
+        end
+        # Give data to find best fit
+        Kγ, KΩ = prot_fit(ts,pt[i],mA,sdA)
+        return(nothing)
+    end
     # Call PyPlot
     pyplot()
     # Set a color-blind friendly palette
@@ -139,6 +239,7 @@ function atp_read()
             elseif k == 2
                 savefig("Output/ATPDataPlots/Biomass/$(genus[i]).png")
             else
+                vline!([pt[i]/60.0],label="")
                 savefig("Output/ATPDataPlots/ATP/$(genus[i]).png")
             end
         end

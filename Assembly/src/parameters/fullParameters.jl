@@ -1,7 +1,45 @@
 # This script of the parameters for the full model, including proteome parameters
 # This script depends on the Reaction type that is defined before
 
+# export very simple functions
+ export ↦
+
+ # Overloadable version of getfields
+ ↦(s, f) = getfield(s, f)
+
+export Reaction, make_Reaction
+
 export MicrobeP, make_MicrobeP, FullParameters, make_FullParameters, extinction
+
+"""
+     Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
+ Type containing the parameters for a particular reaction.
+ # Arguments
+ - `ID::Int64`: Number to identify reaction
+ - `Rct::Int64`: Identity number of reactant
+ - `Prd::Int64`: Identity number of product
+ - `ΔG0::Float64`: Standard Gibbs free energy change of the reaction
+ """
+ struct Reaction
+     ID::Int64;
+     Rct::Int64;
+     Prd::Int64;
+     ΔG0::Float64;
+ end
+
+ """
+     make_Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
+ Helper function used internally. Takes values for parameters and returns a `Reaction`object.
+ Also does checks internally to make sure the values are correct.
+ """
+ function make_Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
+     @assert ID > 0 "Reaction must be given a positive ID"
+     @assert Rct > 0 "All reactants must have postive IDs"
+     @assert Prd > 0 "All products must have postive IDs"
+     @assert Prd != Rct "Reactions cannot have same reactant and product"
+
+     return(Reaction(ID,Rct,Prd,ΔG0))
+ end
 
 """
     MicrobeP(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,ϕH::Float64,KΩ::Float64,

@@ -1,5 +1,6 @@
 # A script to do repeated runs of the Inhibition model, adding new microbes
 # in if they can successfully invade
+# THIS SCRIPT IS BASICALLY REDUNDANT NOW, BUT STILL CONTAINS SOME USEFUL CODE
 using Assembly
 using JLD
 

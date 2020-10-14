@@ -5,6 +5,7 @@ using DataFrames
 using Plots
 using Statistics
 using StatsBase
+using DifferentialEquations
 import PyPlot
 
 # Writing a function to perform a hampel filter on a data set
@@ -42,7 +43,7 @@ function hampel_filter(x::Array{Float64,1},k::Int64)
 end
 
 # function to evaluate energy concentration with time
-function dadt!(dx::Array{Float64,1},x::Array{Float64,1},m::MicrobeP,t::Float64)
+function dadt!(dx::Array{Float64,1},x::Array{Float64,1},m::MicrobeP,S::Float64,P::Float64,t::Float64)
     # Need to find E
     E = Eα(x[2],m,1)
     # Assume far from equilbrium
@@ -54,27 +55,150 @@ function dadt!(dx::Array{Float64,1},x::Array{Float64,1},m::MicrobeP,t::Float64)
     # Calculate growth rate
     λ = λs(x[1],x[2],m)
     # Calculate total change in energy concentration
-    dx[1] = J - (m.ρ*m.MC+a)*λ
+    dx[1] = J - (m.ρ*m.MC+x[1])*λ
     # Calculate optimal ribosome fraction
     ϕR_opt = ϕ_R(x[1],m)
     # Find time delay
     τ = m.fd/λ
     # Also update ribosome fraction
-    dx[2] = (ϕR - x[2])/τ
+    dx[2] = (ϕR_opt - x[2])/τ
     return(dx)
+end
+
+function eval_a(m::MicrobeP,S::Float64,P::Float64,ϕR0::Float64,Tmax::Float64,tsave::Array{Float64,1})
+    # substitute constants into expression
+    dfdt!(dx,x,m,t) = dadt!(dx,x,m,S,P,t)
+    # Find time span for this step
+    tspan = (0,Tmax)
+    x0 = [10.0;ϕR0]
+    # Then setup and solve the problem
+    prob = ODEProblem(dfdt!,x0,tspan,m)
+    # Still generates problems, not sure if I have to change a solver option or what
+    sol = DifferentialEquations.solve(prob,saveat=tsave)
+    # The biggest issue is how to find this at particular time points
+    return(sol',sol.t)
+end
+
+# function to find chi_squared difference between data and simulation
+function chi_square(m::MicrobeP,S::Float64,P::Float64,ϕR0::Float64,Tmax::Float64,tsave::Array{Float64,1},
+                    indm::Int64,admA::Array{Float64,1},adsdA::Array{Float64})
+    # Run function to evaluate solution
+    C, T = eval_a(m,S,P,ϕR0,Tmax,tsave)
+    # Calculate means squared error here now
+    χ2 = 0
+    # Set range and overwrite if necessary
+    rang = 1:length(T)
+    if indm == 0
+        rang = 2:length(T)
+    end
+    for i = rang
+        χ2 += ((C[i,1]-admA[indm+(i-1)])^2)/((adsdA[indm+(i-1)])^2)
+    end
+    return(χ2)
 end
 
 # function to use steppest descent to find optimal paramters to fit the emperical curves
 function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::Array{Float64,1})
+    # Change units to molecules per cell
+    admA = mA*6.02e23/1e9
+    adsdA = sdA*6.02e23/1e9
     # Choose initial ϕR value (not treating as a parameter)
     ϕR0 = 0.05
-    # NEED TO DECIDE ON EXTERNAL CONCENTRATION
-    # ALSO NEED TO MAKE A MICROBE, DECIDE ON PARAMETERS ETC
+    # Choose concentration of glucose in blood as substrate concentration
+    S = 5.5e-3
+    # Product fixed at low value as not interested in inhibition here
+    P = S/100.0
+    # Use parameters from literature (justifuied in make_full.jl)
+    MC = 10^8
+    γm = 1260.0/60.0
+    n = zeros(Int64,3)
+    n[1] = 7459
+    n[2:3] .= 300
+    ρ = 29.0
+    Pb = 0.7
+    ϕH = 0.45
+    fd = log(100)/log(2)
+    # death rate isn't actually going to be used
+    d = 6.0e-5
+    # Only considering one reaction for simplicity
+    R = 1
+    Reacs = [1]
+    kcs = [10.0]
+    KSs = [(1/4)*5.5e-3]
+    krs = [10.0]
+    ϕP = [1.0]
+    # No explict reactions so η is a parameter with less consequence
+    η = [1.0]
     # Calculate time span in seconds
-    Tspan = (maximum(times)-pt)*60.0
-    Kγ = 0.0
-    KΩ = 0.0
-    return(Kγ,ΚΩ)
+    Tmax = (maximum(times)-pt)*60.0
+    # Find index of value corresponding to peak
+    _, indm = findmax(mA)
+    # Find value one step before the peak
+    indm -= 1
+    # Select time points to save at
+    tsave = (times .- pt)*60.0
+    # As an initial test I'm going to try these parameter choices
+    Kγ = 5e8
+    KΩ = 1e9
+    m = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP)
+    # Use function to find χ2
+    χ2 = chi_square(m,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
+    # Set up while loop
+    stab = false
+    h = 0.25
+    while stab == false
+        # Set up and down Kγ and KΩ values
+        Kγu = (1+h)*Kγ
+        Kγd = (1-h)*Kγ
+        KΩu = (1+h)*KΩ
+        KΩd = (1-h)*KΩ
+        # Make corresponding microbes
+        mγu = make_MicrobeP(MC,γm,ρ,Kγu,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP)
+        mγd = make_MicrobeP(MC,γm,ρ,Kγd,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP)
+        mΩu = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩu,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP)
+        mΩd = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩd,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP)
+        # Find corresponding χ2
+        χγu = chi_square(mγu,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
+        χγd = chi_square(mγd,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
+        χΩu = chi_square(mΩu,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
+        χΩd = chi_square(mΩd,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
+        # print out data
+        println("--------------------------------------------------------------")
+        println("KΩ = $(KΩ), Kγ = $(Kγ), h = $(h)")
+        println("Old chi squared = $(χ2)")
+        println("Gamma up = $(χγu)")
+        println("Gamma down = $(χγd)")
+        println("Omega up = $(χΩu)")
+        println("Omega down = $(χΩd)")
+        # find smallest chi squared
+        if χγu < χ2 && χγu < χγd && χγu < χΩu && χγu < χΩd
+            println("Gamma up smallest")
+            # Update chi squared to new smallest
+            χ2 = χγu
+            # Update relevant parameter
+            Kγ = Kγu
+        elseif χγd < χ2 && χγd < χΩu && χγd < χΩd
+            println("Gamma down smallest")
+            χ2 = χγd
+            Kγ = Kγd
+        elseif χΩu < χ2 && χΩu < χΩd
+            println("Omega up smallest")
+            χ2 = χΩu
+            KΩ = KΩu
+        elseif χΩd < χ2
+            println("Omega down smallest")
+            χ2 = χΩd
+            KΩ = KΩd
+        elseif h < 1e-5
+            stab = true
+        else
+            println("Old value smallest")
+            h /= 2.0
+        end
+    end
+    # C and T now must be saved
+    C, T = eval_a(m,S,P,ϕR0,Tmax,tsave)
+    return(Kγ,KΩ,C,T)
 end
 
 # Need to work out how to remove the correct points
@@ -181,12 +305,17 @@ function atp_read()
             # Update values if average height is higher
             if aT/n > av[i]
                 av[i] = aT/n
-                pt[i] = ts[j]
+                if j > 1
+                    pt[i] = ts[j-1]
+                else
+                    # Allow for negative start time
+                    pt[i] = ts[1] - (ts[2]-ts[1])
+                end
             end
         end
     end
     # Now find means and standard deviations of plots so that best fits can be found
-    for i = 1:ni
+    for i = 1#ni-1#1:ni
         # find all time points represented in ATP data
         ts = unique([data[i,3,1,1];data[i,3,2,1];data[i,3,3,1];data[i,3,4,1]])
         mA = zeros(length(ts))
@@ -217,7 +346,15 @@ function atp_read()
             end
         end
         # Give data to find best fit
-        Kγ, KΩ = prot_fit(ts,pt[i],mA,sdA)
+        Kγ, KΩ, C, T = prot_fit(ts,pt[i],mA,sdA)
+        # Plotting needs to change if there's an offset
+        plot(T.+(pt[i]*60.0),C[:,1])
+        plot!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9)
+        savefig("Output/test.png")
+        plot(T,C[:,1])
+        savefig("Output/test1.png")
+        plot(ts*60.0,mA*6.02e23/1e9)
+        savefig("Output/test2.png")
         return(nothing)
     end
     # Call PyPlot

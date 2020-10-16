@@ -90,7 +90,6 @@ function dadt!(dx::Array{Float64,1},x::Array{Float64,1},m::MicrobeP,P::Float64,t
         # Corresponding proteome fraction also shouldn't shift
         dx[2] = 0.0
     end
-    # IS THIS SUFFICENT TO FIX THE INSTABILITY???
     return(dx)
 end
 
@@ -158,7 +157,7 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     ϕH = 0.45
     fd = log(100)/log(2)
     # death rate isn't actually going to be used
-    d = 6.0e-8 #6.0e-5
+    d = 6.0e-8
     # Only considering one reaction for simplicity
     R = 1
     Reacs = [1]
@@ -172,10 +171,10 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     # Find index of value corresponding to peak
     _, indm = findmax(mA)
     # Use to minimise errors on peak, as this is the key feature to fit to
+    # Using this as it's easiest to justify
     adsdA[indm] = minimum(adsdA)
     # Find value one step before the peak
     indm -= 1
-    # I'm THEN SETTING TIMES TO SAVE.
     # Select time points to save at
     tsave = (times .- pt)*60.0
     # As an initial test I'm going to try these parameter choices
@@ -197,13 +196,10 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     ϕu = 1 - ϕH
     ϕl = 0.0
     while stab == false
-        # println("------------------------------------------------------------------------")
-        # println("KΩ = $(KΩ), Kγ = $(Kγ), kc = $(kc), ϕR0 = $(ϕR0) h = $(h)")
         # Make initial microbe
         m = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,[kc],KSs,krs,n,ϕP)
         # Use function to find χ2
         χ2 = chi_square(m,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
-        # println("Previous chi squared $(χ2)")
         # Set up and down Kγ and KΩ values
         Kγu = min((1+h)*Kγ,lu)
         Kγd = max((1-h)*Kγ,ll)
@@ -251,24 +247,15 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
         else
             grads[4] = 0.0
         end
-        # println("Gamma up = $(χγu)")
-        # println("Gamma down = $(χγd)")
-        # println("Omega up = $(χΩu)")
-        # println("Omega down = $(χΩd)")
-        # println("kc up = $(χku)")
-        # println("kc down = $(χkd)")
-        # println("Phi up = $(χϕu)")
-        # println("Phi down = $(χϕd)")
         # Only change parameter if grads has non-zero elements
         if sum(abs.(grads)) != 0.0
             # Now rescale the gradients
             grads = grads/(sum(abs.(grads)))
-            # println(grads)
             # Update parameters based on rescaled gradients
-            Kγ = min((1+grads[1]*h)*Kγ,lu)
-            KΩ = min((1+grads[2]*h)*KΩ,lu)
-            kc = min((1+grads[3]*h)*kc,ku)
-            ϕR0 = min((1+grads[4]*h)*ϕR0,ϕu)
+            Kγ = max(ll,min((1+grads[1]*h)*Kγ,lu))
+            KΩ = max(ll,min((1+grads[2]*h)*KΩ,lu))
+            kc = max(kl,min((1+grads[3]*h)*kc,ku))
+            ϕR0 = max(ϕl,min((1+grads[4]*h)*ϕR0,ϕu))
         # If step size is small enough stop the loop
         elseif h < 1e-5
             stab = true
@@ -440,15 +427,14 @@ function atp_read()
         rϕR = round(ϕR0,sigdigits=3)
         rχ2 = round(χ2,sigdigits=3)
         # Plotting needs to change if there's an offset
+        # TO MAKE PROPER PLOTS I WANT TO ADD THE χ2 as an annotation
+        # WANT TO SAVE THE OTHER VALUES IN A TABLE, CAN ADD WHETHER THE DATA IS SENSIBLE TO THE TABLE AS WELL
+        # AND PROBABLY χ2
         plot(T.+(pt[i]*60.0),C[:,1],label="kc = $(rkc), KΩ = $(kKΩ)")
         scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="Kγ = $(rKγ), χ2 = $(rχ2)")
         savefig("Output/Atest$(i).png")
         scatter(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="ϕR0 = $(rϕR)")
         savefig("Output/Btest$(i).png")
-        plot(T.+(pt[i]*60.0),C[:,3],label="")
-        savefig("Output/Ctest$(i).png")
-        plot(T.+(pt[i]*60.0),C[:,4],label="")
-        savefig("Output/Dtest$(i).png")
     end
     return(nothing)
     # Call PyPlot

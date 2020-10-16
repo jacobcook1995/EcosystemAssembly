@@ -66,13 +66,31 @@ function dadt!(dx::Array{Float64,1},x::Array{Float64,1},m::MicrobeP,P::Float64,t
     dx[2] = (ϕR_opt - x[2])/τ
     # Calculate rate of change of substrate
     dx[3] = -qr*x[4]/NA
-    # Catch zero concentrations
-    if x[3] <= 0.0
+    # Now work out rate of change of population
+    dx[4] = (λ - m.d)*x[4]
+    # Final step to correct for any concentrations that have dropped below threshold (1e-15)
+    # If the rate of change is above a threshold (1e-20) they are not altered
+    if x[3] < 1e-15 && dx[3] <= 1e-20
         x[3] = 0.0
         dx[3] = 0.0
     end
-    # Now work out rate of change of population
-    dx[4] = (λ - m.d)*x[4]
+    # Any ATP numbers that have gone below 0.33 should be removed
+    if x[1] < 0.33
+        x[1] = 0.0
+        dx[1] = 0.0
+    end
+    # Check if strain is effectively extinct
+    if x[4] <= 1e-10
+        # If so x should be set to zero and should not change from that
+        dx[4] = 0.0
+        x[4] = 0.0
+        # In this case the energy concentration should also be fixed to zero
+        dx[1] = 0.0
+        x[1] = 0.0
+        # Corresponding proteome fraction also shouldn't shift
+        dx[2] = 0.0
+    end
+    # IS THIS SUFFICENT TO FIX THE INSTABILITY???
     return(dx)
 end
 
@@ -97,13 +115,25 @@ function chi_square(m::MicrobeP,S::Float64,P::Float64,ϕR0::Float64,Tmax::Float6
     C, T = eval_a(m,S,P,ϕR0,minimum(admA),Tmax,tsave)
     # Calculate means squared error here now
     χ2 = 0
-    # Set range and overwrite if necessary
-    rang = 1:length(T)
+    # No point before the peak to compare to
     if indm == 0
-        rang = 2:length(T)
-    end
-    for i = rang
-        χ2 += ((C[i,1]-admA[indm+(i-1)])^2)/((adsdA[indm+(i-1)])^2)
+        # Infinite χ2 if lengths don't match
+        if length(T) != (length(tsave))
+            χ2 = Inf
+            println("Data coming out at wrong length!")
+        end
+        for i = 1:length(T)
+            χ2 += ((C[i,1]-admA[indm+i])^2)/((adsdA[indm+i])^2)
+        end
+    else
+        # Infinite χ2 if lengths don't match
+        if length(T) != (length(tsave)-indm+1)
+            χ2 = Inf
+            println("Data coming out at wrong length!")
+        end
+        for i = 1:length(T)
+            χ2 += ((C[i,1]-admA[indm+(i-1)])^2)/((adsdA[indm+(i-1)])^2)
+        end
     end
     return(χ2)
 end
@@ -113,8 +143,6 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     # Change units to molecules per cell
     admA = mA*6.02e23/1e9
     adsdA = sdA*6.02e23/1e9
-    # Choose initial ϕR value (not treating as a parameter)
-    ϕR0 = 0.1
     # High initial substrate concentration
     S = 1.0
     # Product fixed at low value as not interested in inhibition here
@@ -130,7 +158,7 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     ϕH = 0.45
     fd = log(100)/log(2)
     # death rate isn't actually going to be used
-    d = 6e-10 # 6.0e-5
+    d = 6.0e-8 #6.0e-5
     # Only considering one reaction for simplicity
     R = 1
     Reacs = [1]
@@ -143,30 +171,39 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     Tmax = (maximum(times)-pt)*60.0
     # Find index of value corresponding to peak
     _, indm = findmax(mA)
-    # Use to remove errors on peak
-    # WORKS BEST SO FAR WITH A VALUE OF 2
+    # Use to minimise errors on peak, as this is the key feature to fit to
     adsdA[indm] = minimum(adsdA)
     # Find value one step before the peak
     indm -= 1
+    # I'm THEN SETTING TIMES TO SAVE.
     # Select time points to save at
     tsave = (times .- pt)*60.0
     # As an initial test I'm going to try these parameter choices
     Kγ = 5e8
     KΩ = 1e9
     kc = 10.0
-    m = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,[kc],KSs,krs,n,ϕP)
-    # Use function to find χ2
-    χ2 = chi_square(m,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
+    ϕR0 = 0.1
     # Set up while loop
     stab = false
     h = 0.25
+    grads = zeros(4)
     # Set upper and lower limits on Kγ and KΩ
     lu = 1e10
     ll = 1e4
     # Upper and lower limit for the rate constant
     ku = 1e5
     kl = 1e-3
+    # Upper an lower limit for ϕR
+    ϕu = 1 - ϕH
+    ϕl = 0.0
     while stab == false
+        # println("------------------------------------------------------------------------")
+        # println("KΩ = $(KΩ), Kγ = $(Kγ), kc = $(kc), ϕR0 = $(ϕR0) h = $(h)")
+        # Make initial microbe
+        m = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,[kc],KSs,krs,n,ϕP)
+        # Use function to find χ2
+        χ2 = chi_square(m,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
+        # println("Previous chi squared $(χ2)")
         # Set up and down Kγ and KΩ values
         Kγu = min((1+h)*Kγ,lu)
         Kγd = max((1-h)*Kγ,ll)
@@ -174,6 +211,8 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
         KΩd = max((1-h)*KΩ,ll)
         kcu = min((1+h)*kc,ku)
         kcd = max((1-h)*kc,kl)
+        ϕRu = min((1+h)*ϕR0,ϕu)
+        ϕRd = max((1-h)*ϕR0,ϕl)
         # Make corresponding microbes
         mγu = make_MicrobeP(MC,γm,ρ,Kγu,Pb,d,ϕH,KΩ,fd,R,Reacs,η,[kc],KSs,krs,n,ϕP)
         mγd = make_MicrobeP(MC,γm,ρ,Kγd,Pb,d,ϕH,KΩ,fd,R,Reacs,η,[kc],KSs,krs,n,ϕP)
@@ -188,48 +227,53 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
         χΩd = chi_square(mΩd,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
         χku = chi_square(mku,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
         χkd = chi_square(mkd,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
-        # print out data
-        println("--------------------------------------------------------------")
-        println("KΩ = $(KΩ), Kγ = $(Kγ), kc = $(kc), h = $(h)")
-        println("Previous chi squared $(χ2)")
-        println("Gamma up = $(χγu)")
-        println("Gamma down = $(χγd)")
-        println("Omega up = $(χΩu)")
-        println("Omega down = $(χΩd)")
-        println("kc up = $(χku)")
-        println("kc down = $(χkd)")
-        # COMMENTING OUT PRINT STATEMENTS FOR NOW, SHOULD EITHER REINSTATE OR DELETE EVENTUALLY
-        # find smallest chi squared
-        if χγu < χ2 && χγu < χγd && χγu < χΩu && χγu < χΩd && χγu < χku && χγu < χkd
-            println("Gamma up smallest")
-            # Update chi squared to new smallest
-            χ2 = χγu
-            # Update relevant parameter
-            Kγ = Kγu
-        elseif χγd < χ2 && χγd < χΩu && χγd < χΩd && χγd < χku && χγd < χkd
-            println("Gamma down smallest")
-            χ2 = χγd
-            Kγ = Kγd
-        elseif χΩu < χ2 && χΩu < χΩd && χΩu < χku && χΩu < χkd
-            println("Omega up smallest")
-            χ2 = χΩu
-            KΩ = KΩu
-        elseif χΩd < χ2 && χΩd < χku && χΩd < χkd
-            println("Omega down smallest")
-            χ2 = χΩd
-            KΩ = KΩd
-        elseif χku < χ2 && χku < χkd
-            println("kc up smallest")
-            χ2 = χku
-            kc = kcu
-        elseif χkd < χ2
-            println("kc down smallest")
-            χ2 = χkd
-            kc = kcd
+        χϕu = chi_square(m,S,P,ϕRu,Tmax,tsave,indm,admA,adsdA)
+        χϕd = chi_square(m,S,P,ϕRd,Tmax,tsave,indm,admA,adsdA)
+        # Find the gradient for each case
+        if χγu < χ2  || χγd < χ2
+            grads[1] = -(χγu - χγd)
+        else
+            # if χ2 higher then no change
+            grads[1] = 0.0
+        end
+        if χΩu < χ2 || χΩd < χ2
+            grads[2] = -(χΩu - χΩd)
+        else
+            grads[2] = 0.0
+        end
+        if χku < χ2 || χkd < χ2
+            grads[3] = -(χku - χkd)
+        else
+            grads[3] = 0.0
+        end
+        if χϕu < χ2 || χϕd < χ2
+            grads[4] = -(χϕu - χϕd)
+        else
+            grads[4] = 0.0
+        end
+        # println("Gamma up = $(χγu)")
+        # println("Gamma down = $(χγd)")
+        # println("Omega up = $(χΩu)")
+        # println("Omega down = $(χΩd)")
+        # println("kc up = $(χku)")
+        # println("kc down = $(χkd)")
+        # println("Phi up = $(χϕu)")
+        # println("Phi down = $(χϕd)")
+        # Only change parameter if grads has non-zero elements
+        if sum(abs.(grads)) != 0.0
+            # Now rescale the gradients
+            grads = grads/(sum(abs.(grads)))
+            # println(grads)
+            # Update parameters based on rescaled gradients
+            Kγ = min((1+grads[1]*h)*Kγ,lu)
+            KΩ = min((1+grads[2]*h)*KΩ,lu)
+            kc = min((1+grads[3]*h)*kc,ku)
+            ϕR0 = min((1+grads[4]*h)*ϕR0,ϕu)
+        # If step size is small enough stop the loop
         elseif h < 1e-5
             stab = true
+        # Otherwise reduce step size
         else
-            println("Old value smallest")
             h /= 2.0
         end
     end
@@ -240,7 +284,7 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     admA = mA*6.02e23/1e9
     adsdA = sdA*6.02e23/1e9
     χ2 = chi_square(m,S,P,ϕR0,Tmax,tsave,indm,admA,adsdA)
-    return(Kγ,KΩ,kc,χ2,C,T)
+    return(Kγ,KΩ,kc,ϕR0,χ2,C,T)
 end
 
 # Need to work out how to remove the correct points
@@ -388,16 +432,19 @@ function atp_read()
             end
         end
         # Give data to find best fit
-        Kγ, KΩ, kc, χ2, C, T = prot_fit(ts,pt[i],mA,sdA)
+        Kγ, KΩ, kc, ϕR0, χ2, C, T = prot_fit(ts,pt[i],mA,sdA)
         # Round output for printing
         rkc = round(kc,sigdigits=3)
         kKΩ = round(KΩ,sigdigits=3)
         rKγ = round(Kγ,sigdigits=3)
+        rϕR = round(ϕR0,sigdigits=3)
         rχ2 = round(χ2,sigdigits=3)
         # Plotting needs to change if there's an offset
         plot(T.+(pt[i]*60.0),C[:,1],label="kc = $(rkc), KΩ = $(kKΩ)")
         scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="Kγ = $(rKγ), χ2 = $(rχ2)")
         savefig("Output/Atest$(i).png")
+        scatter(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="ϕR0 = $(rϕR)")
+        savefig("Output/Btest$(i).png")
         plot(T.+(pt[i]*60.0),C[:,3],label="")
         savefig("Output/Ctest$(i).png")
         plot(T.+(pt[i]*60.0),C[:,4],label="")

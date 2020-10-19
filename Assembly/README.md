@@ -9,7 +9,7 @@ The script proteome.jl runs a simple version of the proteome constraint model fo
 The folder named parameters contains scripts that construct custom made Parameters Types.
 The constructor for the parameter type used in our proteome fraction model is found in protParameters.jl in the parameters folder.
 The file make_prot.jl provides functions to make various parameter sets for the proteome model.
-The constructor for the parameter type used in our full model is found in sullParameters.jl in the parameters folder.
+The constructor for the parameter type used in our full model is found in fullParameters.jl in the parameters folder.
 The file make_full.jl provides functions to make various parameter sets for the full model.\
 Have also created a folder called analysis where scripts that analyse the output can be kept.
 The file atpdata.jl reads in a data file and plots the data as a scatter plot, fits to this data are then found using a gradient descent method.
@@ -20,8 +20,8 @@ The script testing.jl allows me to check why particular simulations crashed or o
 Various tests of the single population proteome model are performed by singpop_prot.jl.\
 The folder theory is for general theoretical results that are needed for the paper but not the simulation.
 The script 2step.jl investigates the impact on the reaction thermodynamics of making the overall reaction multistep.\
-The folder visualisation contains code for visualising microbial networks, the code in it was orginally written by Dr Jonathan X Zheng.
-This code was adapted from his work in doi.org/10.1109/TVCG.2019.2944619 and doi.org/10.1109/TVCG.2018.2859997.\
+The folder visualisation contains code for visualising microbial networks, the code in it was originally written by Dr Jonathan X Zheng.
+This code was adapted from his work in www.doi.org/10.1109/TVCG.2019.2944619 and www.doi.org/10.1109/TVCG.2018.2859997.\
 At present all images are being plotted into an Output folder.
 All input data is stored in Data.
 Parameter sets are saved to the Paras folder.\

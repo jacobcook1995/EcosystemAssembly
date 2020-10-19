@@ -6,6 +6,9 @@ import networkx as nx
 import numpy as np
 from os import listdir
 import re
+import importlib
+import jonny_code
+importlib.reload(jonny_code) # force reload, in case jonny_code.py is changed
 
 # This is basically a massive function written by Jonny to wrangle the data
 # big function to convert .csv into a networkx Graph object
@@ -22,11 +25,13 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
     # first set of targets should equal second set of sources
     assert indices[1] == indices[2]
     # interaction strengths are equal too
-    assert indices[4] == indices[5]
+    assert indices[5] == indices[6]
 
+    # Find last forward slash in path so that the name can be extracted properly
+    slh = path.rfind('/')
     # create nx graph
     G = nx.DiGraph()
-    G.graph['name'] = path[:-4] # remove '.csv'
+    G.graph['name'] = path[slh+1:-4] # remove '.csv' and directories
 
     # local function to add edge to graph, sums flux if already in graph
     def add_flux(ij, flux):
@@ -78,3 +83,35 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
 
     G = nx.relabel.convert_node_labels_to_integers(G)
     return G
+
+# Function to create a layered (bipartite) graph
+def layered(path):
+    G = wrangle(path, normalise_flux=True, alpha_min=.3, alpha_max=.4)
+    y_constraint = { i:G.nodes[i]['y']   for i in G.nodes }
+
+    ### NOTE: the following lines can be used/uncommented to additionally fix the y axis ###
+    # x_constraint = { i:G.nodes[i]['x']/2 for i in G.nodes if y_constraint[i]==0 }
+    # x_constraint = { i:G.nodes[i]['x']/2 for i in G.nodes }
+    x_constraint = None
+
+    # weight_threshold can be used to cut weak links, but may break code if it disconnects the graph
+    jonny_code.stress(G, 'Output', y_constraint=y_constraint, x_constraint=x_constraint, weight_threshold=0)
+
+# This function seems to bundle the hierarchy
+def bundle(path):
+    G = wrangle(path, normalise_flux=False, alpha_min=.1, alpha_max=.7)
+    hierarchy = jonny_code.cluster(nx.Graph(G), draw=True)
+    jonny_code.bundle(G, hierarchy, 'Output', merge_dist=.1, beta=.9, noderadius=.02)
+
+
+# Call functions once
+# saves layered drawing to 'figures/NetworkR=3rpt=37_stress.png'
+layered('Data/nets/NetworkR=3rpt=37.csv')
+# saves bundled drawing to 'figures/NetworkR=3rpt=37_bundled.png'
+bundle('Data/nets/NetworkR=3rpt=37.csv')
+# # Call functions multiple times
+# for path in listdir('Data/nets'):
+#     # Now path (which is just a filename) can't be used to find the file
+#     if re.match(r'.*\.csv$', path):
+#         layered(f'Data/nets/{path}')
+#         bundle(f'Data/nets/{path}')

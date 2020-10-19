@@ -8,6 +8,9 @@ import numpy as np
 import math
 import cairosvg
 
+# This command hopefully stops pop ups
+plt.ion()
+
 ###############
 # stress layout
 

@@ -21,7 +21,9 @@ Various tests of the single population proteome model are performed by singpop_p
 The folder theory is for general theoretical results that are needed for the paper but not the simulation.
 The script 2step.jl investigates the impact on the reaction thermodynamics of making the overall reaction multistep.\
 The folder visualisation contains code for visualising microbial networks, the code in it was originally written by Dr Jonathan X Zheng.
-This code was adapted from his work in www.doi.org/10.1109/TVCG.2019.2944619 and www.doi.org/10.1109/TVCG.2018.2859997.\
+This code was adapted from his work in www.doi.org/10.1109/TVCG.2019.2944619 and www.doi.org/10.1109/TVCG.2018.2859997.
+The script jonny_code.py consists of visualisation functions written by Jonathan Zheng.
+The script my_vis.py consists of code using these functions to visualise networks, this has been adapted by me (Jacob Cook) from code originally written by Jonathan Zheng.\
 At present all images are being plotted into an Output folder.
 All input data is stored in Data.
 Parameter sets are saved to the Paras folder.\

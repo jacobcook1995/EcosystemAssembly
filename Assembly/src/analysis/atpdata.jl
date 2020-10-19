@@ -387,6 +387,19 @@ function atp_read()
             end
         end
     end
+    # Call PyPlot
+    pyplot()
+    # Set a color-blind friendly palette
+    theme(:wong2,dpi=150)
+    # Preallocate data for output
+    χ2s = zeros(ni)
+    Kγs = zeros(ni)
+    KΩs = zeros(ni)
+    kcs = zeros(ni)
+    ϕRs = zeros(ni)
+    vld = fill(true,ni)
+    # List invalid points
+    invld = [1,2,3,15,18,20,22,24]
     # Now find means and standard deviations of plots so that best fits can be found
     for i = 1:ni
         # find all time points represented in ATP data
@@ -420,6 +433,16 @@ function atp_read()
         end
         # Give data to find best fit
         Kγ, KΩ, kc, ϕR0, χ2, C, T = prot_fit(ts,pt[i],mA,sdA)
+        # Save relevant data for output
+        χ2s[i] = χ2
+        Kγs[i] = Kγ
+        KΩs[i] = KΩ
+        kcs[i] = kc
+        ϕRs[i] = ϕR0
+        # Catch invalid points
+        if i ∈ invld
+            vld[i] = false
+        end
         # Round output for printing
         rkc = round(kc,sigdigits=3)
         kKΩ = round(KΩ,sigdigits=3)
@@ -427,20 +450,14 @@ function atp_read()
         rϕR = round(ϕR0,sigdigits=3)
         rχ2 = round(χ2,sigdigits=3)
         # Plotting needs to change if there's an offset
-        # TO MAKE PROPER PLOTS I WANT TO ADD THE χ2 as an annotation
-        # WANT TO SAVE THE OTHER VALUES IN A TABLE, CAN ADD WHETHER THE DATA IS SENSIBLE TO THE TABLE AS WELL
-        # AND PROBABLY χ2
-        plot(T.+(pt[i]*60.0),C[:,1],label="kc = $(rkc), KΩ = $(kKΩ)")
-        scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="Kγ = $(rKγ), χ2 = $(rχ2)")
-        savefig("Output/Atest$(i).png")
-        scatter(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="ϕR0 = $(rϕR)")
-        savefig("Output/Btest$(i).png")
+        plot(T.+(pt[i]*60.0),C[:,1],label="χ2 = $(rχ2)",title="$(genus[i])")
+        scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="")
+        savefig("Output/ATPFitted/FittedData$(i).png")
     end
-    return(nothing)
-    # Call PyPlot
-    pyplot()
-    # Set a color-blind friendly palette
-    theme(:wong2,dpi=150)
+    # Construct data frame to output
+    df = DataFrame(taxa=genus,kc=kcs,Kγ=Kγs,KΩ=KΩs,ϕR0=ϕRs,χ_2=χ2s,valid=vld)
+    # Write out data frame
+    CSV.write("Output/ATPFitted/SumData.csv",df)
     # Plot all graphs
     for k = 1:3
         for i = 1:ni

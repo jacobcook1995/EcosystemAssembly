@@ -8,9 +8,6 @@ import numpy as np
 import math
 import cairosvg
 
-# This command hopefully stops pop ups
-plt.ion()
-
 ###############
 # stress layout
 
@@ -32,6 +29,7 @@ def stress(G, output_folder, x_constraint=None, y_constraint=None, weight_thresh
     nx.draw(G, pos=X, node_color=cols_node, edge_color=cols_edge, width=widths_edge, labels=labels, arrows=False)
     plt.axis('equal')
     plt.savefig(f'{output_folder}/{G.graph["name"]}_stress.png')
+    plt.close()
 
 def _sgd(G: nx.Graph, x_constraint=None, y_constraint=None, t_max=30, eps=.1, t_min=-10, mu_max=1.1):
     # make undirected

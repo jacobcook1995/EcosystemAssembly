@@ -100,7 +100,8 @@ def layered(path):
 # This function seems to bundle the hierarchy
 def bundle(path):
     G = wrangle(path, normalise_flux=False, alpha_min=.1, alpha_max=.7)
-    hierarchy = jonny_code.cluster(nx.Graph(G), draw=True)
+    # Change draw if I want to see the heirachy
+    hierarchy = jonny_code.cluster(nx.Graph(G), draw=False)
     jonny_code.bundle(G, hierarchy, 'Output', merge_dist=.1, beta=.9, noderadius=.02)
 
 
@@ -109,9 +110,9 @@ def bundle(path):
 layered('Data/nets/NetworkR=3rpt=37.csv')
 # saves bundled drawing to 'figures/NetworkR=3rpt=37_bundled.png'
 bundle('Data/nets/NetworkR=3rpt=37.csv')
-# # Call functions multiple times
-# for path in listdir('Data/nets'):
-#     # Now path (which is just a filename) can't be used to find the file
-#     if re.match(r'.*\.csv$', path):
-#         layered(f'Data/nets/{path}')
-#         bundle(f'Data/nets/{path}')
+# Call functions multiple times
+for path in listdir('Data/nets'):
+    # Now path (which is just a filename) can't be used to find the file
+    if re.match(r'.*\.csv$', path):
+        layered(f'Data/nets/{path}')
+        bundle(f'Data/nets/{path}')

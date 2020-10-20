@@ -1,5 +1,5 @@
-# Thes function were all written by Jonny and I have (as of yet) made no alterations to them
-
+# Thes function were all written by Jonny and I have only made changes to stress
+# This change was to allow the deletion of points
 import networkx as nx
 import matplotlib.pyplot as plt
 import scipy
@@ -18,17 +18,59 @@ def stress(G, output_folder, x_constraint=None, y_constraint=None, weight_thresh
         if G.edges[ij]['weight'] < weight_threshold:
             G2.remove_edge(*ij)
 
+    # Make another copy
+    G3 = G2.copy()
+    # Check if any nodes have been isolated
+    if nx.number_of_isolates(G2) != 0:
+        # First remove nodes from x and y constraints
+        for i in range(0,len(G2)):
+            # Check if node is isolated
+            if nx.is_isolate(G2,i):
+                # Then check if node has x and y constraints
+                if i in x_constraint:
+                    del x_constraint[i]
+                if i in y_constraint:
+                    del y_constraint[i]
+
+        # Make iterator over the isolates
+        iso = nx.isolates(G2)
+        # Use to remove nodes from graph
+        G3.remove_nodes_from(iso)
+        # Mapping should be empty initially
+        mapping = {}
+        # Counter
+        k = 0
+        # Loop over
+        for i in range(0,len(G2)):
+            # If isolate found
+            if nx.is_isolate(G2,i):
+                # Increment counter
+                k = k + 1
+            else:
+                # Otherwise save to mapping
+                mapping[i] = i - k
+        # Use to relabel nodes and constraints
+        G3 = nx.relabel_nodes(G3,mapping)
+        # Loop over keys in mapping
+        for i in mapping:
+            # Check if key exists in constraints
+            if i in x_constraint:
+                x_constraint[mapping[i]] = x_constraint.pop(i)
+            if i in y_constraint:
+                y_constraint[mapping[i]] = y_constraint.pop(i)
+
+    # length has decreased by 1 => This isn't the problem
     # compute layout
-    X = _sgd(G2, y_constraint=y_constraint, x_constraint=x_constraint)
+    X = _sgd(G3, y_constraint=y_constraint, x_constraint=x_constraint)
 
     # draw with colours
-    cols_node = list(nx.get_node_attributes(G, 'color').values())
-    cols_edge = list(nx.get_edge_attributes(G, 'color').values())
-    widths_edge = list(nx.get_edge_attributes(G, 'width').values())
-    labels = nx.get_node_attributes(G, 'x')
-    nx.draw(G, pos=X, node_color=cols_node, edge_color=cols_edge, width=widths_edge, labels=labels, arrows=False)
+    cols_node = list(nx.get_node_attributes(G3, 'color').values())
+    cols_edge = list(nx.get_edge_attributes(G3, 'color').values())
+    widths_edge = list(nx.get_edge_attributes(G3, 'width').values())
+    labels = nx.get_node_attributes(G3, 'x')
+    nx.draw(G3, pos=X, node_color=cols_node, edge_color=cols_edge, width=widths_edge, labels=labels, arrows=False)
     plt.axis('equal')
-    plt.savefig(f'{output_folder}/{G.graph["name"]}_stress.png')
+    plt.savefig(f'{output_folder}/{G3.graph["name"]}_stress.png')
     plt.close()
 
 def _sgd(G: nx.Graph, x_constraint=None, y_constraint=None, t_max=30, eps=.1, t_min=-10, mu_max=1.1):

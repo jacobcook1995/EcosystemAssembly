@@ -1,7 +1,4 @@
-# To write this I've copied Jonny's notebook, I need to work out what's going on so
-# that I can figure out how to change things
-
-# Think these are all about importing species python functions
+# Edited most of these functions
 import networkx as nx
 import numpy as np
 from os import listdir
@@ -41,12 +38,12 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
             G.add_edge(*ij, weight=flux)
 
     # i is metabolite, j is species
-    for i,j,w in zip(indices[0], indices[1], indices[4]):
+    for i,j,w in zip(indices[0], indices[1], indices[5]):
         ij = ('m'+i, j)
         add_flux(ij, float(w))
 
     # i is species, j is metabolite
-    for i,j,w in zip(indices[2], indices[3], indices[5]):
+    for i,j,w in zip(indices[2], indices[3], indices[6]):
         ij = (i, 'm'+j)
         add_flux(ij, float(w))
 
@@ -90,12 +87,19 @@ def layered(path):
     y_constraint = { i:G.nodes[i]['y']   for i in G.nodes }
 
     ### NOTE: the following lines can be used/uncommented to additionally fix the y axis ###
+    ### Just metabolites constrained
+    x_constraint = { i:G.nodes[i]['x']/2 for i in G.nodes if y_constraint[i]==1 }
+    ### Just strains constrained
     # x_constraint = { i:G.nodes[i]['x']/2 for i in G.nodes if y_constraint[i]==0 }
+    ### Metabolite and strains constrained
     # x_constraint = { i:G.nodes[i]['x']/2 for i in G.nodes }
-    x_constraint = None
+    ### No constraint
+    # x_constraint = None
 
     # weight_threshold can be used to cut weak links, but may break code if it disconnects the graph
-    jonny_code.stress(G, 'Output', y_constraint=y_constraint, x_constraint=x_constraint, weight_threshold=0)
+    # weights run between 0.0 and 1.0, 0.0 causes no change 1.0 maximum change
+    wt = 0.50
+    jonny_code.stress(G, 'Output', y_constraint=y_constraint, x_constraint=x_constraint, weight_threshold=wt)
 
 # This function seems to bundle the hierarchy
 def bundle(path):
@@ -107,12 +111,9 @@ def bundle(path):
 
 # Call functions once
 # saves layered drawing to 'figures/NetworkR=3rpt=37_stress.png'
-layered('Data/nets/NetworkR=3rpt=37.csv')
-# saves bundled drawing to 'figures/NetworkR=3rpt=37_bundled.png'
-bundle('Data/nets/NetworkR=3rpt=37.csv')
+# layered('Data/nets/NetworkR=3rpt=13.csv')
 # Call functions multiple times
 for path in listdir('Data/nets'):
-    # Now path (which is just a filename) can't be used to find the file
     if re.match(r'.*\.csv$', path):
         layered(f'Data/nets/{path}')
-        bundle(f'Data/nets/{path}')
+        # bundle(f'Data/nets/{path}')

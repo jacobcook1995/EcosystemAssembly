@@ -1,7 +1,21 @@
 # A script to run the dynamics for the full model.
-export full_simulate, θ_smooth, qs, test_full_simulate
+export full_simulate, θ, θ_smooth, qs, test_full_simulate
 
 export test_dynamics!
+
+# function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
+function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
+    # Catch perverse cases that sometimes arise
+    if S <= 0.0
+        θs = 1.0
+    elseif P <= 0.0
+        θs = 0.0
+    else
+        θs = Q(S,P)/Keq(T,η,ΔG0)
+    end
+    # θ can be greater than 1, this does not have any impact as q cannot be negative
+    return(θs)
+end
 
 # version of θ function, that smmothes output by setting values > 1 to 1
 function θ_smooth(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)

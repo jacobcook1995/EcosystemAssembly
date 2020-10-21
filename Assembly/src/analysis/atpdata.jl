@@ -458,6 +458,8 @@ function atp_read()
     df = DataFrame(taxa=genus,kc=kcs,Kγ=Kγs,KΩ=KΩs,ϕR0=ϕRs,χ_2=χ2s,valid=vld)
     # Write out data frame
     CSV.write("Output/ATPFitted/SumData.csv",df)
+    # Find time gap
+    tG = (data[1,1,1,1])[2] - (data[1,1,1,1])[1]
     # Plot all graphs
     for k = 1:3
         for i = 1:ni
@@ -473,7 +475,7 @@ function atp_read()
             elseif k == 2
                 savefig("Output/ATPDataPlots/Biomass/$(genus[i]).png")
             else
-                vline!([pt[i]/60.0],label="")
+                vline!([(pt[i]+tG)/60.0],label="")
                 savefig("Output/ATPDataPlots/ATP/$(genus[i]).png")
             end
         end

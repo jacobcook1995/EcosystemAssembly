@@ -69,7 +69,7 @@ function bi_net()
                 E = Eα(out[2*ps.N+ps.M+i],ps.mics[i],j)
                 # Find flux, same for both cases as we are looking at a one to one reaction
                 q = qs(out[ps.N+indS],out[ps.N+indP],E,j,ps.mics[i],ps.T,ps.reacs[ps.mics[i].Reacs[j]])
-                f = out[j]*q/NA
+                f = out[i]*q/NA
                 # Add consumption link
                 mp = cat(mp,indS,dims=1)
                 ml = cat(ml,i,dims=1)
@@ -95,8 +95,8 @@ function bi_net()
     B[1,:] = mf
     B[2,:] = sf
     # Then write out as a csv file
-    CSV.write("Output/NetworkR=$(R)rpt=$(rpt).csv",DataFrame(A),writeheader=false)
-    CSV.write("Output/NetworkR=$(R)rpt=$(rpt).csv",DataFrame(B),writeheader=false,append=true)
+    CSV.write("Data/nets/R=$(R)rpt=$(rpt).csv",DataFrame(A),writeheader=false)
+    CSV.write("Data/nets/R=$(R)rpt=$(rpt).csv",DataFrame(B),writeheader=false,append=true)
     return(nothing)
 end
 

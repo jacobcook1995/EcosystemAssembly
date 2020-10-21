@@ -891,7 +891,7 @@ function plt_trdff()
     return(nothing)
 end
 
-# function to plot scatter graphs of effeciency verses expression
+# function to plot scatter graphs of efficency verses expression
 function react_scat()
     # Check that sufficent arguments have been provided
     if length(ARGS) < 2

@@ -70,7 +70,10 @@ def stress(G, output_folder, x_constraint=None, y_constraint=None, weight_thresh
     labels = nx.get_node_attributes(G3, 'x')
     nx.draw(G3, pos=X, node_color=cols_node, edge_color=cols_edge, width=widths_edge, labels=labels, arrows=False)
     plt.axis('equal')
-    plt.savefig(f'{output_folder}/{G3.graph["name"]}_stress.png')
+    if weight_threshold != 0.0:
+        plt.savefig(f'{output_folder}/{G3.graph["name"]}_stress_prun.png')
+    else:
+        plt.savefig(f'{output_folder}/{G3.graph["name"]}_stress.png')
     plt.close()
 
 def _sgd(G: nx.Graph, x_constraint=None, y_constraint=None, t_max=30, eps=.1, t_min=-10, mu_max=1.1):

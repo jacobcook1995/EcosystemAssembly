@@ -1027,4 +1027,54 @@ function legend()
     return(nothing)
 end
 
-@time net_vis()
+# function I can use to test particular parameter sets
+function test()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 2
+        error("need to specify community and number of repeats")
+    end
+    # Preallocate the variables I want to extract from the input
+    R = 0
+    rps = 0
+    # Check that all arguments can be converted to integers
+    try
+        R = parse(Int64,ARGS[1])
+        rps = parse(Int64,ARGS[2])
+    catch e
+           error("both inputs must be integer")
+    end
+    # Check that simulation type is valid
+    if R < 1
+        error("each strain must have more than 1 reaction")
+    end
+    # Check that number of simulations is greater than 0
+    if rps < 1
+        error("need to do at least 1 simulation")
+    end
+    println("Compiled!")
+    # Now move onto plotting
+    pyplot(dpi=200)
+    # Read in relevant files
+    pfile = "Data/Type$(R)/ParasType$(R)Run$(rps).jld"
+    if ~isfile(pfile)
+        error("run $(rps) is missing a parameter file")
+    end
+    ofile = "Data/Type$(R)/OutputType$(R)Run$(rps).jld"
+    if ~isfile(ofile)
+        error("run $(rps) is missing an output file")
+    end
+    efile = "Data/Type$(R)/ExtinctType$(R)Run$(rps).jld"
+    if ~isfile(efile)
+        error("run $(rps) is missing an extinct file")
+    end
+    ps = load(pfile,"ps")
+    C = load(ofile,"C")
+    T = load(ofile,"T")
+    out = load(ofile,"out")
+    ded = load(efile,"ded")
+    # Find indices I'm interested in
+    ind = findfirst(x->x==out[2],C[end,:])
+    return(nothing)
+end
+
+@time test()

@@ -98,8 +98,8 @@ def layered(path):
 
     # weight_threshold can be used to cut weak links, but may break code if it disconnects the graph
     # weights run between 0.0 and 1.0, 0.0 causes no change 1.0 maximum change
-    wt = 0.3
-    # wt = 0.0
+    # wt = 0.3
+    wt = 0.0
     jonny_code.stress(G, 'Output', y_constraint=y_constraint, x_constraint=x_constraint, weight_threshold=wt)
 
 # This function seems to bundle the hierarchy
@@ -112,7 +112,7 @@ def bundle(path):
 
 # Call functions once
 # saves layered drawing to 'figures/NetworkR=3rpt=37_stress.png'
-# layered('Data/nets/NetworkR=3rpt=13.csv')
+layered('Data/nets/R=3rpt=49.csv')
 # Call functions multiple times
 for path in listdir('Data/nets'):
     if re.match(r'.*\.csv$', path):

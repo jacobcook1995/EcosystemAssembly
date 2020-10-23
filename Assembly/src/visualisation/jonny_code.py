@@ -7,6 +7,7 @@ import scipy.cluster
 import numpy as np
 import math
 import cairosvg
+import string
 
 ###############
 # stress layout
@@ -67,7 +68,19 @@ def stress(G, output_folder, x_constraint=None, y_constraint=None, weight_thresh
     cols_node = list(nx.get_node_attributes(G3, 'color').values())
     cols_edge = list(nx.get_edge_attributes(G3, 'color').values())
     widths_edge = list(nx.get_edge_attributes(G3, 'width').values())
-    labels = nx.get_node_attributes(G3, 'x')
+    # Extract x and y labels of nodes
+    xvs = nx.get_node_attributes(G3, 'x')
+    yvs = nx.get_node_attributes(G3, 'y')
+    # Make a copy of xvs to use as labels
+    labels = xvs.copy()
+    # Vector containing alphabet
+    ab = list(string.ascii_lowercase)
+    # Loop over x values
+    for i in xvs:
+        # Check if node is a strain
+        if yvs[i] == 0.0:
+            labels[i] = ab[xvs[i]-1]
+
     nx.draw(G3, pos=X, node_color=cols_node, edge_color=cols_edge, width=widths_edge, labels=labels, arrows=False)
     plt.axis('equal')
     if weight_threshold != 0.0:

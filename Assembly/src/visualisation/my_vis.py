@@ -47,13 +47,13 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
         ij = (i, 'm'+j)
         add_flux(ij, float(w))
 
-    nx.set_node_attributes(G, {i: 0 if i in indices[1] else 1 for i in G.nodes}, 'y')
-    nx.set_node_attributes(G, {i: int(i[1:]) if 'm' in i else int(i) for i in G.nodes}, 'x')
+    nx.set_node_attributes(G, {i: 1 if i in indices[1] else 0 for i in G.nodes}, 'x')
+    nx.set_node_attributes(G, {i: int(i[1:]) if 'm' in i else int(i) for i in G.nodes}, 'y')
 
     # set node and edge colours (from matplotlib 'tab10')
     col_species = [.97,.50,.27]
     col_metabol = [.12,.47,.71]
-    nx.set_node_attributes(G, {i:col_species if G.nodes[i]['y']==1 else col_metabol for i in G.nodes}, 'color')
+    nx.set_node_attributes(G, {i:col_species if G.nodes[i]['x']==0 else col_metabol for i in G.nodes}, 'color')
 
     # set edge weight attributes according to flux on that interaction
     flux_logmax = np.log(max(nx.get_edge_attributes(G, 'weight').values()))
@@ -70,7 +70,7 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
 
         # set edge 'color' attribute for drawing later
         alpha = alpha_min + (alpha_max-alpha_min)*flux_norm
-        if G.nodes[ij[0]]['y']==0:
+        if G.nodes[ij[0]]['x']==1:
             cols_edge[ij] = col_metabol + [alpha]
         else:
             cols_edge[ij] = col_species + [alpha]
@@ -84,22 +84,23 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
 # Function to create a layered (bipartite) graph
 def layered(path):
     G = wrangle(path, normalise_flux=True, alpha_min=.3, alpha_max=.4)
-    y_constraint = { i:G.nodes[i]['y']   for i in G.nodes }
+    x_constraint = { i:G.nodes[i]['x']   for i in G.nodes }
 
     ### NOTE: the following lines can be used/uncommented to additionally fix the y axis ###
+    my = 4
     ### Just metabolites constrained
-    x_constraint = { i:G.nodes[i]['x']/2 for i in G.nodes if y_constraint[i]==1 }
+    y_constraint = { i:-G.nodes[i]['y']/2 for i in G.nodes if x_constraint[i]==0 }
     ### Just strains constrained
-    # x_constraint = { i:G.nodes[i]['x']/2 for i in G.nodes if y_constraint[i]==0 }
+    # y_constraint = { i:G.nodes[i]['y']/2 for i in G.nodes if x_constraint[i]==1 }
     ### Metabolite and strains constrained
-    # x_constraint = { i:G.nodes[i]['x']/2 for i in G.nodes }
+    # y_constraint = { i:G.nodes[i]['y']/2 for i in G.nodes }
     ### No constraint
-    # x_constraint = None
+    # y_constraint = None
 
     # weight_threshold can be used to cut weak links, but may break code if it disconnects the graph
     # weights run between 0.0 and 1.0, 0.0 causes no change 1.0 maximum change
-    # wt = 0.3
-    wt = 0.0
+    wt = 0.3
+    # wt = 0.0
     jonny_code.stress(G, 'Output', y_constraint=y_constraint, x_constraint=x_constraint, weight_threshold=wt)
 
 # This function seems to bundle the hierarchy
@@ -112,7 +113,7 @@ def bundle(path):
 
 # Call functions once
 # saves layered drawing to 'figures/NetworkR=3rpt=37_stress.png'
-layered('Data/nets/R=3rpt=49.csv')
+# layered('Data/nets/R=3rpt=49.csv')
 # Call functions multiple times
 for path in listdir('Data/nets'):
     if re.match(r'.*\.csv$', path):

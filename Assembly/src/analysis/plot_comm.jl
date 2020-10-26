@@ -1,6 +1,6 @@
 # This script exists to plot the output of form_comm.jl
 using Assembly
-using Plots
+using StatsPlots
 using LaTeXStrings
 using JLD
 using StatsBase
@@ -553,6 +553,8 @@ function net_vis()
     kcF = []
     ϕpF = []
     efF = []
+    # To store number of ecosystems that reaction is present in
+    pres = zeros(ps.O)
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files
@@ -605,6 +607,10 @@ function net_vis()
         ef = zeros(ps.N)
         # Loop over all reactions
         for j = 1:ps.O
+            # Check if reaction is present
+            if any(j .∈ (ps.mics.↦:Reacs))
+                pres[j] += 1
+            end
             # Loop over microbes
             for k = 1:ps.N
                 # Check if reaction exists in microbe
@@ -687,17 +693,29 @@ function net_vis()
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=200)
+    # Make tick labels
+    xs = Array{String,1}(undef,length(fRT))
+    for i = 1:length(xs)
+        # Find substrate and product numbers
+        s = ceil(Int64,i/2)
+        p = 2 + floor(Int64,i/2)
+        xs[i] = "$s→$(p)"
+    end
+    # Plot presence data
+    groupedbar([nR.-pres pres],bar_position=:stack,labels=["Absent" "Present"])
+    plot!(xticks=(1:ps.O,xs),xlabel="Reaction",ylabel="Number of ecosystems")
+    savefig("Output/Type$(R)/PresenseType$(R).png")
     # Plot histogram of the number of active reactions
     histogram(cA,bins=range(0,stop=O+1,length=O+2))
     plot!(title="$(R) reactions per strain",xlabel="Number of active reactions")
     savefig("Output/Type$(R)/ActiveReactionsType$(R).png")
-    histogram(mf,bins=range(1,stop=O+1,length=O+1))
+    histogram(mf,bins=range(1,stop=O+1,length=O+1),xticks=(1:ps.O,xs))
     plot!(title="$(R) reactions per strain",xlabel="Reaction with greatest flux")
     savefig("Output/Type$(R)/MaxFluxType$(R).png")
     # Now find average flux
     fRT /= nR
     # Then plot
-    bar(fRT,label="",xlabel="Reaction number",ylabel="Average flux")
+    bar(fRT,xticks=(1:ps.O,xs),label="",xlabel="Reaction",ylabel="Average flux")
     plot!(title="$(R) reactions per strain")
     savefig("Output/Type$(R)/AverageReacsType$(R).png")
     # Now plot how many strains have each reaction
@@ -721,7 +739,7 @@ function net_vis()
     end
     # Now plot how many strains have each reaction
     bar(perc,label="",ylabel="Average percentage of flux through top strain")
-    plot!(title="$(R) reactions per strain",xlabel="Reaction number")
+    plot!(title="$(R) reactions per strain",xlabel="Reaction",xticks=(1:ps.O,xs))
     savefig("Output/Type$(R)/PercentFluxType$(R).png")
     # Define distribution functions
     @. f_ln(x,μ,σ) = (1/(x*σ*sqrt(2*π)))*exp(-((log(x)-μ)^2)/(2*σ^2))

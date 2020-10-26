@@ -473,6 +473,30 @@ function hist_time()
     return(nothing)
 end
 
+# A hardcoded extended uniform distribution function used by net_vis()
+function f_ext_un(x::StepRangeLen)
+    # Preallocate output
+    y = zeros(length(x))
+    for i = 1:length(x)
+        # Check if it's high enough to be in first uniform range
+        if x[i] <= 0.8177
+            y[i] += 1
+        end
+        # Check if it's high enough to be in second uniform range
+        if x[i] <= 0.9089
+            y[i] += 1
+        end
+        # Then subtract if too low
+        if x[i] < -0.0409
+            y[i] -= 1
+        end
+        if x[i] < -0.0818
+            y[i] -= 1
+        end
+    end
+    return(y)
+end
+
 # Function to analyse and plot the flux through networks
 function net_vis()
     # Check that sufficent arguments have been provided
@@ -522,11 +546,13 @@ function net_vis()
     krs = []
     kcs = []
     ϕps = []
+    efs = []
     # And for the full kinetic parameters
     KSF = []
     krF = []
     kcF = []
     ϕpF = []
+    efF = []
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files
@@ -564,12 +590,19 @@ function net_vis()
             kcF = cat(kcF,ps.mics[j].kc,dims=1)
             krF = cat(krF,ps.mics[j].kr,dims=1)
             ϕpF = cat(ϕpF,ps.mics[j].ϕP,dims=1)
+            # Find vector of ΔG0 values
+            dG = ps.reacs[ps.mics[j].Reacs].↦:ΔG0
+            # Use to calculate percentage dissipated (under standard conditions)
+            efT = (ps.mics[j].η*ΔGATP.+dG)./(dG)
+            # cat efficency in
+            efF = cat(efF,efT,dims=1)
         end
         # Make temp vectors for kinetic parameters
         ϕp = zeros(ps.N)
         KS = zeros(ps.N)
         kr = zeros(ps.N)
         kc = zeros(ps.N)
+        ef = zeros(ps.N)
         # Loop over all reactions
         for j = 1:ps.O
             # Loop over microbes
@@ -589,12 +622,14 @@ function net_vis()
                     q = qs(S,P,E,ind,ps.mics[k],ps.T,ps.reacs[j])
                     # Flux is reaction rate * population
                     fR[j] += q*out[k]
-                    # Check if reaction flux is higher than other reactions for strain
-                    if q*out[k] > bstf[k]
-                        bstf[k] = q*out[k]
+                    # Find eta value for strain
+                    ηf = ps.mics[k].η[ind]
+                    # Check if ATP flux is higher than other reactions for strain
+                    if ηf*q*out[k] > bstf[k]
+                        bstf[k] = ηf*q*out[k]
                         bstr[k] = j
                     end
-                    # Check if reaction flux is higher than other reactions for strain
+                    # Check if reaction flux is higher than for other strains
                     if q*out[k] > hghf[j]
                         hghf[j] = q*out[k]
                         bstm[j] = k
@@ -628,12 +663,17 @@ function net_vis()
             kc[j] = ps.mics[j].kc[ind]
             kr[j] = ps.mics[j].kr[ind]
             ϕp[j] = ps.mics[j].ϕP[ind]
+            # Find relevant ΔG0 value
+            dG = ps.reacs[ps.mics[j].Reacs[ind]].ΔG0
+            # Use to calculate percentage dissipated (under standard conditions)
+            ef[j] = (ps.mics[j].η[ind]*ΔGATP+dG)/(dG)
         end
         # Add these kinetic parameters to storage
         KSs = cat(KSs,KS,dims=1)
         kcs = cat(kcs,kc,dims=1)
         krs = cat(krs,kr,dims=1)
         ϕps = cat(ϕps,ϕp,dims=1)
+        efs = cat(efs,ef,dims=1)
         # Now want to put fluxes in units of moles
         fR = fR./NA
         # Then add to the total
@@ -647,102 +687,56 @@ function net_vis()
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=200)
-    # # Plot histogram of the number of active reactions
-    # histogram(cA,bins=range(0,stop=O+1,length=O+2))
-    # plot!(title="$(R) reactions per strain",xlabel="Number of active reactions")
-    # savefig("Output/ActiveReactionsType$(R).png")
-    # histogram(mf,bins=range(1,stop=O+1,length=O+1))
-    # plot!(title="$(R) reactions per strain",xlabel="Reaction with greatest flux")
-    # savefig("Output/MaxFluxType$(R).png")
-    # # Now find average flux
-    # fRT /= nR
-    # # Then plot
-    # bar(fRT,label="",xlabel="Reaction number",ylabel="Average flux")
-    # plot!(title="$(R) reactions per strain")
-    # savefig("Output/AverageReacsType$(R).png")
-    # # Now plot how many strains have each reaction
-    # histogram(crs,labels=rs',fillalpha=0.75)
-    # plot!(title="$(R) reactions per strain",xlabel="Number of strains with reaction")
-    # savefig("Output/StrainReactionsType$(R).png")
-    # # Now plot how many strains have each reaction
-    # histogram(crs2,labels=rs2',fillalpha=0.75)
-    # plot!(title="$(R) reactions per strain",xlabel="Number of strains with reaction")
-    # savefig("Output/AltStrainReactionsType$(R).png")
-    # # Preallocate percent data to plot
-    # perc = zeros(ps.O)
-    # for i = 1:ps.O
-    #     # Count zero elements and remove from sum
-    #     ct = count(x->x==0.0,prf[:,i])
-    #     if ct != nR
-    #         perc[i] = sum(prf[:,i])/(nR-ct)
-    #     else
-    #         perc[i] = 0.0
-    #     end
-    # end
-    # # Now plot how many strains have each reaction
-    # bar(perc,label="",ylabel="Average percentage of flux through top strain")
-    # plot!(title="$(R) reactions per strain",xlabel="Reaction number")
-    # savefig("Output/PercentFluxType$(R).png")
+    # Plot histogram of the number of active reactions
+    histogram(cA,bins=range(0,stop=O+1,length=O+2))
+    plot!(title="$(R) reactions per strain",xlabel="Number of active reactions")
+    savefig("Output/Type$(R)/ActiveReactionsType$(R).png")
+    histogram(mf,bins=range(1,stop=O+1,length=O+1))
+    plot!(title="$(R) reactions per strain",xlabel="Reaction with greatest flux")
+    savefig("Output/Type$(R)/MaxFluxType$(R).png")
+    # Now find average flux
+    fRT /= nR
+    # Then plot
+    bar(fRT,label="",xlabel="Reaction number",ylabel="Average flux")
+    plot!(title="$(R) reactions per strain")
+    savefig("Output/Type$(R)/AverageReacsType$(R).png")
+    # Now plot how many strains have each reaction
+    histogram(crs,labels=rs',fillalpha=0.75)
+    plot!(title="$(R) reactions per strain",xlabel="Number of strains with reaction")
+    savefig("Output/Type$(R)/StrainReactionsType$(R).png")
+    # Now plot how many strains have each reaction
+    histogram(crs2,labels=rs2',fillalpha=0.75)
+    plot!(title="$(R) reactions per strain",xlabel="Number of strains with reaction")
+    savefig("Output/Type$(R)/AltStrainReactionsType$(R).png")
+    # Preallocate percent data to plot
+    perc = zeros(ps.O)
+    for i = 1:ps.O
+        # Count zero elements and remove from sum
+        ct = count(x->x==0.0,prf[:,i])
+        if ct != nR
+            perc[i] = sum(prf[:,i])/(nR-ct)
+        else
+            perc[i] = 0.0
+        end
+    end
+    # Now plot how many strains have each reaction
+    bar(perc,label="",ylabel="Average percentage of flux through top strain")
+    plot!(title="$(R) reactions per strain",xlabel="Reaction number")
+    savefig("Output/Type$(R)/PercentFluxType$(R).png")
     # Define distribution functions
     @. f_ln(x,μ,σ) = (1/(x*σ*sqrt(2*π)))*exp(-((log(x)-μ)^2)/(2*σ^2))
     @. f_nm(x,μ,σ) = (1/(σ*sqrt(2*π)))*exp(-(1/2)*((x-μ)/(σ))^2)
-    # # Then manually calculate histograms
-    # bins1 = range(1e-4,stop=maximum(KSs),length=500)
-    # h1 = fit(Histogram,KSs,bins1,closed=:right)
-    # bins2 = range(1e-4,stop=maximum(kcs),length=500)
-    # h2 = fit(Histogram,kcs,bins2,closed=:right)
-    # bins3 = range(1e-4,stop=maximum(krs),length=500)
-    # h3 = fit(Histogram,krs,bins3,closed=:right)
-    # bins4 = range(1e-4,stop=maximum(ϕps),length=500)
-    # h4 = fit(Histogram,ϕps,bins4,closed=:right)
-    # # Then plot as bar charts, with inital distribution included
-    # bar(h1,label="Main reaction")
-    # # Find variables needed for the distribution
-    # μ1 = log((1/4)*5.5e-3)
-    # σ1 = log(2)
-    # # Renormalise distribution for plotting
-    # d1 = f_ln(bins1,μ1,σ1)
-    # d1 /= maximum(d1)
-    # plot!(bins1,maximum(h1.weights)*d1,label="Orginal distribution")
-    # plot!(title="$(R) reactions per strain",xlabel=L"K_S")
-    # savefig("Output/TopKSType$(R).png")
-    # bar(h2,label="Main reaction")
-    # μ2 = log(10.0)
-    # σ2 = log(2)
-    # d2 = f_ln(bins2,μ2,σ2)
-    # d2 /= maximum(d2)
-    # plot!(bins2,maximum(h2.weights)*d2,label="Orginal distribution")
-    # plot!(title="$(R) reactions per strain",xlabel=L"k_c")
-    # savefig("Output/TopkcType$(R).png")
-    # bar(h3,label="Main reaction")
-    # μ3 = log(10.0)
-    # σ3 = log(2)
-    # d3 = f_ln(bins3,μ3,σ3)
-    # d3 /= maximum(d3)
-    # plot!(bins3,maximum(h3.weights)*d3,label="Orginal distribution")
-    # plot!(title="$(R) reactions per strain",xlabel=L"k_r")
-    # savefig("Output/TopkrType$(R).png")
-    # bar(h4,label="Main reaction")
-    # μ4 = 1/R
-    # # No variation unless R > 1
-    # σ4 = 0.0
-    # if R != 1
-    #     σ4 = (1/(R*sqrt(3)))*sqrt(1+(1/R))
-    # end
-    # d4 = f_nm(bins4,μ4,σ4)
-    # d4 /= maximum(d4)
-    # plot!(bins4,maximum(h4.weights)*d4,label="Orginal distribution")
-    # plot!(title="$(R) reactions per strain",xlabel=L"\phi_p")
-    # savefig("Output/TopPhiPType$(R).png")
-    # Repeat process for full kinetics data
-    bins1 = range(1e-4,stop=maximum(KSF),length=500)
-    h1 = fit(Histogram,KSF,bins1,closed=:right)
-    bins2 = range(1e-4,stop=maximum(kcF),length=500)
-    h2 = fit(Histogram,kcF,bins2,closed=:right)
-    bins3 = range(1e-4,stop=maximum(krF),length=500)
-    h3 = fit(Histogram,krF,bins3,closed=:right)
-    bins4 = range(1e-4,stop=maximum(ϕpF),length=500)
-    h4 = fit(Histogram,ϕpF,bins4,closed=:right)
+    # Then manually calculate histograms
+    bins1 = range(1e-4,stop=maximum(KSs),length=500)
+    h1 = fit(Histogram,KSs,bins1,closed=:right)
+    bins2 = range(1e-4,stop=maximum(kcs),length=500)
+    h2 = fit(Histogram,kcs,bins2,closed=:right)
+    bins3 = range(1e-4,stop=maximum(krs),length=500)
+    h3 = fit(Histogram,krs,bins3,closed=:right)
+    bins4 = range(1e-4,stop=maximum(ϕps),length=500)
+    h4 = fit(Histogram,ϕps,bins4,closed=:right)
+    bins5 = range(-0.1,stop=1.00,length=500)
+    h5 = fit(Histogram,efs,bins5,closed=:right)
     # Then plot as bar charts, with inital distribution included
     bar(h1,label="Main reaction")
     # Find variables needed for the distribution
@@ -753,7 +747,63 @@ function net_vis()
     d1 /= maximum(d1)
     plot!(bins1,maximum(h1.weights)*d1,label="Orginal distribution")
     plot!(title="$(R) reactions per strain",xlabel=L"K_S")
-    savefig("Output/AllKSType$(R).png")
+    savefig("Output/Type$(R)/TopKSType$(R).png")
+    bar(h2,label="Main reaction")
+    μ2 = log(10.0)
+    σ2 = log(2)
+    d2 = f_ln(bins2,μ2,σ2)
+    d2 /= maximum(d2)
+    plot!(bins2,maximum(h2.weights)*d2,label="Orginal distribution")
+    plot!(title="$(R) reactions per strain",xlabel=L"k_c")
+    savefig("Output/Type$(R)/TopkcType$(R).png")
+    bar(h3,label="Main reaction")
+    μ3 = log(10.0)
+    σ3 = log(2)
+    d3 = f_ln(bins3,μ3,σ3)
+    d3 /= maximum(d3)
+    plot!(bins3,maximum(h3.weights)*d3,label="Orginal distribution")
+    plot!(title="$(R) reactions per strain",xlabel=L"k_r")
+    savefig("Output/Type$(R)/TopkrType$(R).png")
+    bar(h4,label="Main reaction")
+    μ4 = 1/R
+    # No variation unless R > 1
+    σ4 = 0.0
+    if R != 1
+        σ4 = (1/(R*sqrt(3)))*sqrt(1+(1/R))
+    end
+    d4 = f_nm(bins4,μ4,σ4)
+    d4 /= maximum(d4)
+    plot!(bins4,maximum(h4.weights)*d4,label="Orginal distribution")
+    plot!(title="$(R) reactions per strain",xlabel=L"\phi_p")
+    savefig("Output/Type$(R)/TopPhiPType$(R).png")
+    bar(h5,label="Main reaction")
+    d5 = f_ext_un(bins5)
+    d5 /= maximum(d5)
+    plot!(bins5,maximum(h5.weights)*d5,label="Orginal distribution",legend=:topright)
+    plot!(title="$(R) reactions per strain",xlabel="Fraction of free energy dissipated")
+    savefig("Output/Type$(R)/TopEfficencyType$(R).png")
+    # Repeat process for full kinetics data
+    bins1 = range(1e-4,stop=maximum(KSF),length=500)
+    h1 = fit(Histogram,KSF,bins1,closed=:right)
+    bins2 = range(1e-4,stop=maximum(kcF),length=500)
+    h2 = fit(Histogram,kcF,bins2,closed=:right)
+    bins3 = range(1e-4,stop=maximum(krF),length=500)
+    h3 = fit(Histogram,krF,bins3,closed=:right)
+    bins4 = range(1e-4,stop=maximum(ϕpF),length=500)
+    h4 = fit(Histogram,ϕpF,bins4,closed=:right)
+    bins5 = range(-0.1,stop=1.00,length=500)
+    h5 = fit(Histogram,efF,bins5,closed=:right)
+    # Then plot as bar charts, with inital distribution included
+    bar(h1,label="Main reaction")
+    # Find variables needed for the distribution
+    μ1 = log((1/4)*5.5e-3)
+    σ1 = log(2)
+    # Renormalise distribution for plotting
+    d1 = f_ln(bins1,μ1,σ1)
+    d1 /= maximum(d1)
+    plot!(bins1,maximum(h1.weights)*d1,label="Orginal distribution")
+    plot!(title="$(R) reactions per strain",xlabel=L"K_S")
+    savefig("Output/Type$(R)/AllKSType$(R).png")
     bar(h2,label="All reactions")
     μ2 = log(10.0)
     σ2 = log(2)
@@ -761,7 +811,7 @@ function net_vis()
     d2 /= maximum(d2)
     plot!(bins2,maximum(h2.weights)*d2,label="Orginal distribution")
     plot!(title="$(R) reactions per strain",xlabel=L"k_c")
-    savefig("Output/AllkcType$(R).png")
+    savefig("Output/Type$(R)/AllkcType$(R).png")
     bar(h3,label="All reactions")
     μ3 = log(10.0)
     σ3 = log(2)
@@ -769,7 +819,7 @@ function net_vis()
     d3 /= maximum(d3)
     plot!(bins3,maximum(h3.weights)*d3,label="Orginal distribution")
     plot!(title="$(R) reactions per strain",xlabel=L"k_r")
-    savefig("Output/AllkrType$(R).png")
+    savefig("Output/Type$(R)/AllkrType$(R).png")
     bar(h4,label="All reactions")
     μ4 = 1/R
     # No variation unless R > 1
@@ -781,7 +831,13 @@ function net_vis()
     d4 /= maximum(d4)
     plot!(bins4,maximum(h4.weights)*d4,label="Orginal distribution")
     plot!(title="$(R) reactions per strain",xlabel=L"\phi_p")
-    savefig("Output/AllPhiPType$(R).png")
+    savefig("Output/Type$(R)/AllPhiPType$(R).png")
+    bar(h5,label="All reactions")
+    d5 = f_ext_un(bins5)
+    d5 /= maximum(d5)
+    plot!(bins5,maximum(h5.weights)*d5,label="Orginal distribution",legend=:topright)
+    plot!(title="$(R) reactions per strain",xlabel="Fraction of free energy dissipated")
+    savefig("Output/Type$(R)/AllEfficencyType$(R).png")
     return(nothing)
 end
 
@@ -1077,4 +1133,4 @@ function test()
     return(nothing)
 end
 
-@time test()
+@time net_vis()

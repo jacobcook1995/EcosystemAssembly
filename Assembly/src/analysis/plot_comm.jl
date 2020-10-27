@@ -536,11 +536,6 @@ function net_vis()
     fRT = zeros(ps.O)
     # Percentage flow through most contributing strain
     prf = zeros(nR,ps.O)
-    # Preallocate count of number of species possing particular reaction
-    rs = [2,6,10,13]
-    crs = zeros(Int64,nR,length(rs))
-    rs2 = [3,7,11]
-    crs2 = zeros(Int64,nR,length(rs2))
     # Preallocate storage for best kinetic parameters
     KSs = []
     krs = []
@@ -555,6 +550,8 @@ function net_vis()
     efF = []
     # To store number of ecosystems that reaction is present in
     pres = zeros(ps.O)
+    # Data structure to store abundances
+    abnd = zeros(ps.O,1)
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files
@@ -610,6 +607,17 @@ function net_vis()
             # Check if reaction is present
             if any(j .∈ (ps.mics.↦:Reacs))
                 pres[j] += 1
+                # Count the number of occurances
+                n = count(j .∈ (ps.mics.↦:Reacs))
+                # Update container until its the right size
+                while n + 1 > size(abnd,2)
+                    tmp = zeros(ps.O)
+                    abnd = cat(abnd,tmp,dims=2)
+                end
+                # Add to correct abundance
+                abnd[j,n+1] += 1
+            else
+                abnd[j,1] += 1
             end
             # Loop over microbes
             for k = 1:ps.N
@@ -639,18 +647,6 @@ function net_vis()
                     if q*out[k] > hghf[j]
                         hghf[j] = q*out[k]
                         bstm[j] = k
-                    end
-                    # Check if reaction is one of those I'm interested in
-                    if j ∈ rs
-                        # Then find index if so
-                        ind2 = findfirst(x->x==j,rs)
-                        # Then update to show that reaction is possessed by strain
-                        crs[i,ind2] += 1
-                    elseif j ∈ rs2
-                        # Then find index if so
-                        ind2 = findfirst(x->x==j,rs2)
-                        # Then update to show that reaction is possessed by strain
-                        crs2[i,ind2] += 1
                     end
                 end
             end
@@ -701,10 +697,20 @@ function net_vis()
         p = 2 + floor(Int64,i/2)
         xs[i] = "$s→$(p)"
     end
-    # Plot presence data
+    # Plot "presence" data
     groupedbar([nR.-pres pres],bar_position=:stack,labels=["Absent" "Present"])
     plot!(xticks=(1:ps.O,xs),xlabel="Reaction",ylabel="Number of ecosystems")
+    plot!(title="$(R) reactions per strain",legend=:outerright)
     savefig("Output/Type$(R)/PresenseType$(R).png")
+    # Now plot "abundance" data
+    lbs = Array{String,2}(undef,1,size(abnd,2))
+    for i = 1:length(lbs)
+        lbs[i] = string(i-1)
+    end
+    groupedbar(abnd,bar_position=:stack,labels=lbs,legend=:outerright)
+    plot!(xticks=(1:ps.O,xs),xlabel="Reaction",ylabel="Number of ecosystems")
+    plot!(title="$(R) reactions per strain")
+    savefig("Output/Type$(R)/AbundanceType$(R).png")
     # Plot histogram of the number of active reactions
     histogram(cA,bins=range(0,stop=O+1,length=O+2))
     plot!(title="$(R) reactions per strain",xlabel="Number of active reactions")
@@ -718,16 +724,9 @@ function net_vis()
     bar(fRT,xticks=(1:ps.O,xs),label="",xlabel="Reaction",ylabel="Average flux")
     plot!(title="$(R) reactions per strain")
     savefig("Output/Type$(R)/AverageReacsType$(R).png")
-    # Now plot how many strains have each reaction
-    histogram(crs,labels=rs',fillalpha=0.75)
-    plot!(title="$(R) reactions per strain",xlabel="Number of strains with reaction")
-    savefig("Output/Type$(R)/StrainReactionsType$(R).png")
-    # Now plot how many strains have each reaction
-    histogram(crs2,labels=rs2',fillalpha=0.75)
-    plot!(title="$(R) reactions per strain",xlabel="Number of strains with reaction")
-    savefig("Output/Type$(R)/AltStrainReactionsType$(R).png")
     # Preallocate percent data to plot
     perc = zeros(ps.O)
+    perc2 = zeros(ps.O)
     for i = 1:ps.O
         # Count zero elements and remove from sum
         ct = count(x->x==0.0,prf[:,i])
@@ -736,11 +735,21 @@ function net_vis()
         else
             perc[i] = 0.0
         end
+        # Count single elements and remove from sum
+        ct2 = count(x->x==100.0,prf[:,i])
+        if ct2 != 0
+            perc2[i] = (sum(prf[:,i])-100.0*ct2)/(nR-ct-ct2)
+        else
+            perc2[i] = sum(prf[:,i])/(nR-ct)
+        end
     end
     # Now plot how many strains have each reaction
     bar(perc,label="",ylabel="Average percentage of flux through top strain")
     plot!(title="$(R) reactions per strain",xlabel="Reaction",xticks=(1:ps.O,xs))
     savefig("Output/Type$(R)/PercentFluxType$(R).png")
+    bar(perc2,label="",ylabel="Percentange of flux (ignoring singles)")
+    plot!(title="$(R) reactions per strain",xlabel="Reaction",xticks=(1:ps.O,xs))
+    savefig("Output/Type$(R)/RedPercentFluxType$(R).png")
     # Define distribution functions
     @. f_ln(x,μ,σ) = (1/(x*σ*sqrt(2*π)))*exp(-((log(x)-μ)^2)/(2*σ^2))
     @. f_nm(x,μ,σ) = (1/(σ*sqrt(2*π)))*exp(-(1/2)*((x-μ)/(σ))^2)

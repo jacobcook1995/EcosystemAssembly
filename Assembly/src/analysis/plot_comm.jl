@@ -1173,4 +1173,123 @@ function test()
     return(nothing)
 end
 
-@time net_vis()
+# Function to plot distribution of fluxes and abundances
+function flux_abund()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 2
+        error("need to specify community and number of repeats")
+    end
+    # Preallocate the variables I want to extract from the input
+    R = 0
+    nR = 0
+    # Check that all arguments can be converted to integers
+    try
+        R = parse(Int64,ARGS[1])
+        nR = parse(Int64,ARGS[2])
+    catch e
+           error("both inputs must be integer")
+    end
+    # Check that simulation type is valid
+    if R < 1
+        error("each strain must have more than 1 reaction")
+    end
+    # Check that number of simulations is greater than 0
+    if nR < 1
+        error("Number of repeats cannot be less than 1")
+    end
+    println("Compiled!")
+    # Data structure to store abundances
+    abnd = []
+    # Data structures to store fluxes
+    fl = []
+    flm = []
+    Afl = []
+    Aflm = []
+    # Loop over repeats
+    for i = 1:nR
+        # Read in relevant files
+        pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
+        if ~isfile(pfile)
+            error("run $(i) is missing a parameter file")
+        end
+        ofile = "Data/Type$(R)/OutputType$(R)Run$(i).jld"
+        if ~isfile(ofile)
+            error("run $(i) is missing an output file")
+        end
+        efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
+        if ~isfile(efile)
+            error("run $(i) is missing an extinct file")
+        end
+        # Basically just loading everything out as I'm not sure what I'll need
+        ps = load(pfile,"ps")
+        C = load(ofile,"C")
+        T = load(ofile,"T")
+        out = load(ofile,"out")
+        ded = load(efile,"ded")
+        # Add abundances to the vector
+        abnd = cat(abnd,out[1:ps.N],dims=1)
+        # Preallocate fluxes
+        f = zeros(R*ps.N)
+        fm = zeros(R*ps.N)
+        Af = zeros(R*ps.N)
+        Afm = zeros(R*ps.N)
+        # Loop over all reactions
+        for k = 1:ps.N
+            # Loop over microbes
+            c = 0
+            for j = 1:ps.O
+                # Check if reaction exists in microbe
+                if any(ps.mics[k].Reacs .== j) == true
+                    # Increment counter
+                    c += 1
+                    # If so then find reaction
+                    ind = findfirst(x->x==j,ps.mics[k].Reacs)
+                    # Find final ribosome fraction for this strain
+                    ϕR = out[2*ps.N+ps.M+k]
+                    # Find amount of enzyme dedicated to reaction
+                    E = Eα(ϕR,ps.mics[k],ind)
+                    # Find substrate and product
+                    S = out[ps.N+ps.reacs[j].Rct]
+                    P = out[ps.N+ps.reacs[j].Prd]
+                    # find reaction rate
+                    q = qs(S,P,E,ind,ps.mics[k],ps.T,ps.reacs[j])
+                    # Flux is reaction rate * population
+                    f[(k-1)*R+c] = q*out[k]
+                    # Mass renormalised version
+                    fm[(k-1)*R+c] = q
+                    # Find eta value for strain
+                    ηf = ps.mics[k].η[ind]
+                    # ATP fluxes
+                    Af[(k-1)*R+c] = q*out[k]*ηf
+                    Afm[(k-1)*R+c] = q*ηf
+                end
+            end
+            if c != 3
+                println("Zuet alens!")
+                println(c)
+            end
+        end
+        # Cat vector of fluxes in
+        fl = cat(fl,f,dims=1)
+        flm = cat(flm,fm,dims=1)
+        Afl = cat(Afl,Af,dims=1)
+        Aflm = cat(Aflm,Afm,dims=1)
+    end
+    # Set up plotting
+    pyplot()
+    # Set a color-blind friendly palette
+    theme(:wong2,dpi=200)
+    histogram(abnd,label="",title="$(R) reactions per strain",xlabel="Abundances")
+    savefig("Output/Type$(R)/StrainAbundType$(R).png")
+    histogram(fl,label="",title="$(R) reactions per strain",xlabel="Flux")
+    savefig("Output/Type$(R)/FluxesType$(R).png")
+    histogram(flm,label="",title="$(R) reactions per strain",xlabel="Mass specific flux")
+    savefig("Output/Type$(R)/FluxesMType$(R).png")
+    histogram(Afl,label="",title="$(R) reactions per strain",xlabel="ATP flux")
+    savefig("Output/Type$(R)/ATPFType$(R).png")
+    histogram(Aflm,label="",title="$(R) reactions per strain",xlabel="Mass specific ATP flux")
+    savefig("Output/Type$(R)/ATPFMType$(R).png")
+    return(nothing)
+end
+
+@time flux_abund()

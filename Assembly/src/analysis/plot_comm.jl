@@ -534,6 +534,8 @@ function net_vis()
     O = ps.O
     # Preallocate flows through reactions
     fRT = zeros(ps.O)
+    # Mass renormalised version
+    fRTm = zeros(ps.O)
     # Percentage flow through most contributing strain
     prf = zeros(nR,ps.O)
     # Preallocate storage for best kinetic parameters
@@ -575,6 +577,8 @@ function net_vis()
         ded = load(efile,"ded")
         # Temporary way of storing the fluxes for this realisation
         fR = zeros(ps.O)
+        # Mass renormalised version
+        fRm = zeros(ps.O)
         # Highest flux from one reaction (for particular strain)
         bstf = zeros(ps.N)
         # reaction that acheives this
@@ -636,6 +640,8 @@ function net_vis()
                     q = qs(S,P,E,ind,ps.mics[k],ps.T,ps.reacs[j])
                     # Flux is reaction rate * population
                     fR[j] += q*out[k]
+                    # Mass renormalised version
+                    fRm[j] += q
                     # Find eta value for strain
                     ηf = ps.mics[k].η[ind]
                     # Check if ATP flux is higher than other reactions for strain
@@ -678,8 +684,10 @@ function net_vis()
         efs = cat(efs,ef,dims=1)
         # Now want to put fluxes in units of moles
         fR = fR./NA
+        fRm = fRm
         # Then add to the total
         fRT = fRT .+ fR
+        fRTm = fRTm .+ fRm
         # count the number of active reactions
         cA[i] = count(x->x>0.0,fR)
         # Find reaction with the maximum flux
@@ -724,6 +732,11 @@ function net_vis()
     bar(fRT,xticks=(1:ps.O,xs),label="",xlabel="Reaction",ylabel="Average flux")
     plot!(title="$(R) reactions per strain")
     savefig("Output/Type$(R)/AverageReacsType$(R).png")
+    # Then find and plot average mass renormalised flux
+    fRTm /= nR
+    bar(fRTm,xticks=(1:ps.O,xs),label="",xlabel="Reaction",ylabel="Mass renormalised average flux")
+    plot!(title="$(R) reactions per strain")
+    savefig("Output/Type$(R)/AverageReacsMassType$(R).png")
     # Preallocate percent data to plot
     perc = zeros(ps.O)
     perc2 = zeros(ps.O)

@@ -65,19 +65,70 @@ function removal()
         # Check if forces are stable
         stab = all(abs.(f[1:ps.N]./out[1:ps.N]) .< 1e-9)
         if stab == true
-            
+            # Write out old data if stable
+            # Save extinct strains
+            jldopen("Data/Type$(R)/RedExtinctType$(R)Run$(i).jld","w") do file
+                write(file,"ded",ded)
+            end
+            # the reduced parameter sets
+            jldopen("Data/Type$(R)/RedParasType$(R)Run$(i).jld","w") do file
+                write(file,"ps",ps)
+            end
         else
-
+            # Set a high final time
+            Tmax = 100*maximum(T)
+            # Store intial numbers of strains and metabolites
+            N = ps.N
+            M = ps.M
+            # Extract initial conditions
+            pop = out[1:ps.N]
+            conc = out[(ps.N+1):(ps.N+ps.M)]
+            as = out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
+            ϕs = out[(2*ps.N+ps.M+1):end]
+            # Then run the simulation
+            Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+            # Establish which microbes are extinct
+            ext = (C[end,1:N] .== 0.0)
+            # Preallocate vector to store extinct microbes
+            ded2 = Array{MicrobeP,1}(undef,sum(ext))
+            # Loop over and store microbes in the vector
+            k = 0
+            for j = 1:length(ext)
+                if ext[j] == 1
+                    k += 1
+                    ded2[k] = ps.mics[j]
+                end
+            end
+            # Remove extinct strains from parameter set
+            ps = extinction(ps,ext)
+            # Preallocate final concentrations (etc) for output
+            out = Array{Float64,1}(undef,3*ps.N+M)
+            # Store final metabolite concentrations
+            out[ps.N+1:ps.N+M] = C[end,N+1:N+M]
+            # Now sub in data for not extinct microbes
+            k = 0
+            for j = 1:length(ext)
+                if ext[j] != 1
+                    k += 1
+                    # Population
+                    out[k] = C[end,j]
+                    # Energy
+                    out[M+ps.N+k] = C[end,M+N+j]
+                    # Fraction
+                    out[M+2*ps.N+k] = C[end,M+2*N+j]
+                end
+            end
+            # Gather and output new reduceded data
+            ded = cat(ded,ded2,dims=1)
+            # Save extinct strains
+            jldopen("Data/Type$(R)/RedExtinctType$(R)Run$(i).jld","w") do file
+                write(file,"ded",ded)
+            end
+            # the reduced parameter sets
+            jldopen("Data/Type$(R)/RedParasType$(R)Run$(i).jld","w") do file
+                write(file,"ps",ps)
+            end
         end
-        # # Now section to write this new data out
-        # # Save extinct strains
-        # jldopen("Data/Type$(R)/RedExtinctType$(R)Run$(i).jld","w") do file
-        #     write(file,"ded",ded)
-        # end
-        # # the reduced parameter sets
-        # jldopen("Data/Type$(R)/RedParasType$(R)Run$(i).jld","w") do file
-        #     write(file,"ps",ps)
-        # end
     end
     return(nothing)
 end

@@ -206,7 +206,6 @@ function stability()
             println("Number of time points $(length(T))")
             flush(stdout)
             # Now want to track down the first time point that the system stabilises at
-            # THIS NEEDS TO CHANGE TO RUN BACKWARDS FOR THE SAKE OF SPEED
             while stab == false
                 j -= 1
                 # Select the part of the data that we care about

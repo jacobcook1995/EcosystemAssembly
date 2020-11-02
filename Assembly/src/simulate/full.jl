@@ -1,7 +1,7 @@
 # A script to run the dynamics for the full model.
 export full_simulate, θ, θ_smooth, qs, test_full_simulate
 
-export test_dynamics!
+export test_dynamics!, full_simulate_syn
 
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
@@ -176,6 +176,48 @@ function full_simulate(ps::FullParameters,Tmax::Float64,pop::Array{Float64,1},co
     x0 = [pop;conc;as;ϕs]
     # Then setup and solve the problem
     prob = ODEProblem(dyns!,x0,tspan,ps)
+    # Still generates problems, not sure if I have to change a solver option or what
+    sol = DifferentialEquations.solve(prob)
+    return(sol',sol.t)
+end
+
+# Same as the above but with a specific strain given a massively increased death rate
+# This should help us investigate syntrophic pairs
+function full_simulate_syn(ps::FullParameters,Tmax::Float64,pop::Array{Float64,1},conc::Array{Float64,1},
+                        as::Array{Float64,1},ϕs::Array{Float64,1},inds::Array{Int64,1})
+    @assert length(pop) == ps.N "From parameter set expected $(ps.N) strains"
+    @assert length(conc) == ps.M "From parameter set expected $(ps.M) metabolites"
+    @assert length(as) == length(pop) "Every strain must have an energy concentration"
+    @assert length(ϕs) == length(pop) "Every strain must have a ribosome fraction"
+    # Preallocate memory
+    rate = zeros(ps.N,ps.O)
+    # Extract old death rate
+    d = ps.mics[1].d
+    # Increase by a factor of 10
+    nd = 25.0*d
+    # Preallocate new microbes
+    nmics = Array{MicrobeP,1}(undef,length(ps.mics))
+    # Loop over old microbes
+    for i = 1:length(ps.mics)
+        # Check if any change needs to be made to the microbes
+        if i ∉ inds
+            nmics[i] = ps.mics[i]
+        else
+            # Extract old microbe
+            m = ps.mics[i]
+            # Make new microbe
+            nmics[i] = make_MicrobeP(m.MC,m.γm,m.ρ,m.Kγ,m.Pb,nd,m.ϕH,m.KΩ,m.fd,m.R,m.Reacs,m.η,m.kc,m.KS,m.kr,m.n,m.ϕP)
+        end
+    end
+    # Use to make a new parameter set
+    ps2 = make_FullParameters(ps.N,ps.M,ps.O,ps.T,ps.κ,ps.δ,ps.reacs,nmics)
+    # Now substitute preallocated memory in
+    dyns!(dx,x,ps2,t) = full_dynamics!(dx,x,ps2,rate,t)
+    # Find time span for this step
+    tspan = (0,Tmax)
+    x0 = [pop;conc;as;ϕs]
+    # Then setup and solve the problem
+    prob = ODEProblem(dyns!,x0,tspan,ps2)
     # Still generates problems, not sure if I have to change a solver option or what
     sol = DifferentialEquations.solve(prob)
     return(sol',sol.t)

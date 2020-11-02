@@ -17,7 +17,7 @@ function bound_θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
 end
 
 # function to return the rate in symbolic form
-function symb_rate(S::Sym,θ::Sym)
+function symb_rate(S::SymPy.Sym,θ::SymPy.Sym)
     # Define kinetic/thermodynamic parameters
     kc, KS, kr = symbols("kc, KS, kr")
     # Start with numerator
@@ -30,7 +30,7 @@ function symb_rate(S::Sym,θ::Sym)
 end
 
 # function to find the forces symbolically
-function Force(ps::FullParameters,F::Array{Sym,1})
+function Force(ps::FullParameters,F::Array{SymPy.Sym,1})
     # Check Jacobian provided is the right size
     @assert length(F) == 3*ps.N + ps.M "Preallocated force vector incorrect size"
     # Define ecosystem and microbe level symbols
@@ -144,7 +144,7 @@ end
 
 
 # function to find numerical values of forces at a particular point in the space
-function nForce(F::Array{Sym,1},C::Array{Float64,1},ps::FullParameters)
+function nForce(F::Array{SymPy.Sym,1},C::Array{Float64,1},ps::FullParameters)
     # Copy F to a new object to prevent overwriting
     f = copy(F)
     # Sub in steady state population values

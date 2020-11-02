@@ -74,6 +74,14 @@ function removal()
             jldopen("Data/Type$(R)/RedParasType$(R)Run$(i).jld","w") do file
                 write(file,"ps",ps)
             end
+            # and the full output
+            jldopen("Data/Type$(R)/RedOutputType$(R)Run$(i).jld","w") do file
+                # Save final output
+                write(file,"out",out)
+                # # Save time data and dynamics data
+                write(file,"T",T)
+                write(file,"C",C[1:end,1:end])
+            end
         else
             # Set a high final time
             Tmax = 100*maximum(T)
@@ -127,6 +135,14 @@ function removal()
             # the reduced parameter sets
             jldopen("Data/Type$(R)/RedParasType$(R)Run$(i).jld","w") do file
                 write(file,"ps",ps)
+            end
+            # and the full output
+            jldopen("Data/Type$(R)/RedOutputType$(R)Run$(i).jld","w") do file
+                # Save final output
+                write(file,"out",out)
+                # # Save time data and dynamics data
+                write(file,"T",T)
+                write(file,"C",C[1:end,1:end])
             end
         end
     end

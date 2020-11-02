@@ -584,8 +584,6 @@ function test()
         error("need to do at least 1 simulation")
     end
     println("Compiled!")
-    # Now move onto plotting
-    pyplot(dpi=200)
     # Read in relevant files
     pfile = "Data/Type$(R)/ParasType$(R)Run$(rps).jld"
     if ~isfile(pfile)
@@ -604,8 +602,27 @@ function test()
     T = load(ofile,"T")
     out = load(ofile,"out")
     ded = load(efile,"ded")
-    # Find indices I'm interested in
-    ind = findfirst(x->x==out[2],C[end,:])
+    # Find index I'm interested in
+    ind = findfirst(x->x==out[4],C[end,:])
+    m = ps.mics[4]
+    # Now move onto plotting
+    pyplot()
+    theme(:wong2,dpi=200)
+    plot(yaxis=:log10)
+    # Find indicies
+    is = zeros(Int64,ps.N)
+    for i = 1:ps.N
+        is[i] = findfirst(x->x==out[i],C[end,:])
+    end
+    N = ps.N + length(ded)
+    # Something else
+    for i = is
+         # Find and eliminate zeros so that they can be plotted on a log plot
+         inds = (C[:,i] .> 0)
+         plot!(T[inds],C[inds,i],label="")
+    end
+    savefig("Output/testpop.png")
+    plot(T,C[:,(N+1):(N+ps.M)])
     return(nothing)
 end
 
@@ -700,10 +717,6 @@ function flux_abund()
                     Afm[(k-1)*R+c] = q*ηf
                 end
             end
-            if c != 3
-                println("Zuet alens!")
-                println(c)
-            end
         end
         # Cat vector of fluxes in
         fl = cat(fl,f,dims=1)
@@ -728,4 +741,4 @@ function flux_abund()
     return(nothing)
 end
 
-@time flux_abund()
+@time test()

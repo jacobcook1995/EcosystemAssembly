@@ -661,15 +661,15 @@ function flux_abund()
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files
-        pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
+        pfile = "Data/Type$(R)/RedParasType$(R)Run$(i).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/Type$(R)/OutputType$(R)Run$(i).jld"
+        ofile = "Data/Type$(R)/RedOutputType$(R)Run$(i).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
+        efile = "Data/Type$(R)/RedExtinctType$(R)Run$(i).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
@@ -741,4 +741,4 @@ function flux_abund()
     return(nothing)
 end
 
-@time test()
+@time flux_abund()

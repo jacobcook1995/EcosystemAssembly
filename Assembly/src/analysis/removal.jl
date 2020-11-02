@@ -2,9 +2,6 @@
 using Assembly
 using JLD
 using SymPy
-# REMOVE THESE WHEN TESTING IS DONE
-using Plots
-import PyPlot
 
 # function to read in data set and remove non-long term suvivors
 function removal()
@@ -31,10 +28,6 @@ function removal()
         error("Number of repeats cannot be less than 1")
     end
     println("Compiled!")
-    # Set up plotting, REMOVE WHEN DONE
-    pyplot()
-    # Set a color-blind friendly palette
-    theme(:wong2,dpi=200)
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files

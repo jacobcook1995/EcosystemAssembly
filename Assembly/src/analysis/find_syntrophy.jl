@@ -1,6 +1,7 @@
 # This script exists to investigate syntrophy in the simulated communities
 using Assembly
 using JLD
+using LaTeXStrings
 using Plots
 import PyPlot
 
@@ -32,6 +33,10 @@ function find_syn()
     # Now move onto plotting
     pyplot()
     theme(:wong2,dpi=200)
+    # Preallocate population changes
+    dNs = Array{Float64,1}(undef,0)
+    θs = Array{Float64,1}(undef,0)
+    θa = Array{Float64,1}(undef,0)
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files
@@ -57,6 +62,8 @@ function find_syn()
         N = ps.N + length(ded)
         # Vector to indicate obligate syntrophically consuming strains
         cons = fill(false,ps.N)
+        # And the inhibited producers
+        prod = fill(false,ps.N)
         # Loop over strains
         for j = 1:ps.N
             # Extract strain of interest
@@ -73,6 +80,8 @@ function find_syn()
                     for l = 1:ps.N
                         # Check if any strain other than itself consume the microbe
                         if l != j && any((ps.reacs[ps.mics[l].Reacs].↦:Rct) .== r.Prd)
+                            # Inhibited producer
+                            prod[j] = true
                             # Update consumer strains to match
                             cons[l] = true
                         end
@@ -90,10 +99,6 @@ function find_syn()
                 as = out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
                 ϕs = out[(2*ps.N+ps.M+1):end]
                 # Find indices of down stream
-                println("Run $i")
-                println(cons)
-                # cons always comes out as [1,0,...,0]
-                # SUSPIOUS
                 inds = collect(1:ps.N)[cons]
                 # Simulate with strain repressed
                 Cn, Tn = full_simulate_syn(ps,Tmax,pop,conc,as,ϕs,inds)
@@ -102,22 +107,49 @@ function find_syn()
                 # and use to join old data to new data
                 Ca = cat(out',out',Cn[:,:],dims=1)
                 Ta = cat(0.0,Toff,Tn.+Toff,dims=1)
+                # Find indices of producers
+                inds = collect(1:ps.N)[prod]
+                # Calculate and store changes in producer populations
+                dN = (out[inds] .- Ca[end,inds])/out[inds]
+                # Preallocate θ ouputs
+                θrs = zeros(length(inds))
+                θas = zeros(length(inds))
+                # Loop over to find relevant θ values
+                for k = 1:length(inds)
+                    # Find relevant microbe
+                    m = ps.mics[inds[k]]
+                    # Find reaction (Single reaction case only!)
+                    r = ps.reacs[m.Reacs[1]]
+                    # Find θ values
+                    θrs[k] = θ(out[ps.N+r.Rct],out[ps.N+r.Prd],ps.T,m.η[1],r.ΔG0)
+                    # Find θ values after extinction
+                    θas[k] = θ(Ca[end,ps.N+r.Rct],Ca[end,ps.N+r.Prd],ps.T,m.η[1],r.ΔG0)
+                end
+                # Store in main collection
+                dNs = cat(dNs,dN,dims=1)
+                θs = cat(θs,θrs,dims=1)
+                θa = cat(θa,θas,dims=1)
                 # Setup plot for new dynamics
                 plot(yaxis=:log10,xlabel="Time (seconds)",ylabel="Log population")
-                for i = 1:ps.N
+                for k = 1:ps.N
                     # Find and eliminate zeros so that they can be plotted on a log plot
-                    inds = (Ca[:,i] .> 0)
-                    plot!(Ta[inds],Ca[inds,i],label="")
+                    inds = (Ca[:,k] .> 0)
+                    # Find reaction to use as a label
+                    r = ps.reacs[ps.mics[k].Reacs[1]]
+                    plot!(Ta[inds],Ca[inds,k],label="$(r.Rct)→$(r.Prd)")
                 end
                 vline!([Toff],color=:red,label="Extinction")
                 savefig("Output/Newpops$(i).png")
-                # NEED A WAY TO CHECK IF TRUELY STABLE
-                # AND THEN NEED TO SEE IF θ VALUE CORRELATES WITH STABILITY
-                # NEED TO CHECK THAT THE ABOVE RESULTS ACTUALLY MAKE SENSE
-                # BIG TASK TOMORROW IS TO THINK ABOUT MULTI-REACTION CASE
             end
         end
     end
+    # Useful for label
+    th = L"\theta"
+    # Scatter graph of population change vs theta
+    scatter(dNs*100.0,θs,label="",xlabel="Percentage population change",ylabel="$(th) before extinction")
+    savefig("Output/PopChange.png")
+    scatter(θa,θs,label="",xlabel="$(th) after extinction",ylabel="$(th) before extinction")
+    savefig("Output/ThetaChange.png")
     return(nothing)
 end
 

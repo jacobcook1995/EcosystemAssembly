@@ -95,7 +95,7 @@ function net_vis()
     end
     println("Compiled!")
     # Read in standard parameter file
-    pfile = "Data/Type$(R)/ParasType$(R)Run1.jld"
+    pfile = "Data/Type$(R)/RedParasType$(R)Run1.jld"
     if ~isfile(pfile)
         error("run 1 is missing a parameter file")
     end
@@ -129,15 +129,15 @@ function net_vis()
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files
-        pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
+        pfile = "Data/Type$(R)/RedParasType$(R)Run$(i).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/Type$(R)/OutputType$(R)Run$(i).jld"
+        ofile = "Data/Type$(R)/RedOutputType$(R)Run$(i).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
+        efile = "Data/Type$(R)/RedExtinctType$(R)Run$(i).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end

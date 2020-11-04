@@ -88,8 +88,8 @@ function removal()
             ϕs = out[(2*ps.N+ps.M+1):end]
             # Then run the simulation
             Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
-            # Establish which microbes are extinct
-            ext = (C[end,1:N] .== 0.0)
+            # Establish which microbes are now extinct
+            ext = (Cl[end,1:N] .== 0.0)
             # Preallocate vector to store extinct microbes
             ded2 = Array{MicrobeP,1}(undef,sum(ext))
             # Loop over and store microbes in the vector
@@ -103,20 +103,20 @@ function removal()
             # Remove extinct strains from parameter set
             ps = extinction(ps,ext)
             # Preallocate final concentrations (etc) for output
-            out = Array{Float64,1}(undef,3*ps.N+M)
+            nout = Array{Float64,1}(undef,3*ps.N+M)
             # Store final metabolite concentrations
-            out[ps.N+1:ps.N+M] = C[end,N+1:N+M]
+            nout[ps.N+1:ps.N+M] = out[N+1:N+M]
             # Now sub in data for not extinct microbes
             k = 0
             for j = 1:length(ext)
                 if ext[j] != 1
                     k += 1
                     # Population
-                    out[k] = C[end,j]
+                    nout[k] = out[j]
                     # Energy
-                    out[M+ps.N+k] = C[end,M+N+j]
+                    nout[M+ps.N+k] = out[M+N+j]
                     # Fraction
-                    out[M+2*ps.N+k] = C[end,M+2*N+j]
+                    nout[M+2*ps.N+k] = out[M+2*N+j]
                 end
             end
             # Gather and output new reduceded data
@@ -132,7 +132,7 @@ function removal()
             # and the full output
             jldopen("Data/Type$(R)/RedOutputType$(R)Run$(i).jld","w") do file
                 # Save final output
-                write(file,"out",out)
+                write(file,"out",nout)
                 # # Save time data and dynamics data
                 write(file,"T",T)
                 write(file,"C",C[1:end,1:end])

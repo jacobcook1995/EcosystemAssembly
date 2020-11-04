@@ -19,10 +19,10 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
             for index in line.split(','):
                 indices[-1].append(index.strip())
 
-    # first set of targets should equal second set of sources
-    assert indices[1] == indices[2]
-    # interaction strengths are equal too
-    assert indices[5] == indices[6]
+    # # first set of targets should equal second set of sources
+    # assert indices[1] == indices[2]
+    # # interaction strengths are equal too
+    # assert indices[5] == indices[6]
 
     # Find last forward slash in path so that the name can be extracted properly
     slh = path.rfind('/')
@@ -38,12 +38,12 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
             G.add_edge(*ij, weight=flux)
 
     # i is metabolite, j is species
-    for i,j,w in zip(indices[0], indices[1], indices[5]):
+    for i,j,w in zip(indices[0], indices[1], indices[4]):
         ij = ('m'+i, j)
         add_flux(ij, float(w))
 
     # i is species, j is metabolite
-    for i,j,w in zip(indices[2], indices[3], indices[6]):
+    for i,j,w in zip(indices[1], indices[2], indices[4]):
         ij = (i, 'm'+j)
         add_flux(ij, float(w))
 
@@ -99,8 +99,8 @@ def layered(path):
 
     # weight_threshold can be used to cut weak links, but may break code if it disconnects the graph
     # weights run between 0.0 and 1.0, 0.0 causes no change 1.0 maximum change
-    wt = 0.3
-    # wt = 0.0
+    # wt = 0.3
+    wt = 0.0
     jonny_code.stress(G, 'Output', y_constraint=y_constraint, x_constraint=x_constraint, weight_threshold=wt)
 
 # This function seems to bundle the hierarchy

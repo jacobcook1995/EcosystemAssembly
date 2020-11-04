@@ -44,7 +44,6 @@ function bi_net()
     mp = Array{Int64,1}(undef,0) # Metabolite posistions
     ml = Array{Int64,1}(undef,0) # Metabolite links
     mf = Array{Float64,1}(undef,0) # Consumption fluxes
-    sp = Array{Int64,1}(undef,0) # Strain posistions
     sl = Array{Int64,1}(undef,0) # Strain links
     sf = Array{Float64,1}(undef,0) # Production fluxes
     rs = Array{Int64,1}(undef,0) # Reaction IDs
@@ -75,7 +74,6 @@ function bi_net()
                 ml = cat(ml,i,dims=1)
                 mf = cat(mf,f,dims=1)
                 # Add production link
-                sp = cat(sp,i,dims=1)
                 sl = cat(sl,indP,dims=1)
                 sf = cat(sf,f,dims=1)
                 # Save reaction ID
@@ -84,16 +82,14 @@ function bi_net()
         end
     end
     # Combine all 4 lists into one matrix to output
-    A = zeros(Int64,5,length(mp))
+    A = zeros(Int64,4,length(mp))
     A[1,:] = mp
     A[2,:] = ml
-    A[3,:] = sp
-    A[4,:] = sl
-    A[5,:] = rs
+    A[3,:] = sl
+    A[4,:] = rs
     # Add 2 fluxes lists to also be output
-    B = zeros(Float64,2,length(mp))
+    B = zeros(Float64,2,length(mp)) # ADD DIFFERENT FLUXES HERE
     B[1,:] = mf
-    B[2,:] = sf
     # Then write out as a csv file
     CSV.write("Data/nets/R=$(R)rpt=$(rpt).csv",DataFrame(A),writeheader=false)
     CSV.write("Data/nets/R=$(R)rpt=$(rpt).csv",DataFrame(B),writeheader=false,append=true)

@@ -11,7 +11,7 @@ importlib.reload(jonny_code) # force reload, in case jonny_code.py is changed
 # big function to convert .csv into a networkx Graph object
 # along with all the bells and whistles such as node/edge colors into attributes
 # note that the functions in subsequent cells may break if attributes are removed
-def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, alpha_max=.6):
+def wrangle(path, fI=4, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, alpha_max=.6):
     indices = []
     with open(path) as f:
         for line in f.readlines():
@@ -19,8 +19,8 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
             for index in line.split(','):
                 indices[-1].append(index.strip())
 
-    # # first set of targets should equal second set of sources
-    # assert indices[1] == indices[2]
+    # Only three possible fluxes
+    assert 3 < fI < 7
     # # interaction strengths are equal too
     # assert indices[5] == indices[6]
 
@@ -38,12 +38,12 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
             G.add_edge(*ij, weight=flux)
 
     # i is metabolite, j is species
-    for i,j,w in zip(indices[0], indices[1], indices[4]):
+    for i,j,w in zip(indices[0], indices[1], indices[fI]):
         ij = ('m'+i, j)
         add_flux(ij, float(w))
 
     # i is species, j is metabolite
-    for i,j,w in zip(indices[1], indices[2], indices[4]):
+    for i,j,w in zip(indices[1], indices[2], indices[fI]):
         ij = (i, 'm'+j)
         add_flux(ij, float(w))
 
@@ -83,7 +83,7 @@ def wrangle(path, normalise_flux=False, width_min=1, width_max=5, alpha_min=.4, 
 
 # Function to create a layered (bipartite) graph
 def layered(path):
-    G = wrangle(path, normalise_flux=True, alpha_min=.3, alpha_max=.4)
+    G = wrangle(path, fI=6, normalise_flux=True, alpha_min=.3, alpha_max=.4)
     x_constraint = { i:G.nodes[i]['x']   for i in G.nodes }
 
     ### NOTE: the following lines can be used/uncommented to additionally fix the y axis ###

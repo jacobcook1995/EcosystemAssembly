@@ -47,6 +47,8 @@ function bi_net()
     sl = Array{Int64,1}(undef,0) # Strain links
     sf = Array{Float64,1}(undef,0) # Production fluxes
     rs = Array{Int64,1}(undef,0) # Reaction IDs
+    f_m = Array{Float64,1}(undef,0) # Mass specfic fluxes
+    Af = Array{Float64,1}(undef,0) # ATP fluxes
     # Metabolite to strain link => consumption
     # Strain to metabolite link => production
     # Loop over all species
@@ -78,6 +80,9 @@ function bi_net()
                 sf = cat(sf,f,dims=1)
                 # Save reaction ID
                 rs = cat(rs,ps.mics[i].Reacs[j],dims=1)
+                # Save mass specfic flux and ATP flux
+                f_m = cat(f_m,q/NA,dims=1)
+                Af = cat(Af,ps.mics[i].η[j]*f,dims=1)
             end
         end
     end
@@ -88,8 +93,10 @@ function bi_net()
     A[3,:] = sl
     A[4,:] = rs
     # Add 2 fluxes lists to also be output
-    B = zeros(Float64,2,length(mp)) # ADD DIFFERENT FLUXES HERE
+    B = zeros(Float64,3,length(mp))
     B[1,:] = mf
+    B[2,:] = f_m
+    B[3,:] = Af
     # Then write out as a csv file
     CSV.write("Data/nets/R=$(R)rpt=$(rpt).csv",DataFrame(A),writeheader=false)
     CSV.write("Data/nets/R=$(R)rpt=$(rpt).csv",DataFrame(B),writeheader=false,append=true)

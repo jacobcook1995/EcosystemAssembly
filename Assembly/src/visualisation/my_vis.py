@@ -83,11 +83,11 @@ def wrangle(path, fI=4, normalise_flux=False, width_min=1, width_max=5, alpha_mi
 
 # Function to create a layered (bipartite) graph
 def layered(path):
-    G = wrangle(path, fI=6, normalise_flux=True, alpha_min=.3, alpha_max=.4)
+    fI = 4
+    G = wrangle(path, fI=fI, normalise_flux=True, alpha_min=.3, alpha_max=.4)
     x_constraint = { i:G.nodes[i]['x']   for i in G.nodes }
 
     ### NOTE: the following lines can be used/uncommented to additionally fix the y axis ###
-    my = 4
     ### Just metabolites constrained
     y_constraint = { i:-G.nodes[i]['y']/2 for i in G.nodes if x_constraint[i]==0 }
     ### Just strains constrained
@@ -101,11 +101,11 @@ def layered(path):
     # weights run between 0.0 and 1.0, 0.0 causes no change 1.0 maximum change
     # wt = 0.3
     wt = 0.0
-    jonny_code.stress(G, 'Output', y_constraint=y_constraint, x_constraint=x_constraint, weight_threshold=wt)
+    jonny_code.stress(G, 'Output', fI=fI, y_constraint=y_constraint, x_constraint=x_constraint, weight_threshold=wt)
 
 # This function seems to bundle the hierarchy
 def bundle(path):
-    G = wrangle(path, normalise_flux=False, alpha_min=.1, alpha_max=.7)
+    G = wrangle(path, normalise_flux=True, alpha_min=.1, alpha_max=.7)
     # Change draw if I want to see the heirachy
     hierarchy = jonny_code.cluster(nx.Graph(G), draw=False)
     jonny_code.bundle(G, hierarchy, 'Output', merge_dist=.1, beta=.9, noderadius=.02)

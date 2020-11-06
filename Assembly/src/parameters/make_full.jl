@@ -1,14 +1,45 @@
 # Script that makes the parameters needed for simulation of the full proteome model
 export initialise
 
+# function to randomly choose the reactions that a specific microbe can make use of
+ function choose_reactions(O::Int64,Rl::Int64,Ru::Int64)
+     @assert Ru <= O "Strain cannot have more reactions than the number of possible reactions"
+     # Make required Uniform distribution between limits Rl and Ru
+     R = rand(Rl:Ru)
+     # Preallocate vector of reaction identities
+     Reacs = zeros(Int64,R)
+     # Choose random first value
+     Reacs[1] = rand(1:O)
+     # Then fill out later values
+     for i = 2:R
+         good = false
+         while good == false
+             r = rand(1:O)
+             # Check to avoid repeated values
+             if r ∉ Reacs[1:i-1]
+                 Reacs[i] = r
+                 good = true
+             end
+         end
+     end
+     return(R,Reacs)
+ end
+
 # function that chooses uniformly mixed values for η
-function choose_η_mix(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
+function choose_η_mix(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64,syn::Bool)
     # Preallocate memory to store η's
     η = zeros(length(Reacs))
     # Set a constant lower bound
     ηl = 1/3
-    # Set minimum equilibrium product to substrate ratio
-    mratio = 1e-2
+    # Placeholder value
+    mratio = 0
+    # Choose actual value based on whether we want syntrophy on or not
+    if syn == true
+        # Set minimum equilibrium product to substrate ratio
+        mratio = 1e-2
+    else
+        mratio = 1e5
+    end
     # Loop over all reactions
     for i = 1:length(η)
         # Identify which reaction we are considering
@@ -18,21 +49,6 @@ function choose_η_mix(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64
         # And then use to determine an upper bound on η
         ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
         η[i] = (ηh-ηl)*rand() + ηl
-    end
-    return(η)
-end
-
-# This one is just a toy function to generate fixed low values of η
-function choose_η_fix(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64)
-    # Preallocate memory to store η's
-    η = zeros(length(Reacs))
-    for i = 1:length(η)
-        # Identify which reaction we are considering
-        I = Reacs[i]
-        # Find corresponding Gibbs free energy change
-        dG = reacs[I].ΔG0
-        # And use to determine the value of η
-        η[i] = 0.9*(-dG/ΔGATP)
     end
     return(η)
 end
@@ -76,8 +92,7 @@ function kin_rand(kc::Float64,KS::Float64,kr::Float64,R::Int64)
 end
 
 # function to generate parameter set for the model with inhibition
-function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Float64,KS::Float64,kr::Float64)
-    @assert O >= mR + 5*sdR "Not enough reactions to ensure that microbes have on average mR reactions"
+function initialise(N::Int64,M::Int64,O::Int64,Rl::Int64,Ru::Int64,kc::Float64,KS::Float64,kr::Float64,syn::Bool)
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Cell mass is taken from Bremer H, Dennis P (1996) Modulation of chemical
@@ -97,14 +112,14 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Floa
     # The number of ATP per translation step, including the cost of amino acid sythesis
     # This figure is taken from Lynch and Marinov 2015
     ρ = 29.0
-    # This is currently a paramter which I am fiddling
-    Kγ = 5e8
+    # Taken from my ATP data, we'll see how this goes
+    Kγ = 2.25e9
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
     # Housekeeping fraction is taken from Scott et al. 2010
     ϕH = 0.45
-    # Give omega a fairly arbitary value for now, would be expected to be of similar order to Kγ
-    KΩ = 2*Kγ
+    # Taken from my fits to ATP data, we'll see how this goes
+    KΩ = 1.64e7
     # Number of doublings required to dilute to 1%
     fd = log(100)/log(2)
     # From Posfai et al (2017) dilution rate 0.21 per hour
@@ -128,14 +143,14 @@ function initialise(N::Int64,M::Int64,O::Int64,mR::Float64,sdR::Float64,kc::Floa
     # Then construct microbes
     for i = 1:N
         # For each microbe generate random set of reactions
-        R, Reacs = choose_reactions(O,mR,sdR)
+        R, Reacs = choose_reactions(O,Rl,Ru)
         # Make vectors of the (fixed) kinetic parameters
         kcs, KSs, krs = kin_rand(kc,KS,kr,R)
         # Reactions given random proportional weightings, done this in the simplest way possible
         ϕP = rand(R)
         ϕP = ϕP/sum(ϕP)
         # Find corresponding η's for these reactions
-        η = choose_η_mix(reacs,Reacs,T)
+        η = choose_η_mix(reacs,Reacs,T,syn)
         # Can finally generate microbe
         mics[i] = make_MicrobeP(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP)
     end

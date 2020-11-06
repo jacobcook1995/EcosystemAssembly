@@ -45,37 +45,31 @@ function assemble()
     flush(stdout)
     # Assume that half saturation occurs at a quarter κ/δ
     KS = (1/4)*5.5e-3
-    # From wikipedia an average enzyme has a k to KS ratio of 10^5 M^-1 s^-1
-    # This would give us a k of 137.5, sensible to assume an above average rate
-    # Though should be reduced by the fact we include uptake as well as metabolism
-    # Choosing k = 500 means we match the maximum glucose uptake rate seen in Natarajan et al (2000)
-    # of 3*10^7 molecules per second.
-    # The above is a sensible argument but 1.0 gives a more reasonable ATP concentration.
-    kc = 10.0
+    # This parameter is estimated from my fits to ATP data
+    kc = 1.74
     # The reversibility factor remains the same as previously
     kr = 10.0
     # Assume microbes have 3 reactions each
-    # ALSO NEED TO WORK ON DIFFERENT CHOICES OF η
-    mR = convert(Float64,R)
-    sdR = 0.0
     # Case of 8 metabolites
     M = 8
     # Use formula to find how many reactions this implies
     O = 2*M - 3
     # Set time long enough for dynamics to equilbrate
     Tmax = 1e8
+    # Initial ribosome fraction is taken from my ATP fits
+    ϕR0 = 0.254
     # Fairly arbitary inital conditions
     pop = ones(N)
     conc = zeros(M)
     as = 1e5*ones(N)
-    ϕs = 0.1*ones(N)
+    ϕs = ϕR0*ones(N)
     # Now loop over the number of repeats
     for i = 1:rps
         # Print that the new run has been started
         println("Run $i started!")
         flush(stdout)
         # Make parameter set
-        ps = initialise(N,M,O,mR,sdR,kc,KS,kr)
+        ps = initialise(N,M,O,Rl,Ru,kc,KS,kr,syn)
         # Before running the parameter sets should be saved so that if they crash
         # they can be rerun and hopefully track down where they went wrong
         jldopen("Paras/ParasType$(R)Run$(i).jld","w") do file
@@ -139,6 +133,7 @@ function assemble()
         # Print to show that run has been successfully completed
         println("Run $i completed and saved!")
         flush(stdout)
+        return(nothing)
     end
     return(nothing)
 end

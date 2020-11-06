@@ -483,4 +483,26 @@ function atp_read()
     return(nothing)
 end
 
-@time atp_read()
+# Function find the means for each parameter and print them to terminal
+function ave_paras()
+    # Read in csv file
+    dataf = DataFrame!(CSV.File("Output/ATPFitted/SumData.csv"))
+    # Find relevant means
+    km = mean(dataf.kc[dataf.valid])
+    KΩm = mean(dataf.KΩ[dataf.valid])
+    Kγm = mean(dataf.Kγ[dataf.valid])
+    ϕRm = mean(dataf.ϕR0[dataf.valid])
+    # Find corresponding standard deviations
+    ksd = std(dataf.kc[dataf.valid],corrected=true,mean=km)
+    KΩsd = std(dataf.KΩ[dataf.valid],corrected=true,mean=KΩm)
+    Kγsd = std(dataf.Kγ[dataf.valid],corrected=true,mean=Kγm)
+    ϕRsd = std(dataf.ϕR0[dataf.valid],corrected=true,mean=ϕRm)
+    # Print results
+    println("kc = $(km) ± $(ksd)")
+    println("KΩ = $(KΩm) ± $(KΩsd)")
+    println("Kγ = $(Kγm) ± $(Kγsd)")
+    println("ϕR0 = $(ϕRm) ± $(ϕRsd)")
+    return(nothing)
+end
+
+@time ave_paras()

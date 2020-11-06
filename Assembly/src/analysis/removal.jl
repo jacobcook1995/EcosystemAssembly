@@ -3,6 +3,8 @@ using Assembly
 using JLD
 using SymPy
 
+# NEEDS TO BE CONVERTED FOR NEW OUTPUT
+# ALSO NEEDS TO SAVE DATA AT INFINITY!!!
 # function to read in data set and remove non-long term suvivors
 function removal()
     # Check that sufficent arguments have been provided

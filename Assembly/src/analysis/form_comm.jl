@@ -5,24 +5,32 @@ using JLD
 # Function to assemble specfic communities
 function assemble()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 3
-        error("need to specify number of reactions, number of strains and number of repeats")
+    if length(ARGS) < 5
+        error("Insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
-    R = 0
+    Rl = 0
+    Ru = 0
     N = 0
     rps = 0
+    syn = false
     # Check that all arguments can be converted to integers
     try
-        R = parse(Int64,ARGS[1])
-        N = parse(Int64,ARGS[2])
-        rps = parse(Int64,ARGS[3])
+        Rl = parse(Int64,ARGS[1])
+        Ru = parse(Int64,ARGS[2])
+        N = parse(Int64,ARGS[3])
+        rps = parse(Int64,ARGS[4])
+        syn = parse(Bool,ARGS[5])
     catch e
-           error("all three inputs must be integer")
+           error("all four inputs must be integer")
     end
     # Check that simulation type is valid
-    if R < 1
-        error("invalid number of reactions each strain must have more than 1 reaction")
+    if Rl < 1
+        error("lower bound on the number of reactions must be greater than 1")
+    end
+    # Check that simulation type is valid
+    if Ru < Rl
+        error("upper bound on the number of reactions can't be smaller than the lower")
     end
     # Check that number of strains is greater than 0
     if N < 1
@@ -135,113 +143,4 @@ function assemble()
     return(nothing)
 end
 
-# Function to find the stability times of the various simulations
-function stability()
-    println("Starting stability checking script")
-    flush(stdout)
-    # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
-        error("need to specify community and number of repeats")
-    end
-    # Preallocate the variables I want to extract from the input
-    R = 0
-    rps = 0
-    # Check that all arguments can be converted to integers
-    try
-        R = parse(Int64,ARGS[1])
-        rps = parse(Int64,ARGS[2])
-    catch e
-           error("both inputs must be integer")
-    end
-    # Check that simulation type is valid
-    if R < 1
-        error("each strain must have more than 1 reaction")
-    end
-    # Check that number of simulations is greater than 0
-    if rps < 1
-        error("need to do at least 1 simulation")
-    end
-    # Preallocate stability times
-    sT = zeros(rps)
-    # Now loop over repeats
-    for i = 1:rps
-        # First check that files exists
-        pfile = "Paras/ParasType$(R)Run$(i).jld"
-        if ~isfile(pfile)
-            error("run $(i) is missing a parameter file")
-        end
-        ofile = "Output/OutputType$(R)Run$(i).jld"
-        if ~isfile(ofile)
-            error("run $(i) is missing an output file")
-        end
-        efile = "Output/ExtinctType$(R)Run$(i).jld"
-        if ~isfile(ofile)
-            error("run $(i) is missing an extinct file")
-        end
-        # Then load in data
-        ps = load(pfile,"ps")
-        out = load(ofile,"out")
-        # Now preallocate vector of forces
-        F = Array{Sym,1}(undef,3*ps.N+ps.M)
-        # Find forces using function
-        F = Force(ps,F)
-        # Use final simulation results to find local forces
-        f = nForce(F,out,ps)
-        # Check maximum force on population
-        stabN = (maximum(abs.(f[1:ps.N])) <= 2.0)
-        # And the maximum force on the energies
-        staba = (maximum(abs.(f[(ps.N+ps.M+1):(2*ps.N+ps.M)])) <= 1.0e-5)
-        # Check if the populations and the energies are stable
-        if staba == true && stabN == true
-            # Find corresponding data
-            T = load(ofile,"T")
-            C = load(ofile,"C")
-            # Setup while loop
-            j = length(T)
-            stab = false
-            # Find orginal number of species
-            N = round(Int64,(size(C)[2]-ps.M)/3)
-            # Find index where final population matches saved out put
-            inds = indexin(out[1:ps.N],C[end,1:N])
-            println("Number of time points $(length(T))")
-            flush(stdout)
-            # Now want to track down the first time point that the system stabilises at
-            while stab == false
-                j -= 1
-                # Select the part of the data that we care about
-                out = [C[j,inds];C[j,N+1:N+ps.M];C[j,inds.+N.+ps.M];C[j,inds.+2*N.+ps.M]]
-                # If the above is wrong expect a "Wrong length" error here
-                f = nForce(F,out,ps)
-                # Check maximum force on population
-                stabN = (maximum(abs.(f[1:ps.N])) <= 2.0)
-                # And the maximum force on the energies
-                staba = (maximum(abs.(f[(ps.N+ps.M+1):(2*ps.N+ps.M)])) <= 1.0e-5)
-                # Looking for first unstable point
-                if staba == false || stabN == false
-                    stab = true
-                    # Add previous time step to the list of stable times
-                    sT[i] = T[j+1]
-                    println("Time point for stability $(j+1)")
-                    flush(stdout)
-                end
-            end
-        else
-            # For systems that arn't stable leave blank
-            sT[i] = NaN
-        end
-    end
-    # Calculate and output the number of stable systems
-    Ns = length(sT)-sum(isnan.(sT))
-    println("$(Ns) systems out of $(rps) are stable")
-    # Output the data
-    jldopen("Output/StabTimesType$(R).jld","w") do file
-        write(file,"sT",sT)
-    end
-    return(nothing)
-end
-
-if length(ARGS) == 3
-    @time assemble()
-elseif length(ARGS) == 2
-    @time stability()
-end
+@time assemble()

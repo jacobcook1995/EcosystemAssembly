@@ -40,6 +40,8 @@ function assemble()
     if rps < 1
         error("need to do at least 1 simulation")
     end
+    println("Reaction range = $(Rl)-$(Ru)")
+    println("Syntrophy on = $(syn)")
     # Now start actual script
     println("Compiled and input read in!")
     flush(stdout)

@@ -113,13 +113,13 @@ function initialise(N::Int64,M::Int64,O::Int64,Rl::Int64,Ru::Int64,kc::Float64,K
     # This figure is taken from Lynch and Marinov 2015
     ρ = 29.0
     # Taken from my ATP data, we'll see how this goes
-    Kγ = 2.25e9
+    Kγ = 4.90e7
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
     # Housekeeping fraction is taken from Scott et al. 2010
     ϕH = 0.45
     # Taken from my fits to ATP data, we'll see how this goes
-    KΩ = 1.64e7
+    KΩ = 1.83e7
     # Number of doublings required to dilute to 1%
     fd = log(100)/log(2)
     # From Posfai et al (2017) dilution rate 0.21 per hour

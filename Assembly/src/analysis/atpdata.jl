@@ -143,7 +143,7 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     admA = mA*6.02e23/1e9
     adsdA = sdA*6.02e23/1e9
     # High initial substrate concentration
-    S = 1.0
+    S = 0.5
     # Product fixed at low value as not interested in inhibition here
     P = S/100.0
     # Use parameters from literature (justifuied in make_full.jl)
@@ -156,8 +156,8 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     Pb = 0.7
     ϕH = 0.45
     fd = log(100)/log(2)
-    # death rate isn't actually going to be used
-    d = 6.0e-8
+    # Death rate matches what I use in my simulations
+    d = 6.0e-5
     # Only considering one reaction for simplicity
     R = 1
     Reacs = [1]
@@ -257,7 +257,7 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
             kc = max(kl,min((1+grads[3]*h)*kc,ku))
             ϕR0 = max(ϕl,min((1+grads[4]*h)*ϕR0,ϕu))
         # If step size is small enough stop the loop
-        elseif h < 1e-5
+        elseif h < 5e-5
             stab = true
         # Otherwise reduce step size
         else
@@ -387,6 +387,7 @@ function atp_read()
             end
         end
     end
+    println("Data read in and being analysed")
     # Call PyPlot
     pyplot()
     # Set a color-blind friendly palette

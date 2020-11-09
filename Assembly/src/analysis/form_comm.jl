@@ -48,7 +48,7 @@ function assemble()
     # Assume that half saturation occurs at a quarter κ/δ
     KS = (1/4)*5.5e-3
     # This parameter is estimated from my fits to ATP data
-    kc = 1.74
+    kc = 0.895
     # The reversibility factor remains the same as previously
     kr = 10.0
     # Assume microbes have 3 reactions each
@@ -59,7 +59,7 @@ function assemble()
     # Set time long enough for dynamics to equilbrate
     Tmax = 1e8
     # Initial ribosome fraction is taken from my ATP fits
-    ϕR0 = 0.254
+    ϕR0 = 0.148
     # Fairly arbitary inital conditions
     pop = ones(N)
     conc = zeros(M)

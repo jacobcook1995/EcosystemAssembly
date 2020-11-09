@@ -562,38 +562,45 @@ end
 # function I can use to test particular parameter sets
 function test()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
-        error("need to specify community and number of repeats")
+    if length(ARGS) < 4
+        error("Insufficent inputs provided (looking for 4)")
     end
     # Preallocate the variables I want to extract from the input
-    R = 0
+    Rl = 0
+    Ru = 0
+    syn = true
     rps = 0
     # Check that all arguments can be converted to integers
     try
-        R = parse(Int64,ARGS[1])
-        rps = parse(Int64,ARGS[2])
+        Rl = parse(Int64,ARGS[1])
+        Ru = parse(Int64,ARGS[2])
+        syn = parse(Bool,ARGS[3])
+        rps = parse(Int64,ARGS[4])
     catch e
-           error("both inputs must be integer")
+           error("need to provide 3 integers and a bool")
     end
     # Check that simulation type is valid
-    if R < 1
-        error("each strain must have more than 1 reaction")
+    if Rl < 1
+        error("lower bound has to be at least one reaction")
+    end
+    if Ru < Rl
+        error("upper bound can't be lower than the lower bound")
     end
     # Check that number of simulations is greater than 0
     if rps < 1
-        error("need to do at least 1 simulation")
+        error("simulation number can't be less than 1")
     end
     println("Compiled!")
     # Read in relevant files
-    pfile = "Data/Type$(R)/ParasType$(R)Run$(rps).jld"
+    pfile = "Data/$(Rl)-$(Ru)$(syn)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(rps).jld"
     if ~isfile(pfile)
         error("run $(rps) is missing a parameter file")
     end
-    ofile = "Data/Type$(R)/OutputType$(R)Run$(rps).jld"
+    ofile = "Data/$(Rl)-$(Ru)$(syn)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(rps).jld"
     if ~isfile(ofile)
         error("run $(rps) is missing an output file")
     end
-    efile = "Data/Type$(R)/ExtinctType$(R)Run$(rps).jld"
+    efile = "Data/$(Rl)-$(Ru)$(syn)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(rps).jld"
     if ~isfile(efile)
         error("run $(rps) is missing an extinct file")
     end
@@ -603,8 +610,9 @@ function test()
     out = load(ofile,"out")
     ded = load(efile,"ded")
     # Find index I'm interested in
-    ind = findfirst(x->x==out[4],C[end,:])
-    m = ps.mics[4]
+    println(ps.N)
+    # ind = findfirst(x->x==out[1],C[end,:])
+    # m = ps.mics[1]
     # Now move onto plotting
     pyplot()
     theme(:wong2,dpi=200)
@@ -614,15 +622,34 @@ function test()
     for i = 1:ps.N
         is[i] = findfirst(x->x==out[i],C[end,:])
     end
+    # Find orginal number of strains
     N = ps.N + length(ded)
-    # Something else
+    # Plot populations of final survivors
+    plot(title="Final populations",yaxis=:log10)
     for i = is
          # Find and eliminate zeros so that they can be plotted on a log plot
          inds = (C[:,i] .> 0)
          plot!(T[inds],C[inds,i],label="")
     end
-    savefig("Output/testpop.png")
-    plot(T,C[:,(N+1):(N+ps.M)])
+    savefig("Output/redpops.png")
+    plot(T,C[:,(N+ps.M.+is)],label="")
+    savefig("Output/redATPs.png")
+    plot(T,C[:,(2*N+ps.M.+is)],label="")
+    savefig("Output/redfracs.png")
+    # Plot all the populations
+    plot(title="Full populations",yaxis=:log10)
+    for i = 1:N
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,i] .> 0)
+        plot!(T[inds],C[inds,i],label="")
+    end
+    savefig("Output/fullpops.png")
+    plot(T,C[:,(N+1):(N+ps.M)],label="")
+    savefig("Output/concs.png")
+    plot(T,C[:,(N+ps.M+1):(2*N+ps.M)],label="")
+    savefig("Output/fullATPs.png")
+    plot(T,C[:,(2*N+ps.M+1):(3*N+ps.M)],label="")
+    savefig("Output/fullfracs.png")
     return(nothing)
 end
 
@@ -751,4 +778,4 @@ function flux_abund()
     return(nothing)
 end
 
-@time flux_abund()
+@time test()

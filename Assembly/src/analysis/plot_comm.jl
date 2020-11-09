@@ -611,6 +611,7 @@ function test()
     ded = load(efile,"ded")
     # Find index I'm interested in
     println(ps.N)
+    println(ps.mics.↦:R)
     # ind = findfirst(x->x==out[1],C[end,:])
     # m = ps.mics[1]
     # Now move onto plotting

@@ -8,40 +8,50 @@ using SymPy
 # function to read in data set and remove non-long term suvivors
 function removal()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
-        error("need to specify community and number of repeats")
+    if length(ARGS) < 4
+        error("Insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
-    R = 0
+    Rl = 0
+    Ru = 0
+    syn = false
     nR = 0
     # Check that all arguments can be converted to integers
     try
-        R = parse(Int64,ARGS[1])
-        nR = parse(Int64,ARGS[2])
+        Rl = parse(Int64,ARGS[1])
+        Ru = parse(Int64,ARGS[2])
+        syn = parse(Bool,ARGS[3])
+        nR = parse(Int64,ARGS[4])
     catch e
-           error("both inputs must be integer")
+           error("should provide 3 integers and a bool")
     end
     # Check that simulation type is valid
-    if R < 1
-        error("each strain must have more than 1 reaction")
+    if Rl < 1
+        error("lower bound on reactions must be positive")
+    end
+    # Check that simulation type is valid
+    if Ru < Rl
+        error("lower bound can't be greater than upper bound")
     end
     # Check that number of simulations is greater than 0
     if nR < 1
-        error("Number of repeats cannot be less than 1")
+        error("number of repeats cannot be less than 1")
     end
     println("Compiled!")
+    # Setup counter
+    c = 0
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files
-        pfile = "Data/Type$(R)/ParasType$(R)Run$(i).jld"
+        pfile = "Data/$(Rl)-$(Ru)$(syn)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/Type$(R)/OutputType$(R)Run$(i).jld"
+        ofile = "Data/$(Rl)-$(Ru)$(syn)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/Type$(R)/ExtinctType$(R)Run$(i).jld"
+        efile = "Data/$(Rl)-$(Ru)$(syn)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
@@ -60,19 +70,23 @@ function removal()
         # Check if forces are stable
         stab = all(abs.(f[1:ps.N]./out[1:ps.N]) .< 1e-9)
         if stab == true
+            # Increment counter
+            c += 1
             # Write out old data if stable
             # Save extinct strains
-            jldopen("Data/Type$(R)/RedExtinctType$(R)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
                 write(file,"ded",ded)
             end
             # the reduced parameter sets
-            jldopen("Data/Type$(R)/RedParasType$(R)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
                 write(file,"ps",ps)
             end
             # and the full output
-            jldopen("Data/Type$(R)/RedOutputType$(R)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
                 # Save final output
                 write(file,"out",out)
+                # This output is basically the output at infinity
+                write(file,"inf_out",out)
                 # # Save time data and dynamics data
                 write(file,"T",T)
                 write(file,"C",C[1:end,1:end])
@@ -104,6 +118,29 @@ function removal()
             end
             # Remove extinct strains from parameter set
             ps = extinction(ps,ext)
+            # Preallocate output at infinity
+            inf_out = Array{Float64,1}(undef,3*ps.N+ps.M)
+            # Store final metabolite concentrations
+            out[ps.N+1:ps.N+M] = Cl[end,N+1:N+M]
+            # Now sub in data for not extinct microbes
+            k = 0
+            for j = 1:length(ext)
+                if ext[j] != 1
+                    k += 1
+                    # Population
+                    inf_out[k] = Cl[end,j]
+                    # Energy
+                    inf_out[ps.M+ps.N+k] = Cl[end,M+N+j]
+                    # Fraction
+                    inf_out[ps.M+2*ps.N+k] = Cl[end,M+2*N+j]
+                end
+            end
+            println("Run $i wasn't stable")
+            println("This is to check that output is sensible!")
+            println(out)
+            println("N1 = $((length(out)-M)/3)")
+            println(inf_out)
+            println("N2 = $((length(out)-M)/3)")
             # Preallocate final concentrations (etc) for output
             nout = Array{Float64,1}(undef,3*ps.N+M)
             # Store final metabolite concentrations
@@ -124,23 +161,26 @@ function removal()
             # Gather and output new reduceded data
             ded = cat(ded,ded2,dims=1)
             # Save extinct strains
-            jldopen("Data/Type$(R)/RedExtinctType$(R)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
                 write(file,"ded",ded)
             end
             # the reduced parameter sets
-            jldopen("Data/Type$(R)/RedParasType$(R)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
                 write(file,"ps",ps)
             end
             # and the full output
-            jldopen("Data/Type$(R)/RedOutputType$(R)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
                 # Save final output
                 write(file,"out",nout)
+                # Save the output at infinity here
+                write(file,"inf_out",inf_out)
                 # # Save time data and dynamics data
                 write(file,"T",T)
                 write(file,"C",C[1:end,1:end])
             end
         end
     end
+    println("$(c) out of $(nR) were already stable")
     return(nothing)
 end
 

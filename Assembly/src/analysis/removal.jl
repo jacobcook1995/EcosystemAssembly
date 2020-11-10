@@ -2,8 +2,6 @@
 using Assembly
 using JLD
 using SymPy
-using Plots
-import PyPlot
 
 # function to read in data set and remove non-long term suvivors
 function removal()

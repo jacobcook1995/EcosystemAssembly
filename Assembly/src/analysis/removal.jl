@@ -2,9 +2,9 @@
 using Assembly
 using JLD
 using SymPy
+using Plots
+import PyPlot
 
-# NEEDS TO BE CONVERTED FOR NEW OUTPUT
-# ALSO NEEDS TO SAVE DATA AT INFINITY!!!
 # function to read in data set and remove non-long term suvivors
 function removal()
     # Check that sufficent arguments have been provided
@@ -121,7 +121,7 @@ function removal()
             # Preallocate output at infinity
             inf_out = Array{Float64,1}(undef,3*ps.N+ps.M)
             # Store final metabolite concentrations
-            out[ps.N+1:ps.N+M] = Cl[end,N+1:N+M]
+            inf_out[ps.N+1:ps.N+M] = Cl[end,N+1:N+M]
             # Now sub in data for not extinct microbes
             k = 0
             for j = 1:length(ext)
@@ -135,12 +135,6 @@ function removal()
                     inf_out[ps.M+2*ps.N+k] = Cl[end,M+2*N+j]
                 end
             end
-            println("Run $i wasn't stable")
-            println("This is to check that output is sensible!")
-            println(out)
-            println("N1 = $((length(out)-M)/3)")
-            println(inf_out)
-            println("N2 = $((length(out)-M)/3)")
             # Preallocate final concentrations (etc) for output
             nout = Array{Float64,1}(undef,3*ps.N+M)
             # Store final metabolite concentrations

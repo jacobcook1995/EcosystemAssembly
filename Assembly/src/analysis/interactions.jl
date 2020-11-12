@@ -35,10 +35,8 @@ function quantify_ints()
         error("number of repeats can't be less than 1")
     end
     println("Compiled!")
-    # For testing purposes just want to look at a specific simulation
-    # For 1-5 true case simulation 4 has just one survivor
-    # In this case simulation 6 has two suvivors
-    for i = 6 #1:rps
+    # Loop over the repeats
+    for i = 1:rps
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
@@ -63,6 +61,12 @@ function quantify_ints()
         F = Array{Sym,1}(undef,3*ps.N+ps.M)
         # Now find vector of forces
         F = Force(ps,F)
+        # Preallocate Jacobian
+        J = Array{Sym,2}(undef,3*ps.N+ps.M,3*ps.N+ps.M)
+        # Use to find Jacobian matrix
+        J = Jacobian(F,J,ps)
+        # Then want to find numerical form of the Jacobian
+        nJ = nJacobian(J,out,ps)
     end
     return(nothing)
 end

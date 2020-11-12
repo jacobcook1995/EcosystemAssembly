@@ -1,7 +1,7 @@
 # Script that provides analytic functions such as Lyapunov exponents for use in the simulations
 using Assembly
 
-export Force, nForce
+export Force, nForce, Jacobian
 
 # function to return value of theta between 0 and 1
 function bound_θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
@@ -31,7 +31,7 @@ end
 
 # function to find the forces symbolically
 function Force(ps::FullParameters,F::Array{SymPy.Sym,1})
-    # Check Jacobian provided is the right size
+    # Check Force provided is the right size
     @assert length(F) == 3*ps.N + ps.M "Preallocated force vector incorrect size"
     # Define ecosystem and microbe level symbols
     N, η, κ, M, δ, d, γ, a, Kγ, Pb, ϕR, nr, np = symbols("N, η, κ, M, δ, d, γ, a, Kγ, fb, ϕR, nr, np")
@@ -44,8 +44,9 @@ function Force(ps::FullParameters,F::Array{SymPy.Sym,1})
         ex += (γ*a/(a + Kγ))*ϕR*Pb/nr
         ex *= N
         # Sub in strain/environment level variables
-        ex = subs(ex,γ=>ps.mics[i].γm,Kγ=>ps.mics[i].Kγ,Pb=>ps.mics[i].Pb,nr=>ps.mics[i].n[1])
-        F[i] = subs(ex,d=>ps.mics[i].d,a=>"a$(i)",N=>"N$(i)",ϕR=>"ϕR$(i)")
+        # ex = subs(ex,γ=>ps.mics[i].γm,Kγ=>ps.mics[i].Kγ,Pb=>ps.mics[i].Pb,nr=>ps.mics[i].n[1])
+        # F[i] = subs(ex,d=>ps.mics[i].d,a=>"a$(i)",N=>"N$(i)",ϕR=>"ϕR$(i)")
+        F[i] = subs(ex,a=>"a$(i)",N=>"N$(i)",ϕR=>"ϕR$(i)")
     end
     # Then loop over metabolites
     for i = ps.N+1:ps.N+ps.M
@@ -54,7 +55,8 @@ function Force(ps::FullParameters,F::Array{SymPy.Sym,1})
         # Add external dynamics
         ex = κ - δ*M
         # Sub in relevant values
-        ex = subs(ex,κ=>ps.κ[Mn],δ=>ps.δ[Mn],M=>"M$(Mn)")
+        # ex = subs(ex,κ=>ps.κ[Mn],δ=>ps.δ[Mn],M=>"M$(Mn)")
+        ex = subs(ex,M=>"M$(Mn)")
         # Loop over all strains
         for j = 1:ps.N
             # Then loop over each reaction for each strain
@@ -73,11 +75,12 @@ function Force(ps::FullParameters,F::Array{SymPy.Sym,1})
                     # Then multiply by population, and amount of enzyme
                     ex -= q*N*MC*ϕP*(1-ϕR-ϕH)/(np*NA)
                     # sub in microbe identifier and parameters
-                    ex = subs(ex,N=>"N$(j)",MC=>ps.mics[j].MC,ϕR=>"ϕR$(j)")
-                    ex = subs(ex,ϕH=>ps.mics[j].ϕH,np=>ps.mics[j].n[2])
+                    # ex = subs(ex,N=>"N$(j)",MC=>ps.mics[j].MC,ϕR=>"ϕR$(j)")
+                    ex = subs(ex,N=>"N$(j)",ϕR=>"ϕR$(j)")
+                    # ex = subs(ex,ϕH=>ps.mics[j].ϕH,np=>ps.mics[j].n[2])
                     # Then sub in all metabolite level parameters
-                    ex = subs(ex,kc=>ps.mics[j].kc[k],KS=>ps.mics[j].KS[k])
-                    ex = subs(ex,kr=>ps.mics[j].kr[k],ϕP=>ps.mics[j].ϕP[k])
+                    # ex = subs(ex,kc=>ps.mics[j].kc[k],KS=>ps.mics[j].KS[k])
+                    # ex = subs(ex,kr=>ps.mics[j].kr[k],ϕP=>ps.mics[j].ϕP[k])
                 # Or if metabolite is produced as product
                 elseif nP == Mn
                     # Make symbols for substrate and product
@@ -86,13 +89,15 @@ function Force(ps::FullParameters,F::Array{SymPy.Sym,1})
                     # Then make symbolic rate
                     q = symb_rate(S,θ)
                     # Then multiply by population, and amount of enzyme
-                    ex -= q*N*MC*ϕP*(1-ϕR-ϕH)/(np*NA)
+                    # IS THIS SIGN CORRECT???
+                    ex += q*N*MC*ϕP*(1-ϕR-ϕH)/(np*NA)
                     # sub in microbe identifier and parameters
-                    ex = subs(ex,N=>"N$(j)",MC=>ps.mics[j].MC,ϕR=>"ϕR$(j)")
-                    ex = subs(ex,ϕH=>ps.mics[j].ϕH,np=>ps.mics[j].n[2])
+                    # ex = subs(ex,N=>"N$(j)",MC=>ps.mics[j].MC,ϕR=>"ϕR$(j)")
+                    ex = subs(ex,N=>"N$(j)",ϕR=>"ϕR$(j)")
+                    # ex = subs(ex,ϕH=>ps.mics[j].ϕH,np=>ps.mics[j].n[2])
                     # Then sub in all metabolite level parameters
-                    ex = subs(ex,kc=>ps.mics[j].kc[k],KS=>ps.mics[j].KS[k])
-                    ex = subs(ex,kr=>ps.mics[j].kr[k],ϕP=>ps.mics[j].ϕP[k])
+                    # ex = subs(ex,kc=>ps.mics[j].kc[k],KS=>ps.mics[j].KS[k])
+                    # ex = subs(ex,kr=>ps.mics[j].kr[k],ϕP=>ps.mics[j].ϕP[k])
                 end
             end
         end
@@ -119,11 +124,12 @@ function Force(ps::FullParameters,F::Array{SymPy.Sym,1})
             # Multiple expression by relevant factors, including amount of enzyme
             ex += η*q*MC*ϕP*(1-ϕR-ϕH)/(np)
             # Now sub in all the reaction level parameters
-            ex = subs(ex,kc=>mic.kc[j],KS=>mic.KS[j],kr=>mic.kr[j],η=>mic.η[j],ϕP=>mic.ϕP[j])
+            # ex = subs(ex,kc=>mic.kc[j],KS=>mic.KS[j],kr=>mic.kr[j],η=>mic.η[j],ϕP=>mic.ϕP[j])
         end
         # Sub in all the relevant variables
-        ex = subs(ex,γ=>mic.γm,a=>"a$(i-ps.N-ps.M)",Kγ=>mic.Kγ,Pb=>mic.Pb,nr=>mic.n[1])
-        F[i] = subs(ex,ϕR=>"ϕR$(i-ps.N-ps.M)",ρ=>mic.ρ,MC=>mic.MC,ϕH=>mic.ϕH,np=>mic.n[2])
+        # ex = subs(ex,γ=>mic.γm,a=>"a$(i-ps.N-ps.M)",Kγ=>mic.Kγ,Pb=>mic.Pb,nr=>mic.n[1])
+        # F[i] = subs(ex,ϕR=>"ϕR$(i-ps.N-ps.M)",ρ=>mic.ρ,MC=>mic.MC,ϕH=>mic.ϕH,np=>mic.n[2])
+        F[i] = subs(ex,ϕR=>"ϕR$(i-ps.N-ps.M)",a=>"a$(i-ps.N-ps.M)")
     end
     # Finally do the same for the ribosome fractions
     for i = (2*ps.N+ps.M+1):(3*ps.N+ps.M)
@@ -136,8 +142,9 @@ function Force(ps::FullParameters,F::Array{SymPy.Sym,1})
         # Then divide by the charcteristic time scale
         ex /= fd*nr/((γ*a/(a + Kγ))*Pb*ϕR)
         # Sub in all the relevant variable
-        ex = subs(ex,ϕR=>"ϕR$(i-2*ps.N-ps.M)",a=>"a$(i-2*ps.N-ps.M)",KΩ=>mic.KΩ)
-        F[i] = subs(ex,ϕH=>mic.ϕH,fd=>mic.fd,nr=>mic.n[1],γ=>mic.γm,Kγ=>mic.Kγ,Pb=>mic.Pb)
+        # ex = subs(ex,ϕR=>"ϕR$(i-2*ps.N-ps.M)",a=>"a$(i-2*ps.N-ps.M)",KΩ=>mic.KΩ)
+        # F[i] = subs(ex,ϕH=>mic.ϕH,fd=>mic.fd,nr=>mic.n[1],γ=>mic.γm,Kγ=>mic.Kγ,Pb=>mic.Pb)
+        F[i] = subs(ex,ϕR=>"ϕR$(i-2*ps.N-ps.M)",a=>"a$(i-2*ps.N-ps.M)")
     end
     return(F)
 end
@@ -184,4 +191,9 @@ function nForce(F::Array{SymPy.Sym,1},C::Array{Float64,1},ps::FullParameters)
     # convert vector into a float
     f = convert(Array{Float64},f)
     return(f)
+end
+
+# function to find an analytic form of the Jacobian
+function Jacobian(F::Array{SymPy.Sym,1},J::Array{SymPy.Sym,1},ps::FullParameters)
+    return(J)
 end

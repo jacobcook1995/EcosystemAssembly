@@ -187,10 +187,11 @@ function nForce(F::Array{SymPy.Sym,1},C::Array{Float64,1},ps::FullParameters)
 end
 
 # function to find an analytic form of the Jacobian
-function Jacobian(F::Array{SymPy.Sym,1},J::Array{SymPy.Sym,2},ps::FullParameters)
+function Jacobian(F::Array{SymPy.Sym,1},J::Array{SymPy.Sym,2},ps::FullParameters,cons::Array{Float64,1})
     # Check Force provided is the right size
     @assert size(J) == (length(F),length(F)) "preallocated Jacobian wrong size"
     @assert size(J) == (3*ps.N+ps.M,3*ps.N+ps.M) "preallocated Jacobian wrong size"
+    @assert length(cons) == ps.M "concentrations wrong length"
 
     # Copy F to a new object to prevent overwriting
     f = copy(F)
@@ -206,9 +207,17 @@ function Jacobian(F::Array{SymPy.Sym,1},J::Array{SymPy.Sym,2},ps::FullParameters
             S, P = symbols("M$(rc.Rct), M$(rc.Prd)")
             # Find equilbrium constant
             K = Keq(ps.T,ps.mics[i].η[j],rc.ΔG0)
-            # Sub true theta value into the vector of forces
-            for k = 1:(3*ps.N+ps.M)
-                f[k] = subs(f[k],θ=>P/(S*K))
+            # Check if substrate concentration is zero
+            if cons[rc.Rct] == 0.0
+                # In this case substitute 1 in to remove the relevant terms
+                for k = 1:(3*ps.N+ps.M)
+                    f[k] = subs(f[k],θ=>1.0)
+                end
+            else
+                # Sub true theta value into the vector of forces
+                for k = 1:(3*ps.N+ps.M)
+                    f[k] = subs(f[k],θ=>P/(S*K))
+                end
             end
         end
     end
@@ -239,7 +248,7 @@ function nJacobian(J::Array{SymPy.Sym,2},C::Array{Float64,1},ps::FullParameters)
     for i = 1:ps.N
         for j = 1:(3*ps.N+ps.M)
             for k = 1:(3*ps.N+ps.M)
-                Jc[j,k] = subs(Jc[j],"N$i"=>C[i])
+                Jc[j,k] = subs(Jc[j,k],"N$i"=>C[i])
             end
         end
     end
@@ -247,7 +256,7 @@ function nJacobian(J::Array{SymPy.Sym,2},C::Array{Float64,1},ps::FullParameters)
     for i = ps.N+1:ps.N+ps.M
         for j = 1:(3*ps.N+ps.M)
             for k = 1:(3*ps.N+ps.M)
-                Jc[j,k] = subs(Jc[j],"M$(i-ps.N)"=>C[i])
+                Jc[j,k] = subs(Jc[j,k],"M$(i-ps.N)"=>C[i])
             end
         end
     end
@@ -255,7 +264,7 @@ function nJacobian(J::Array{SymPy.Sym,2},C::Array{Float64,1},ps::FullParameters)
     for i = (ps.N+ps.M+1):(2*ps.N+ps.M)
         for j = 1:(3*ps.N+ps.M)
             for k = 1:(3*ps.N+ps.M)
-                Jc[j,k] = subs(Jc[j],"a$(i-ps.N-ps.M)"=>C[i])
+                Jc[j,k] = subs(Jc[j,k],"a$(i-ps.N-ps.M)"=>C[i])
             end
         end
     end
@@ -263,7 +272,7 @@ function nJacobian(J::Array{SymPy.Sym,2},C::Array{Float64,1},ps::FullParameters)
     for i = (2*ps.N+ps.M+1):(3*ps.N+ps.M)
         for j = 1:(3*ps.N+ps.M)
             for k = 1:(3*ps.N+ps.M)
-                Jc[j,k] = subs(Jc[j],"ϕR$(i-2*ps.N-ps.M)"=>C[i])
+                Jc[j,k] = subs(Jc[j,k],"ϕR$(i-2*ps.N-ps.M)"=>C[i])
             end
         end
     end

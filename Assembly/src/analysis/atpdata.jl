@@ -165,7 +165,7 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     krs = [10.0]
     ϕP = [1.0]
     # No explict reactions so η is a parameter with less consequence
-    η = [5.0]
+    η = [2.5]
     # Calculate time span in seconds
     Tmax = (maximum(times)-pt)*60.0
     # Find index of value corresponding to peak
@@ -262,6 +262,8 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
         # Otherwise reduce step size
         else
             h /= 2.0
+            println(h)
+            flush(stdout)
         end
     end
     # C and T now must be saved, for final microbe
@@ -433,6 +435,8 @@ function atp_read()
             end
         end
         # Give data to find best fit
+        println("Fitting strain $(i)")
+        flush(stdout)
         Kγ, KΩ, kc, ϕR0, χ2, C, T = prot_fit(ts,pt[i],mA,sdA)
         # Save relevant data for output
         χ2s[i] = χ2
@@ -506,4 +510,4 @@ function ave_paras()
     return(nothing)
 end
 
-@time ave_paras()
+@time atp_read()

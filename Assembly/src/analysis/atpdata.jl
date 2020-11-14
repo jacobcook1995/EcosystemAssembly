@@ -390,10 +390,6 @@ function atp_read()
         end
     end
     println("Data read in and being analysed")
-    # Call PyPlot
-    pyplot()
-    # Set a color-blind friendly palette
-    theme(:wong2,dpi=150)
     # Preallocate data for output
     χ2s = zeros(ni)
     Kγs = zeros(ni)
@@ -454,37 +450,38 @@ function atp_read()
         rKγ = round(Kγ,sigdigits=3)
         rϕR = round(ϕR0,sigdigits=3)
         rχ2 = round(χ2,sigdigits=3)
-        # Plotting needs to change if there's an offset
-        plot(T.+(pt[i]*60.0),C[:,1],label="χ2 = $(rχ2)",title="$(genus[i])");
-        scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="");
-        savefig("Output/ATPFitted/FittedData$(i).png")
     end
     # Construct data frame to output
     df = DataFrame(taxa=genus,kc=kcs,Kγ=Kγs,KΩ=KΩs,ϕR0=ϕRs,χ_2=χ2s,valid=vld)
     # Write out data frame
     CSV.write("Output/ATPFitted/SumData.csv",df)
-    # Find time gap
-    tG = (data[1,1,1,1])[2] - (data[1,1,1,1])[1]
-    # Plot all graphs
-    for k = 1:3
-        for i = 1:ni
-            # Add appropriate times and labels
-            plot(xlabel="Time (hours)",ylabel=tns[3],title=genus[i]);
-            # Loop over repeats to plot replicates
-            for j = 1:4
-                scatter!(data[i,k,j,1]/60.0,data[i,k,j,2],label="");
-            end
-            # Then save plot
-            if k == 1
-                savefig("Output/ATPDataPlots/Cells/$(genus[i]).png")
-            elseif k == 2
-                savefig("Output/ATPDataPlots/Biomass/$(genus[i]).png")
-            else
-                vline!([(pt[i]+tG)/60.0],label="")
-                savefig("Output/ATPDataPlots/ATP/$(genus[i]).png")
-            end
-        end
-    end
+    # NOT NEEDED FOR THE MOMENT ADD BACK IN LATER
+    # # Call PyPlot
+    # pyplot()
+    # # Set a color-blind friendly palette
+    # theme(:wong2,dpi=150)
+    # # Find time gap
+    # tG = (data[1,1,1,1])[2] - (data[1,1,1,1])[1]
+    # # Plot all graphs
+    # for k = 1:3
+    #     for i = 1:ni
+    #         # Add appropriate times and labels
+    #         plot(xlabel="Time (hours)",ylabel=tns[3],title=genus[i]);
+    #         # Loop over repeats to plot replicates
+    #         for j = 1:4
+    #             scatter!(data[i,k,j,1]/60.0,data[i,k,j,2],label="");
+    #         end
+    #         # Then save plot
+    #         if k == 1
+    #             savefig("Output/ATPDataPlots/Cells/$(genus[i]).png")
+    #         elseif k == 2
+    #             savefig("Output/ATPDataPlots/Biomass/$(genus[i]).png")
+    #         else
+    #             vline!([(pt[i]+tG)/60.0],label="")
+    #             savefig("Output/ATPDataPlots/ATP/$(genus[i]).png")
+    #         end
+    #     end
+    # end
     return(nothing)
 end
 
@@ -507,6 +504,11 @@ function ave_paras()
     println("KΩ = $(KΩm) ± $(KΩsd)")
     println("Kγ = $(Kγm) ± $(Kγsd)")
     println("ϕR0 = $(ϕRm) ± $(ϕRsd)")
+    # Plotting should now be done here, SORT OUT ON MONDAY!
+    # Plotting needs to change if there's an offset
+    # plot(T.+(pt[i]*60.0),C[:,1],label="χ2 = $(rχ2)",title="$(genus[i])");
+    # scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="");
+    # savefig("Output/ATPFitted/FittedData$(i).png")
     return(nothing)
 end
 

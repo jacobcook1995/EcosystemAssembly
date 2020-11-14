@@ -7,8 +7,6 @@ using Statistics
 using StatsBase
 using DifferentialEquations
 import PyPlot
-# This set hopefully stops plots from showing and crashing script on terminal
-ENV["GKSwstype"]="nul"
 
 # Writing a function to perform a hampel filter on a data set
 function hampel_filter(x::Array{Float64,1},k::Int64)
@@ -457,8 +455,8 @@ function atp_read()
         rϕR = round(ϕR0,sigdigits=3)
         rχ2 = round(χ2,sigdigits=3)
         # Plotting needs to change if there's an offset
-        plot(T.+(pt[i]*60.0),C[:,1],label="χ2 = $(rχ2)",title="$(genus[i])")
-        scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="")
+        plot(T.+(pt[i]*60.0),C[:,1],label="χ2 = $(rχ2)",title="$(genus[i])");
+        scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="");
         savefig("Output/ATPFitted/FittedData$(i).png")
     end
     # Construct data frame to output
@@ -471,10 +469,10 @@ function atp_read()
     for k = 1:3
         for i = 1:ni
             # Add appropriate times and labels
-            plot(xlabel="Time (hours)",ylabel=tns[3],title=genus[i])
+            plot(xlabel="Time (hours)",ylabel=tns[3],title=genus[i]);
             # Loop over repeats to plot replicates
             for j = 1:4
-                scatter!(data[i,k,j,1]/60.0,data[i,k,j,2],label="")
+                scatter!(data[i,k,j,1]/60.0,data[i,k,j,2],label="");
             end
             # Then save plot
             if k == 1

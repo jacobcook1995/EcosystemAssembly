@@ -7,6 +7,8 @@ using Statistics
 using StatsBase
 using DifferentialEquations
 import PyPlot
+# This set hopefully stops plots from showing and crashing script on terminal
+ENV["GKSwstype"]="nul"
 
 # Writing a function to perform a hampel filter on a data set
 function hampel_filter(x::Array{Float64,1},k::Int64)
@@ -394,8 +396,6 @@ function atp_read()
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=150)
-    # This set hopefully stops plots from showing and crashing script
-    ENV[“GKSwstype”]=“nul”
     # Preallocate data for output
     χ2s = zeros(ni)
     Kγs = zeros(ni)

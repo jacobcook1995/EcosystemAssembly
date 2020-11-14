@@ -394,6 +394,8 @@ function atp_read()
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=150)
+    # This set hopefully stops plots from showing and crashing script
+    ENV[“GKSwstype”]=“nul”
     # Preallocate data for output
     χ2s = zeros(ni)
     Kγs = zeros(ni)

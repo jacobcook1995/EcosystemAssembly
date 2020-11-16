@@ -138,7 +138,8 @@ function chi_square(m::MicrobeP,S::Float64,P::Float64,ϕR0::Float64,Tmax::Float6
 end
 
 # function to use steppest descent to find optimal paramters to fit the emperical curves
-function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::Array{Float64,1})
+function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::Array{Float64,1},Kγ::Float64=5e8,
+                    KΩ::Float64=1e9,kc::Float64=10.0,ϕR0::Float64=0.1)
     # Change units to molecules per cell
     admA = mA*6.02e23/1e9
     adsdA = sdA*6.02e23/1e9
@@ -177,11 +178,6 @@ function prot_fit(times::Array{Float64,1},pt::Float64,mA::Array{Float64,1},sdA::
     indm -= 1
     # Select time points to save at
     tsave = (times .- pt)*60.0
-    # As an initial test I'm going to try these parameter choices
-    Kγ = 5e8
-    KΩ = 1e9
-    kc = 10.0
-    ϕR0 = 0.1
     # Set up while loop
     stab = false
     h = 0.25
@@ -398,7 +394,7 @@ function atp_read()
     ϕRs = zeros(ni)
     vld = fill(true,ni)
     # List invalid points
-    invld = [1,2,3,15,18,20,22,24]
+    invld = [1,2,3,6,15,18,20,22,24]
     # Now find means and standard deviations of plots so that best fits can be found
     for i = 1:ni
         # find all time points represented in ATP data
@@ -455,33 +451,187 @@ function atp_read()
     df = DataFrame(taxa=genus,kc=kcs,Kγ=Kγs,KΩ=KΩs,ϕR0=ϕRs,χ_2=χ2s,valid=vld)
     # Write out data frame
     CSV.write("Output/ATPFitted/SumData.csv",df)
-    # NOT NEEDED FOR THE MOMENT ADD BACK IN LATER
-    # # Call PyPlot
-    # pyplot()
-    # # Set a color-blind friendly palette
-    # theme(:wong2,dpi=150)
-    # # Find time gap
-    # tG = (data[1,1,1,1])[2] - (data[1,1,1,1])[1]
-    # # Plot all graphs
-    # for k = 1:3
-    #     for i = 1:ni
-    #         # Add appropriate times and labels
-    #         plot(xlabel="Time (hours)",ylabel=tns[3],title=genus[i]);
-    #         # Loop over repeats to plot replicates
-    #         for j = 1:4
-    #             scatter!(data[i,k,j,1]/60.0,data[i,k,j,2],label="");
-    #         end
-    #         # Then save plot
-    #         if k == 1
-    #             savefig("Output/ATPDataPlots/Cells/$(genus[i]).png")
-    #         elseif k == 2
-    #             savefig("Output/ATPDataPlots/Biomass/$(genus[i]).png")
-    #         else
-    #             vline!([(pt[i]+tG)/60.0],label="")
-    #             savefig("Output/ATPDataPlots/ATP/$(genus[i]).png")
-    #         end
-    #     end
-    # end
+    return(nothing)
+end
+
+# function to plot atp data
+function atp_plot()
+    # Read in csv file
+    dataf = DataFrame!(CSV.File("Data/dataset_22C_3d_atp_2.csv"))
+    # Count the number of unique ID's
+    ids = unique(dataf.ID)
+    ni = length(ids)
+    # count the number of trait names
+    tns = unique(dataf.trait_name)
+    nt = length(tns)
+    # Need to make a data structure to contain all the data
+    data = fill(Float64[],ni,nt,4,2)
+    # Structure to store genus names
+    genus = Array{String,1}(undef,ni)
+    # Store genus names
+    for i = 1:ni
+        # Find all data of a certain type for a particular ID
+        It = (dataf.ID .== ids[i])
+        # Find genus name to use as a title
+        genus[i] = dataf.bacterial_genus[It][1]
+    end
+    # Make a bool of valid points
+    val = fill(true,length(dataf.ID))
+    # Locate anamolous points
+    an1 = (dataf.bacterial_genus .== "Flavobacterium") .& (dataf.replicate .== 2) .&
+    (dataf.minute .>= 3012) .& (dataf.trait_name .== tns[3])
+    an2 = (dataf.bacterial_genus .== "Pseudomonas(2)") .& (dataf.replicate .== 1) .&
+    (dataf.minute .>= 3012) .& (dataf.trait_name .== tns[3])
+    an3 = (dataf.bacterial_genus .== "Serratia") .& (dataf.replicate .== 1) .&
+    (dataf.trait_name .== tns[3])
+    # Set these points as invalid
+    val[an1] .= false
+    val[an2] .= false
+    val[an3] .= false
+    # Loop over all three conditions
+    for m = 1:3
+        for i = 1:ni
+            # Find all cell count data with species ID
+            I = (dataf.ID .== ids[i]) .& (dataf.trait_name .== tns[m])
+            # Count number of replicates
+            rps = unique(dataf.replicate[I])
+            nr = length(rps)
+            # Find unique times and order them
+            ts = sort(unique(dataf.minute[I]))
+            # Only remove points if they are ATP data
+            if m == 3
+                # Now loop over times
+                for j = 1:length(ts)
+                    # Group samples by time
+                    IT = I .& (dataf.minute .== ts[j])
+                    # Then perform hampel filter on sample
+                    kp = hampel_filter(dataf.trait_value[IT],3)
+                    # Loop over this output
+                    for k = 1:length(kp)
+                        # Overwrite the replicate number with 0
+                        if kp[k] == 0
+                            # Find indices of true values in IT
+                            inds = findall(x->x==true,IT)
+                            # The k'th index should then be marked false
+                            val[inds[k]] = false
+                        end
+                    end
+                end
+            end
+            # Loop over replicates
+            for j = 1:nr
+                # Only save valid cases with particular replicate number
+                I2 = I .& (dataf.replicate .== rps[j]) .& val
+                # Save times
+                data[i,m,j,1] = dataf.minute[I2]
+                # and save corresponding values
+                if m == 3
+                    data[i,m,j,2] = 1e-9.*dataf.trait_value[I2]
+                else
+                    data[i,m,j,2] = dataf.trait_value[I2]
+                end
+            end
+        end
+    end
+    pt = zeros(ni)
+    av = zeros(ni)
+    for i = 1:ni
+        # find all time points represented in ATP data
+        ts = sort(unique([data[i,3,1,1];data[i,3,2,1];data[i,3,3,1];data[i,3,4,1]]))
+        # loop over these time points
+        for j = 1:length(ts)
+            n = 0
+            aT = 0.0
+            # Loop over replicates
+            for k = 1:4
+                # Check if this time point is in the data
+                if ts[j] ∈ data[i,3,k,1]
+                    # increment count of points
+                    n += 1
+                    # Find index of point
+                    ind = findfirst(x->x==ts[j],data[i,3,k,1])
+                    # Add relevant point to the total
+                    aT += (data[i,3,k,2])[ind]
+                end
+            end
+            # Update values if average height is higher
+            if aT/n > av[i]
+                av[i] = aT/n
+                if j > 1
+                    pt[i] = ts[j-1]
+                else
+                    # Allow for negative start time
+                    pt[i] = ts[1] - (ts[2]-ts[1])
+                end
+            end
+        end
+    end
+    println("Data read in and being analysed")
+    # Call PyPlot
+    pyplot()
+    # Set a color-blind friendly palette
+    theme(:wong2,dpi=150)
+    # Find time gap
+    tG = (data[1,1,1,1])[2] - (data[1,1,1,1])[1]
+    # Plot all graphs
+    for k = 1:3
+        for i = 1:ni
+            # Add appropriate times and labels
+            plot(xlabel="Time (hours)",ylabel=tns[3],title=genus[i]);
+            # Loop over repeats to plot replicates
+            for j = 1:4
+                scatter!(data[i,k,j,1]/60.0,data[i,k,j,2],label="");
+            end
+            # Then save plot
+            if k == 1
+                savefig("Output/ATPDataPlots/Cells/$(genus[i]).png")
+            elseif k == 2
+                savefig("Output/ATPDataPlots/Biomass/$(genus[i]).png")
+            else
+                vline!([(pt[i]+tG)/60.0],label="")
+                savefig("Output/ATPDataPlots/ATP/$(genus[i]).png")
+            end
+        end
+    end
+    # Read in fitted parameters
+    df = DataFrame!(CSV.File("Output/ATPFitted/SumData.csv"))
+    for i = 1:ni
+        println("Plotting graph $(i)")
+        # find all time points represented in ATP data, + mean and standard deviations
+        ts = sort(unique([data[i,3,1,1];data[i,3,2,1];data[i,3,3,1];data[i,3,4,1]]))
+        mA = zeros(length(ts))
+        sdA = zeros(length(ts))
+        # loop over time points
+        for j = 1:length(ts)
+            dataA = []
+            n = 0
+            for k = 1:4
+                # Find if point it represented in the data
+                if ts[j] ∈ data[i,3,k,1]
+                    # If so increment counter
+                    n += 1
+                    # find relevant data point
+                    ind = findfirst(x->x==ts[j],data[i,3,k,1])
+                    # and add to the vector
+                    dataA = cat(dataA,(data[i,3,k,2])[ind],dims=1)
+                end
+            end
+            # Calculate mean
+            mA[j] = sum(dataA)/n
+            if n != 1
+                # Find standard deviation in case where it can be calculated
+                sdA[j] = stdm(dataA,mA[j])
+            else
+                # In case when mean calculated from one point, fix sd to high but not absurd value
+                sdA[j] = 0.5*mA[j]
+            end
+        end
+        _, _, _, _, _, C, T = prot_fit(ts,pt[i],mA,sdA,df.Kγ[i],df.KΩ[i],df.kc[i],df.ϕR0[i])
+        # Plot final result
+        plot(T.+(pt[i]*60.0),C[:,1],label="χ2 = $(round(df.χ_2[i],sigdigits=3))",title="$(df.taxa[i])");
+        scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="");
+        savefig("Output/ATPFitted/FittedData$(i).png")
+    end
     return(nothing)
 end
 
@@ -504,12 +654,7 @@ function ave_paras()
     println("KΩ = $(KΩm) ± $(KΩsd)")
     println("Kγ = $(Kγm) ± $(Kγsd)")
     println("ϕR0 = $(ϕRm) ± $(ϕRsd)")
-    # Plotting should now be done here, SORT OUT ON MONDAY!
-    # Plotting needs to change if there's an offset
-    # plot(T.+(pt[i]*60.0),C[:,1],label="χ2 = $(rχ2)",title="$(genus[i])");
-    # scatter!(ts*60.0,mA*6.02e23/1e9,yerror=sdA*6.02e23/1e9,label="");
-    # savefig("Output/ATPFitted/FittedData$(i).png")
     return(nothing)
 end
 
-@time atp_read()
+@time ave_paras()

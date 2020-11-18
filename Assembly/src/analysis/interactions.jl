@@ -36,6 +36,11 @@ function quantify_ints()
         error("number of repeats can't be less than 1")
     end
     println("Compiled!")
+    # Preallocate memory to store number of interactions
+    ins1 = zeros(rps)
+    ins2 = zeros(rps)
+    ins3 = zeros(rps)
+    ins4 = zeros(rps)
     # Loop over the repeats
     for i = 1:rps
         # Read in relevant files
@@ -78,6 +83,32 @@ function quantify_ints()
         for j = 1:ps.M
             # Skip metabolites with zero concentration
             if inf_out[ps.N+j] != 0.0
+                # Make vector of +ve and -ve contributions to flux from strains
+                pvf = zeros(ps.N)
+                nvf = zeros(ps.N)
+                # Loop over strains to find values
+                for k = 1:ps.N
+                    # Loop over strains reactions
+                    for l = 1:ps.mics[k].R
+                        # Find reaction
+                        r = ps.reacs[ps.mics[k].Reacs[l]]
+                        # Find amount of enzyme
+                        E = Eα(inf_out[2*ps.N+ps.M+k],ps.mics[k],l)
+                        # Check if reaction has metabolite as a reactant
+                        if r.Rct == j
+                            q = qs(inf_out[ps.N+r.Rct],inf_out[ps.N+r.Prd],E,l,ps.mics[k],ps.T,r)
+                            nvf[k] += q*inf_out[k]/NA
+                        end
+                        # Or as a product
+                        if r.Prd == j
+                            q = qs(inf_out[ps.N+r.Rct],inf_out[ps.N+r.Prd],E,l,ps.mics[k],ps.T,r)
+                            pvf[k] += q*inf_out[k]/NA
+                        end
+                    end
+                end
+                # Calculate flux fractions
+                fp = pvf./(sum(pvf)+ps.κ[j])
+                fn = nvf./(sum(nvf)+ps.δ[j]*inf_out[ps.N+j])
                 # Loop over metabolites to make perturbation
                 for k = 1:ps.M
                     if k != j
@@ -106,66 +137,57 @@ function quantify_ints()
                         # Negative denoted by -1
                         pn0[k] = -1
                     end
-                    # Check if strain interacts with metabolite
-                    if any((ps.reacs[ps.mics[k].Reacs].↦:Rct) .== j) || any((ps.reacs[ps.mics[k].Reacs].↦:Prd) .== j)
-                        # Sum rate terms to find net effect
-                        qT = 0
-                        # If it does then loop over reactions
-                        for l = 1:ps.mics[k].R
-                            # Find amount of enzyme
-                            E = Eα(inf_out[2*ps.N+ps.M+k],ps.mics[k],l)
-                            # Find reaction
-                            r = ps.reacs[ps.mics[k].Reacs[l]]
-                            # Find reaction rate
-                            q = qs(inf_out[ps.N+r.Rct],inf_out[ps.N+r.Prd],E,l,ps.mics[k],ps.T,r)
-                            # Check if reactant or product
-                            if r.Rct == j
-                                qT -= q
-                            elseif r.Prd == j
-                                qT += q
-                            end
-                        end
-                        # Check if there's net supply or consumption
-                        fl[k] = qT
-                        if qT > 0.0
-                            # Supply indicated by 1
-                            sc0[k] = 1
-                        elseif qT < 0.0
-                            # And consumption by -1
-                            sc0[k] = -1
-                        end
+                    # Check net effect of strain
+                    if (fp[k] - fn[k]) > 0.0
+                        # Positive denoted by 1
+                        sc0[k] = 1
+                    elseif (fp[k] - fn[k]) < 0.0
+                        # Negative denoted by -1
+                        sc0[k] = -1
                     end
                 end
                 # Loop over vectors to make interaction matrix
                 for k = 1:ps.N
                     for l = 1:ps.N
-                        # Save the interaction strength
-                        in_str[k,l,j] = abs(Fatp[k])*(abs(fl[l])/sum(abs.(fl)))
                         # Check for positive cases
                         if pn0[k] == 1
                             # Crossfeeding
                             if sc0[l] == 1
                                 ints[k,l,j] = 2
+                                in_str[k,l,j] = abs(Fatp[k])*abs(fp[l]-fn[l])
                             # Competition
                             elseif sc0[l] == -1
                                 ints[k,l,j] = 1
+                                in_str[k,l,j] = abs(Fatp[k])*abs(fp[l]-fn[l])
                             end
                         # And negative case
                         elseif pn0[k] == -1
                             # Competiton via pollution
                             if sc0[l] == 1
                                 ints[k,l,j] = 4
+                                in_str[k,l,j] = abs(Fatp[k])*abs(fp[l]-fn[l])
                             # Obligate syntrophy
                             elseif sc0[l] == -1
                                 ints[k,l,j] = 3
+                                in_str[k,l,j] = abs(Fatp[k])*abs(fp[l]-fn[l])
                             end
                         end
                     end
                 end
             end
         end
-        println(ints)
+        # Store number of each interaction type
+        ins1[i] = count(x->x==1,ints)
+        ins2[i] = count(x->x==2,ints)
+        ins3[i] = count(x->x==3,ints)
+        ins4[i] = count(x->x==4,ints)
+        # STILL NEED TO WORK OUT WHAT TO DO WITH INTERACTION STRENGTHS
     end
+    println(ins1)
+    println(ins2)
+    println(ins3)
+    println(ins4)
+    # NEED TO PLOT THESE NEXT
     return(nothing)
 end
 

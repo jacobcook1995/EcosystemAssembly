@@ -856,20 +856,28 @@ function basic_info()
             # cat efficency in
             effs = cat(effs,efT,dims=1)
         end
-        # LEAVE EFFICENCIES FOR LATER AS THEY ARE MORE COMPLEX
     end
     # Set up plotting
     pyplot()
     theme(:wong2,dpi=200)
+    # Preallocate title
+    tl = ""
+    # Then choose title
+    if syn == true
+        tl = "$(Rl)-$(Ru) reactions per strain"
+    else
+        tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
+    end
     # Plot histograms of the data
-    histogram(svs,label="",xlabel="Number of strains")
+    histogram(svs,label="",xlabel="Number of strains",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Survivors$(Rl)-$(Ru)$(syn).png")
-    histogram(rcs,label="",xlabel="Number of reactions")
+    histogram(rcs,label="",xlabel="Number of reactions",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Reactions$(Rl)-$(Ru)$(syn).png")
-    histogram(log10.(abds),label="",xlabel="Species abundance (log of number of cells)")
+    histogram(log10.(abds),label="",xlabel="Species abundance (log of number of cells)",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Abundance$(Rl)-$(Ru)$(syn).png")
-    histogram(effs,label="",xlabel="Efficency")
+    histogram((1 .-effs)*100.0,label="",xlabel="Efficency",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Efficency$(Rl)-$(Ru)$(syn).png")
+    return(nothing)
 end
 
 @time basic_info()

@@ -41,7 +41,6 @@ function quantify_ints()
     println("Compiled!")
     # Loop over the repeats
     for i = 1:rps
-        println("Simulation $(i)")
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
@@ -78,6 +77,8 @@ function quantify_ints()
         in_str = zeros(ps.N,ps.N,ps.M)
         # Preallocate array for forces
         Fatp = zeros(ps.N,ps.M)
+        # Preallocate array for net interactions
+        net_in = zeros(ps.N,ps.N)
         # Set fraction to increase concentrations by
         frc = 1e-3
         # Loop over metabolites
@@ -177,25 +178,36 @@ function quantify_ints()
                 end
             end
         end
-        # Test diagonal perturbation
-        I = findall(x->x>0.0,inf_out[(ps.N+1):(ps.N+ps.M)])
-        for k = 1:ps.M
-            if k ∉ I
-                pout[ps.N+k] = inf_out[ps.N+k]
-            else
-                pout[ps.N+k] = inf_out[ps.N+k]*(1.0+frc)
+        # Want to find net reactions, loop over strains
+        for j = 1:ps.N
+            for k = 1:ps.N
+                # Loop over every metabolite
+                for l = 1:ps.M
+                    # Check what type of interaction (if any)
+                    # j is effect k is cause
+                    if ints[j,k,l] == 1
+                        net_in[j,k] -= in_str[j,k,l]
+                    elseif ints[j,k,l] == 2
+                        net_in[j,k] += in_str[j,k,l]
+                    elseif ints[j,k,l] == 3
+                        net_in[j,k] += in_str[j,k,l]
+                    elseif ints[j,k,l] == 4
+                        net_in[j,k] -= in_str[j,k,l]
+                    end
+                end
             end
         end
-        # Find perturbed forces
-        nF = nForce(F,pout,ps)
-        # Find difference between the forces
-        dF = nF[(ps.N+ps.M+1):(2*ps.N+ps.M)] .- sum(Fatp[:,I],dims=2)
-        println(I)
-        println(nF[(ps.N+ps.M+1):(2*ps.N+ps.M)])
-        println(dF)
-        println(abs.(dF./nF[(ps.N+ps.M+1):(2*ps.N+ps.M)]))
-        # SAVE THE DATA
-        # Need to save Fatp, and frc that was used to calculate them
+        # Output all interaction data
+        jldopen("Data/$(Rl)-$(Ru)$(syn)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+            # Save ATP forces and fraction used to generate them
+            write(file,"Fatp",Fatp)
+            write(file,"frc",frc)
+            # Save interactions and interaction strengths
+            write(file,"ints",ints)
+            write(file,"in_str",in_str)
+            # Save net interactions
+            write(file,"net_in",net_in)
+        end
     end
     return(nothing)
 end

@@ -166,7 +166,7 @@ function removal()
                 write(file,"out",nout)
                 # Save the output at infinity here
                 write(file,"inf_out",inf_out)
-                # # Save time data and dynamics data
+                # Save time data and dynamics data
                 write(file,"T",T)
                 write(file,"C",C[1:end,1:end])
             end

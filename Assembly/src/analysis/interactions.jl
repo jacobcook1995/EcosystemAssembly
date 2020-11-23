@@ -41,6 +41,7 @@ function quantify_ints()
     println("Compiled!")
     # Loop over the repeats
     for i = 1:rps
+        println("Simulation $(i)")
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
@@ -75,8 +76,10 @@ function quantify_ints()
         ints = zeros(Int64,ps.N,ps.N,ps.M)
         # Preallocate array to store interaction strengths
         in_str = zeros(ps.N,ps.N,ps.M)
+        # Preallocate array for forces
+        Fatp = zeros(ps.N,ps.M)
         # Set fraction to increase concentrations by
-        frc = 0.1
+        frc = 1e-3
         # Loop over metabolites
         for j = 1:ps.M
             # Skip metabolites with zero concentration
@@ -118,7 +121,7 @@ function quantify_ints()
                 # Find perturbed forces
                 nF = nForce(F,pout,ps)
                 # Only interested in the forces on the ATP
-                Fatp = nF[(ps.N+ps.M+1):(2*ps.N+ps.M)]
+                Fatp[:,j] = nF[(ps.N+ps.M+1):(2*ps.N+ps.M)]
                 # Preallocate postive/negative/zero vector
                 pn0 = zeros(Int64,ps.N)
                 # Preallocate supply/consumption/zero vector
@@ -128,10 +131,10 @@ function quantify_ints()
                 # Loop over the strains
                 for k = 1:ps.N
                     # Check whether the effect on the strain is +ve, -ve or ~0
-                    if Fatp[k] > 1e-5
+                    if Fatp[k,j] > 1e-5
                         # Positive denoted by 1
                         pn0[k] = 1
-                    elseif Fatp[k] < -1e-5
+                    elseif Fatp[k,j] < -1e-5
                         # Negative denoted by -1
                         pn0[k] = -1
                     end
@@ -152,30 +155,47 @@ function quantify_ints()
                             # Crossfeeding
                             if sc0[l] == 1
                                 ints[k,l,j] = 2
-                                in_str[k,l,j] = abs(Fatp[k])*abs(fp[l]-fn[l])
+                                in_str[k,l,j] = abs(Fatp[k,j])*abs(fp[l]-fn[l])
                             # Competition
                             elseif sc0[l] == -1
                                 ints[k,l,j] = 1
-                                in_str[k,l,j] = abs(Fatp[k])*abs(fp[l]-fn[l])
+                                in_str[k,l,j] = abs(Fatp[k,j])*abs(fp[l]-fn[l])
                             end
                         # And negative case
                         elseif pn0[k] == -1
                             # Competiton via pollution
                             if sc0[l] == 1
                                 ints[k,l,j] = 4
-                                in_str[k,l,j] = abs(Fatp[k])*abs(fp[l]-fn[l])
+                                in_str[k,l,j] = abs(Fatp[k,j])*abs(fp[l]-fn[l])
                             # Obligate syntrophy
                             elseif sc0[l] == -1
                                 ints[k,l,j] = 3
-                                in_str[k,l,j] = abs(Fatp[k])*abs(fp[l]-fn[l])
+                                in_str[k,l,j] = abs(Fatp[k,j])*abs(fp[l]-fn[l])
                             end
                         end
                     end
                 end
             end
         end
-        println(ints)
-        println(in_str)
+        # Test diagonal perturbation
+        I = findall(x->x>0.0,inf_out[(ps.N+1):(ps.N+ps.M)])
+        for k = 1:ps.M
+            if k ∉ I
+                pout[ps.N+k] = inf_out[ps.N+k]
+            else
+                pout[ps.N+k] = inf_out[ps.N+k]*(1.0+frc)
+            end
+        end
+        # Find perturbed forces
+        nF = nForce(F,pout,ps)
+        # Find difference between the forces
+        dF = nF[(ps.N+ps.M+1):(2*ps.N+ps.M)] .- sum(Fatp[:,I],dims=2)
+        println(I)
+        println(nF[(ps.N+ps.M+1):(2*ps.N+ps.M)])
+        println(dF)
+        println(abs.(dF./nF[(ps.N+ps.M+1):(2*ps.N+ps.M)]))
+        # SAVE THE DATA
+        # Need to save Fatp, and frc that was used to calculate them
     end
     return(nothing)
 end

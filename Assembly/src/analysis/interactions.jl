@@ -39,26 +39,6 @@ function quantify_ints()
         error("number of repeats can't be less than 1")
     end
     println("Compiled!")
-    # Preallocate memory to store number of interactions
-    ins1 = zeros(rps)
-    ins2 = zeros(rps)
-    ins3 = zeros(rps)
-    ins4 = zeros(rps)
-    # Preallocate memory to store max interaction strengths
-    max1 = fill(NaN,rps)
-    max2 = fill(NaN,rps)
-    max3 = fill(NaN,rps)
-    max4 = fill(NaN,rps)
-    # Preallocate memory to store min interaction strengths
-    min1 = fill(NaN,rps)
-    min2 = fill(NaN,rps)
-    min3 = fill(NaN,rps)
-    min4 = fill(NaN,rps)
-    # Preallocate memory to store mean interaction strengths
-    mean1 = fill(NaN,rps)
-    mean2 = fill(NaN,rps)
-    mean3 = fill(NaN,rps)
-    mean4 = fill(NaN,rps)
     # Loop over the repeats
     for i = 1:rps
         # Read in relevant files
@@ -194,60 +174,9 @@ function quantify_ints()
                 end
             end
         end
-        # Store number of each interaction type
-        ins1[i] = count(x->x==1,ints)
-        ins2[i] = count(x->x==2,ints)
-        ins3[i] = count(x->x==3,ints)
-        ins4[i] = count(x->x==4,ints)
-        # Find corresponding positions
-        pos1 = findall(x->x==1,ints)
-        pos2 = findall(x->x==2,ints)
-        pos3 = findall(x->x==3,ints)
-        pos4 = findall(x->x==4,ints)
-        # Use to find vector of interaction strengths
-        str1 = in_str[pos1]
-        str2 = in_str[pos2]
-        str3 = in_str[pos3]
-        str4 = in_str[pos4]
-        # Check if there are any interactions of that type
-        if length(str1) >= 1
-            # Find mean strength of each interaction
-            mean1[i] = mean(str1)
-        end
-        # Do for each interaction type
-        if length(str2) >= 1
-            mean2[i] = mean(str2)
-        end
-        if length(str3) >= 1
-            mean3[i] = mean(str3)
-        end
-        if length(str4) >= 1
-            mean4[i] = mean(str4)
-        end
+        println(ints)
+        println(in_str)
     end
-    # Set up plotting
-    pyplot()
-    theme(:wong2,dpi=200)
-    # Make plot title
-    tl = ""
-    if syn == true
-        tl = "$(Rl)-$(Ru) reactions per strain"
-    else
-        tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
-    end
-    # Now plot both ecosystems
-    plot(title=tl,xlabel="Number of interactions",ylabel="Number of ecosystems")
-    histogram!(ins1,fillalpha=0.75,label="Competiton")
-    histogram!(ins2,fillalpha=0.75,label="Facilitation")
-    histogram!(ins3,fillalpha=0.75,label="Syntrophy")
-    histogram!(ins4,fillalpha=0.75,label="Pollution")
-    savefig("Output/$(Rl)-$(Ru)$(syn)/IntType$(Rl)-$(Ru)$(syn).png")
-    plot(title=tl,xlabel="Strength of interactions",ylabel="Number of ecosystems")
-    histogram!(mean1,fillalpha=0.75,label="Competiton")
-    histogram!(mean2,fillalpha=0.75,label="Facilitation")
-    histogram!(mean3,fillalpha=0.75,label="Syntrophy")
-    histogram!(mean4,fillalpha=0.75,label="Pollution")
-    savefig("Output/$(Rl)-$(Ru)$(syn)/IntStrength$(Rl)-$(Ru)$(syn).png")
     return(nothing)
 end
 

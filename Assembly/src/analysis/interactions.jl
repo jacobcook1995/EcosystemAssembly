@@ -244,7 +244,15 @@ function analyse_ints()
         error("number of repeats can't be less than 1")
     end
     println("Compiled!")
-    for i = 1:rps
+    # Set time to run perturbed dynamics for
+    Tmax = 5e5
+    # Set fraction to perturb (reduce) population by
+    pfrc = 0.5
+    # Set up plotting
+    # DELETE THIS AT SOME POINT
+    pyplot()
+    theme(:wong2,dpi=200)
+    for i = 22 #1:rps
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
@@ -274,9 +282,60 @@ function analyse_ints()
         ints = load(ifile,"ints")
         in_str = load(ifile,"in_str")
         net_in = load(ifile,"net_in")
+        # concentrations and internal cell parameters are not perturbed
+        conc = inf_out[(ps.N+1):(ps.N+ps.M)]
+        as = inf_out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
+        ϕs = inf_out[(2*ps.N+ps.M+1):end]
+        # Only populations are perturbed
+        pop = zeros(ps.N)
+        # Perturb each strain in term
+        for j = 1:ps.N
+            # Loop over strains to make perturbation
+            for k = 1:ps.N
+                if k != j
+                    pop[k] = inf_out[k]
+                else
+                    pop[k] = inf_out[k]*(1.0-pfrc)
+                end
+            end
+            # Then run the simulation
+            Cp, Tp = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+            # Preallocate gradients and peak indices
+            grds = zeros(length(Tp)-1,ps.N)
+            pinds = zeros(Int64,ps.N)
+            # Find gradients for each strain
+            for k = 1:ps.N
+                for l = 2:length(Tp)
+                    grds[l-1,k] = (Cp[l,k]-Cp[l-1,k])/(Tp[l]-Tp[l-1])
+                end
+            end
+            # Find index of peak for each strain
+            for k = 1:ps.N
+                # Check if looking at peak or trough
+                if grds[1,k] >= 0.0
+                    _, pinds[k] = findmax(Cp[:,k])
+                else
+                    _, pinds[k] = findmin(Cp[:,k])
+                end
+            end            # Plot populations of final survivors
+            plot(title="Perturbed populations",yaxis=:log10)
+            for k = 1:ps.N
+                 # Find and eliminate zeros so that they can be plotted on a log plot
+                 inds = (Cp[:,k] .> 0)
+                 plot!(Tp[inds],Cp[inds,k],label="",color=wongc[k])
+                 # # For now just plot a line going to the peak
+                 # vline!([Tp[pinds[k]]],label="",color=wongc[k])
+                 # Find index of maximum gradient
+                 _, gind = findmax(abs.(grds[1:(pinds[k]-1),k]))
+                 vline!([Tp[gind+1]],label="",color=wongc[k])
+            end
+            savefig("Output/perturbpops$(j).png")
+            plot(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)],label="")
+            savefig("Output/perturbconcs$(j).png")
+        end
     end
     return(nothing)
 end
 
 
-@time quantify_ints()
+@time analyse_ints()

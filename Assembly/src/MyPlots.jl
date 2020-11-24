@@ -1,10 +1,14 @@
 # This is a script that contains a number of functions to help with plotting
 # Modules can include this script to gain access to the exported functions
 using LsqFit
+using Plots
 # THIS IS MY BEST GUESS FOR WHERE TO PUT THIS BUT MIGHT NEED TO BE MOVED IN FUTURE
 
 # Export functions that are useful externally
 export annpos, corrparr
+
+# Export color palette
+export wongc
 
 # A function to return positions for labels
 function annpos(datax::Array{Float64,1},datay::Array{Float64,1},δx=0.15::Float64,δy=0.125::Float64)
@@ -95,3 +99,17 @@ function corrparr(xdata::Array{Float64,1},ydata::Array{Float64,1},weig::Array{Fl
     wr = wcovxy/sqrt(wcovxx*wcovyy)
     return(yint,slop,intlow,intup,r,wr)
  end
+
+ # Define Wong palette
+ wong_palette = [
+ RGB(0,0,0), # black
+ RGB(([230, 159,   0] / 255)...), # orange
+ RGB(([ 86, 180, 233] / 255)...), # sky blue
+ RGB(([  0, 158, 115] / 255)...), # blueish green
+ RGB(([240, 228,  66] / 255)...), # yellow
+ RGB(([  0, 114, 178] / 255)...), # blue
+ RGB(([213,  94,   0] / 255)...), # vermillion
+ RGB(([204, 121, 167] / 255)...), # reddish purple
+ ]
+ # Make into usable palette
+ wongc = get_color_palette(wong_palette,57)

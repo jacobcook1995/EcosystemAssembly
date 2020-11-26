@@ -184,7 +184,7 @@ function quantify_ints()
                 # Loop over every metabolite
                 for l = 1:ps.M
                     # Check what type of interaction (if any)
-                    # j is effect k is cause
+                    # effect of k on j
                     if ints[j,k,l] == 1
                         net_in[j,k] -= in_str[j,k,l]
                     elseif ints[j,k,l] == 2
@@ -252,6 +252,7 @@ function analyse_ints()
     # DELETE THIS AT SOME POINT
     pyplot()
     theme(:wong2,dpi=200)
+    wongc = get_color_palette(wong_palette,57)
     for i = 22 #1:rps
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
@@ -288,6 +289,8 @@ function analyse_ints()
         ϕs = inf_out[(2*ps.N+ps.M+1):end]
         # Only populations are perturbed
         pop = zeros(ps.N)
+        # Preallocate interaction matrix
+        pet_in = zeros(ps.N,ps.N)
         # Perturb each strain in term
         for j = 1:ps.N
             # Loop over strains to make perturbation
@@ -317,21 +320,37 @@ function analyse_ints()
                 else
                     _, pinds[k] = findmin(Cp[:,k])
                 end
-            end            # Plot populations of final survivors
+            end
+            # Plot populations of final survivors
             plot(title="Perturbed populations",yaxis=:log10)
             for k = 1:ps.N
                  # Find and eliminate zeros so that they can be plotted on a log plot
                  inds = (Cp[:,k] .> 0)
-                 plot!(Tp[inds],Cp[inds,k],label="",color=wongc[k])
-                 # # For now just plot a line going to the peak
-                 # vline!([Tp[pinds[k]]],label="",color=wongc[k])
+                 plot!(Tp[inds],Cp[inds,k],color=wongc[k])
                  # Find index of maximum gradient
                  _, gind = findmax(abs.(grds[1:(pinds[k]-1),k]))
+                 # And plot as a vertical line
                  vline!([Tp[gind+1]],label="",color=wongc[k])
+                 # Save gradients as "effective" interaction strengths
+                 pet_in[k,j] = grds[gind,k]
             end
             savefig("Output/perturbpops$(j).png")
-            plot(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)],label="")
-            savefig("Output/perturbconcs$(j).png")
+        end
+        # Rescale interactions to see if they match
+        pin = -pet_in/(maximum(abs.(pet_in)))
+        nin = net_in/(maximum(abs.(net_in)))
+        # Loop over all entries
+        for j = 1:ps.N
+            for k = 1:ps.N
+                # Check if signs match
+                if sign(pin[j,k]) != sign(nin[j,k])
+                    println("Predicted effect of strain $(k) on strain $(j) doesn't match actual effect")
+                    println("Predicted effect:")
+                    println(nin[j,k])
+                    println("Actual effect:")
+                    println(pin[j,k])
+                end
+            end
         end
     end
     return(nothing)

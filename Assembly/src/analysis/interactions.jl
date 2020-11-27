@@ -99,18 +99,17 @@ function quantify_ints()
                         # Check if reaction has metabolite as a reactant
                         if r.Rct == j
                             q = qs(inf_out[ps.N+r.Rct],inf_out[ps.N+r.Prd],E,l,ps.mics[k],ps.T,r)
-                            nvf[k] += q*inf_out[k]/NA
+                            nvf[k] += q
                         end
                         # Or as a product
                         if r.Prd == j
                             q = qs(inf_out[ps.N+r.Rct],inf_out[ps.N+r.Prd],E,l,ps.mics[k],ps.T,r)
-                            pvf[k] += q*inf_out[k]/NA
+                            pvf[k] += q
                         end
                     end
                 end
-                # Calculate flux fractions
-                fp = pvf./(sum(pvf)+ps.κ[j])
-                fn = nvf./(sum(nvf)+ps.δ[j]*inf_out[ps.N+j])
+                # Calculate approximate perturbation size
+                dC = (pvf.-nvf)/ps.δ[j]
                 # Loop over metabolites to make perturbation
                 for k = 1:ps.M
                     if k != j
@@ -140,10 +139,10 @@ function quantify_ints()
                         pn0[k] = -1
                     end
                     # Check net effect of strain
-                    if (fp[k] - fn[k]) > 0.0
+                    if dC[k] > 0.0
                         # Positive denoted by 1
                         sc0[k] = 1
-                    elseif (fp[k] - fn[k]) < 0.0
+                    elseif dC[k] < 0.0
                         # Negative denoted by -1
                         sc0[k] = -1
                     end
@@ -156,28 +155,32 @@ function quantify_ints()
                             # Crossfeeding
                             if sc0[l] == 1
                                 ints[k,l,j] = 2
-                                in_str[k,l,j] = abs(Fatp[k,j])*abs(fp[l]-fn[l])
+                                in_str[k,l,j] = abs(Fatp[k,j])*abs(dC[l])
                             # Competition
                             elseif sc0[l] == -1
                                 ints[k,l,j] = 1
-                                in_str[k,l,j] = abs(Fatp[k,j])*abs(fp[l]-fn[l])
+                                in_str[k,l,j] = abs(Fatp[k,j])*abs(dC[l])
                             end
                         # And negative case
                         elseif pn0[k] == -1
                             # Competiton via pollution
                             if sc0[l] == 1
                                 ints[k,l,j] = 4
-                                in_str[k,l,j] = abs(Fatp[k,j])*abs(fp[l]-fn[l])
+                                in_str[k,l,j] = abs(Fatp[k,j])*abs(dC[l])
                             # Obligate syntrophy
                             elseif sc0[l] == -1
                                 ints[k,l,j] = 3
-                                in_str[k,l,j] = abs(Fatp[k,j])*abs(fp[l]-fn[l])
+                                in_str[k,l,j] = abs(Fatp[k,j])*abs(dC[l])
                             end
                         end
                     end
+                    # Rescale all strengths by the population
+                    in_str[k,:,j] = (inf_out[k]/(ps.mics[k].ρ*ps.mics[k].MC))*in_str[k,:,j]
                 end
             end
         end
+        # Rescale to moles and fraction
+        in_str = in_str/(frc*NA)
         # Want to find net reactions, loop over strains
         for j = 1:ps.N
             for k = 1:ps.N
@@ -357,4 +360,4 @@ function analyse_ints()
 end
 
 
-@time analyse_ints()
+@time quantify_ints()

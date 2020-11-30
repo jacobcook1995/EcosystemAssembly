@@ -174,13 +174,13 @@ function quantify_ints()
                             end
                         end
                     end
-                    # Rescale all strengths by the population
-                    in_str[k,:,j] = (inf_out[k]/(ps.mics[k].ρ*ps.mics[k].MC))*in_str[k,:,j]
+                    # Rescale all strengths by the population, and perturbation size
+                    in_str[k,:,j] = (inf_out[k]/(ps.mics[k].ρ*ps.mics[k].MC))*(1/(frc*inf_out[ps.N+j]))*in_str[k,:,j]
                 end
             end
         end
         # Rescale to moles and fraction
-        in_str = in_str/(frc*NA)
+        in_str = in_str/(NA)
         # Want to find net reactions, loop over strains
         for j = 1:ps.N
             for k = 1:ps.N
@@ -248,15 +248,15 @@ function analyse_ints()
     end
     println("Compiled!")
     # Set time to run perturbed dynamics for
-    Tmax = 5e5
+    Tmax = 1e4
     # Set fraction to perturb (reduce) population by
     pfrc = 0.5
     # Set up plotting
     # DELETE THIS AT SOME POINT
-    pyplot()
-    theme(:wong2,dpi=200)
-    wongc = get_color_palette(wong_palette,57)
-    for i = 22 #1:rps
+    # pyplot()
+    # theme(:wong2,dpi=200)
+    # wongc = get_color_palette(wong_palette,57)
+    for i = 1:rps
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
@@ -325,20 +325,86 @@ function analyse_ints()
                 end
             end
             # Plot populations of final survivors
-            plot(title="Perturbed populations",yaxis=:log10)
+            # plot(title="Perturbed populations",yaxis=:log10)
             for k = 1:ps.N
                  # Find and eliminate zeros so that they can be plotted on a log plot
                  inds = (Cp[:,k] .> 0)
-                 plot!(Tp[inds],Cp[inds,k],color=wongc[k])
-                 # Find index of maximum gradient
-                 _, gind = findmax(abs.(grds[1:(pinds[k]-1),k]))
+                 # plot!(Tp[inds],Cp[inds,k],color=wongc[k])
+                 # Set early intial point to find gradient of
+                 gind = 1
                  # And plot as a vertical line
-                 vline!([Tp[gind+1]],label="",color=wongc[k])
+                 # vline!([Tp[gind+1]],label="",color=wongc[k])
                  # Save gradients as "effective" interaction strengths
                  pet_in[k,j] = grds[gind,k]
             end
-            savefig("Output/perturbpops$(j).png")
+            # savefig("Output/perturbpops$(j).png")
+            # plot(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)])
+            # savefig("Output/perturbconcs$(j).png")
+            # # INVESTIGATION
+            # if j == 2
+            #     # Time point that we care about
+            #     gind = 5
+            #     # Save microbe
+            #     mc = ps.mics[4]
+            #     # Preallocate vector of forces
+            #     F = Array{Sym,1}(undef,3*ps.N+ps.M)
+            #     # Now find vector of forces
+            #     F = Force(ps,F)
+            #     # Find perturbed forces
+            #     nF = nForce(F,Cp[gind,:],ps)
+            #     println("ATP force")
+            #     println(nF[ps.N+ps.M+4])
+            #     # Set up total
+            #     ηqT = 0.0
+            #     # Loop over reactions to find contributions to ATP force
+            #     for k = 1:mc.R
+            #         # Store reaction
+            #         r = ps.reacs[mc.Reacs[k]]
+            #         println("Reaction $(k):")
+            #         println(r)
+            #         # Find theta
+            #         θt = θ_smooth(Cp[gind,ps.N+r.Rct],Cp[gind,ps.N+r.Prd],ps.T,mc.η[k],r.ΔG0)
+            #         # Calculate amount of enzyme
+            #         E = Eα(Cp[gind,2*ps.N+ps.M+4],mc,k)
+            #         # Calculate ATP rate for each reaction
+            #         q = qs(Cp[gind,ps.N+r.Rct],Cp[gind,ps.N+r.Prd],E,k,mc,ps.T,r)
+            #         # Find ATP contribution
+            #         ηq = mc.η[k]*q
+            #         println("ATP contribution $(k)")
+            #         println(ηq)
+            #         ηqT += ηq
+            #     end
+            #     println("Total ATP change")
+            #     println(ηqT)
+            #     # Find unperturbed forces
+            #     nF = nForce(F,inf_out,ps)
+            #     println("Unperturbed ATP force")
+            #     println(nF[ps.N+ps.M+4])
+            #     # Set up total
+            #     ηqT = 0.0
+            #     # Loop over reactions to find contributions to ATP force
+            #     for k = 1:mc.R
+            #         # Store reaction
+            #         r = ps.reacs[mc.Reacs[k]]
+            #         println("Reaction $(k):")
+            #         println(r)
+            #         # Find theta
+            #         θt = θ_smooth(inf_out[ps.N+r.Rct],inf_out[ps.N+r.Prd],ps.T,mc.η[k],r.ΔG0)
+            #         # Calculate amount of enzyme
+            #         E = Eα(inf_out[2*ps.N+ps.M+4],mc,k)
+            #         # Calculate ATP rate for each reaction
+            #         q = qs(inf_out[ps.N+r.Rct],inf_out[ps.N+r.Prd],E,k,mc,ps.T,r)
+            #         # Find ATP contribution
+            #         ηq = mc.η[k]*q
+            #         println("ATP contribution $(k)")
+            #         println(ηq)
+            #         ηqT += ηq
+            #     end
+            #     println("Total ATP change")
+            #     println(ηqT)
+            # end
         end
+        println("Run $(i) successful")
         # Rescale interactions to see if they match
         pin = -pet_in/(maximum(abs.(pet_in)))
         nin = net_in/(maximum(abs.(net_in)))
@@ -360,4 +426,4 @@ function analyse_ints()
 end
 
 
-@time quantify_ints()
+@time analyse_ints()

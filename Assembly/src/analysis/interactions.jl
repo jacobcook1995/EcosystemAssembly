@@ -340,69 +340,6 @@ function analyse_ints()
             # savefig("Output/perturbpops$(j).png")
             # plot(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)])
             # savefig("Output/perturbconcs$(j).png")
-            # # INVESTIGATION
-            # if j == 2
-            #     # Time point that we care about
-            #     gind = 5
-            #     # Save microbe
-            #     mc = ps.mics[4]
-            #     # Preallocate vector of forces
-            #     F = Array{Sym,1}(undef,3*ps.N+ps.M)
-            #     # Now find vector of forces
-            #     F = Force(ps,F)
-            #     # Find perturbed forces
-            #     nF = nForce(F,Cp[gind,:],ps)
-            #     println("ATP force")
-            #     println(nF[ps.N+ps.M+4])
-            #     # Set up total
-            #     ηqT = 0.0
-            #     # Loop over reactions to find contributions to ATP force
-            #     for k = 1:mc.R
-            #         # Store reaction
-            #         r = ps.reacs[mc.Reacs[k]]
-            #         println("Reaction $(k):")
-            #         println(r)
-            #         # Find theta
-            #         θt = θ_smooth(Cp[gind,ps.N+r.Rct],Cp[gind,ps.N+r.Prd],ps.T,mc.η[k],r.ΔG0)
-            #         # Calculate amount of enzyme
-            #         E = Eα(Cp[gind,2*ps.N+ps.M+4],mc,k)
-            #         # Calculate ATP rate for each reaction
-            #         q = qs(Cp[gind,ps.N+r.Rct],Cp[gind,ps.N+r.Prd],E,k,mc,ps.T,r)
-            #         # Find ATP contribution
-            #         ηq = mc.η[k]*q
-            #         println("ATP contribution $(k)")
-            #         println(ηq)
-            #         ηqT += ηq
-            #     end
-            #     println("Total ATP change")
-            #     println(ηqT)
-            #     # Find unperturbed forces
-            #     nF = nForce(F,inf_out,ps)
-            #     println("Unperturbed ATP force")
-            #     println(nF[ps.N+ps.M+4])
-            #     # Set up total
-            #     ηqT = 0.0
-            #     # Loop over reactions to find contributions to ATP force
-            #     for k = 1:mc.R
-            #         # Store reaction
-            #         r = ps.reacs[mc.Reacs[k]]
-            #         println("Reaction $(k):")
-            #         println(r)
-            #         # Find theta
-            #         θt = θ_smooth(inf_out[ps.N+r.Rct],inf_out[ps.N+r.Prd],ps.T,mc.η[k],r.ΔG0)
-            #         # Calculate amount of enzyme
-            #         E = Eα(inf_out[2*ps.N+ps.M+4],mc,k)
-            #         # Calculate ATP rate for each reaction
-            #         q = qs(inf_out[ps.N+r.Rct],inf_out[ps.N+r.Prd],E,k,mc,ps.T,r)
-            #         # Find ATP contribution
-            #         ηq = mc.η[k]*q
-            #         println("ATP contribution $(k)")
-            #         println(ηq)
-            #         ηqT += ηq
-            #     end
-            #     println("Total ATP change")
-            #     println(ηqT)
-            # end
         end
         println("Run $(i) successful")
         # Rescale interactions to see if they match

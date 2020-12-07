@@ -256,7 +256,7 @@ function analyse_ints()
     pyplot()
     theme(:wong2,dpi=200)
     wongc = get_color_palette(wong_palette,57)
-    for i = 25#1:rps
+    for i = 1:rps
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
@@ -322,19 +322,27 @@ function analyse_ints()
             end
             # Plot populations of final survivors
             plot(title="Perturbed strain $(j)",yaxis=:log10,xlabel="Time",ylabel="Log population")
-            # Set early intial point to find gradient of
-            gind = 2
+            # Set range to pick value from
+            rn = 1:3
             for k = 1:ps.N
-                 # Find and eliminate zeros so that they can be plotted on a log plot
-                 inds = (Cp[:,k] .> 0)
-                 plot!(Tp[inds],Cp[inds,k],color=wongc[k],label="Strain $(k)")
-                 # Save gradients as "effective" interaction strengths
-                 pet_in[k,j] = grds[gind,k]
-                 # plot line to peak
-                 vline!([Tp[pinds[k]]],label="",color=wongc[k])
+                # Find and eliminate zeros so that they can be plotted on a log plot
+                inds = (Cp[:,k] .> 0)
+                plot!(Tp[inds],Cp[inds,k],color=wongc[k],label="Strain $(k)")
+                # Find first non-zero element
+                x1 = findfirst(x->x!=0.0,grds[:,k])
+                # and use to update range
+                rn2 = rn .+ (x1-1)
+                # Find absolute maximum gradient from the range
+                _, gin = findmax(abs.(grds[rn2,k]))
+                # Add first element of the range to returned index
+                gind = gin + (rn2[1]-1)
+                # Save gradients as "effective" interaction strengths
+                pet_in[k,j] = grds[gind,k]
+                # plot line to peak
+                vline!([Tp[pinds[k]]],label="",color=wongc[k])
+                # And plot as a vertical line
+                vline!([Tp[gind+1]],label="",color=:red)
             end
-            # And plot as a vertical line
-            # vline!([Tp[gind+1]],label="",color=:red)
             savefig("Output/perturbpops$(j).png")
             plot(title="Perturbed strain $(j)",xlabel="Time",ylabel="Concentration")
             plot!(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)],label="")
@@ -350,7 +358,7 @@ function analyse_ints()
         for j = 1:ps.N
             for k = 1:ps.N
                 # Check if signs match
-                if sign(pin[j,k]) != sign(nin[j,k])
+                if sign(pin[j,k]) != sign(nin[j,k]) && abs(nin[j,k]) > 5e-4
                     println("Predicted effect of strain $(k) on strain $(j) doesn't match actual effect")
                     println("Predicted effect:")
                     println(nin[j,k])

@@ -248,15 +248,15 @@ function analyse_ints()
     end
     println("Compiled!")
     # Set time to run perturbed dynamics for
-    Tmax = 1e4
+    Tmax = 1e5
     # Set fraction to perturb (reduce) population by
     pfrc = 0.5
     # Set up plotting
     # DELETE THIS AT SOME POINT
-    # pyplot()
-    # theme(:wong2,dpi=200)
-    # wongc = get_color_palette(wong_palette,57)
-    for i = 1:rps
+    pyplot()
+    theme(:wong2,dpi=200)
+    wongc = get_color_palette(wong_palette,57)
+    for i = 25#1:rps
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
@@ -317,34 +317,35 @@ function analyse_ints()
             end
             # Find index of peak for each strain
             for k = 1:ps.N
-                # Check if looking at peak or trough
-                if grds[1,k] >= 0.0
-                    _, pinds[k] = findmax(Cp[:,k])
-                else
-                    _, pinds[k] = findmin(Cp[:,k])
-                end
+                # Find largest deviation from initial value
+                _, pinds[k] = findmax(abs.(Cp[:,k].-Cp[1,k]))
             end
             # Plot populations of final survivors
-            # plot(title="Perturbed populations",yaxis=:log10)
+            plot(title="Perturbed strain $(j)",yaxis=:log10,xlabel="Time",ylabel="Log population")
+            # Set early intial point to find gradient of
+            gind = 2
             for k = 1:ps.N
                  # Find and eliminate zeros so that they can be plotted on a log plot
                  inds = (Cp[:,k] .> 0)
-                 # plot!(Tp[inds],Cp[inds,k],color=wongc[k])
-                 # Set early intial point to find gradient of
-                 gind = 1
-                 # And plot as a vertical line
-                 # vline!([Tp[gind+1]],label="",color=wongc[k])
+                 plot!(Tp[inds],Cp[inds,k],color=wongc[k],label="Strain $(k)")
                  # Save gradients as "effective" interaction strengths
                  pet_in[k,j] = grds[gind,k]
+                 # plot line to peak
+                 vline!([Tp[pinds[k]]],label="",color=wongc[k])
             end
-            # savefig("Output/perturbpops$(j).png")
-            # plot(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)])
-            # savefig("Output/perturbconcs$(j).png")
+            # And plot as a vertical line
+            # vline!([Tp[gind+1]],label="",color=:red)
+            savefig("Output/perturbpops$(j).png")
+            plot(title="Perturbed strain $(j)",xlabel="Time",ylabel="Concentration")
+            plot!(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)],label="")
+            savefig("Output/perturbconcs$(j).png")
         end
         println("Run $(i) successful")
         # Rescale interactions to see if they match
-        pin = -pet_in/(maximum(abs.(pet_in)))
-        nin = net_in/(maximum(abs.(net_in)))
+        if ps.N != 0
+            pin = -pet_in/(maximum(abs.(pet_in)))
+            nin = net_in/(maximum(abs.(net_in)))
+        end
         # Loop over all entries
         for j = 1:ps.N
             for k = 1:ps.N

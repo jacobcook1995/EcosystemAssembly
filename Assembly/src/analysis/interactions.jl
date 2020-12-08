@@ -253,9 +253,9 @@ function analyse_ints()
     pfrc = 0.5
     # Set up plotting
     # DELETE THIS AT SOME POINT
-    pyplot()
-    theme(:wong2,dpi=200)
-    wongc = get_color_palette(wong_palette,57)
+    # pyplot()
+    # theme(:wong2,dpi=200)
+    # wongc = get_color_palette(wong_palette,57)
     for i = 1:rps
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
@@ -286,6 +286,21 @@ function analyse_ints()
         ints = load(ifile,"ints")
         in_str = load(ifile,"in_str")
         net_in = load(ifile,"net_in")
+        # Preallocate self-interaction and interaction matrices
+        R = zeros(ps.N,ps.N)
+        G = zeros(ps.N,ps.N)
+        # Populate these values
+        for j = 1:ps.N
+            for k = 1:ps.N
+                if j == k
+                    R[j,k] = net_in[j,k]
+                else
+                    G[j,k] = net_in[j,k]
+                end
+            end
+        end
+        # Make squared matrix
+        G2 = G*G
         # concentrations and internal cell parameters are not perturbed
         conc = inf_out[(ps.N+1):(ps.N+ps.M)]
         as = inf_out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
@@ -294,6 +309,8 @@ function analyse_ints()
         pop = zeros(ps.N)
         # Preallocate interaction matrix
         pet_in = zeros(ps.N,ps.N)
+        # Preallocate array to store peak signs
+        psg = zeros(Int64,ps.N,ps.N)
         # Perturb each strain in term
         for j = 1:ps.N
             # Loop over strains to make perturbation
@@ -319,15 +336,17 @@ function analyse_ints()
             for k = 1:ps.N
                 # Find largest deviation from initial value
                 _, pinds[k] = findmax(abs.(Cp[:,k].-Cp[1,k]))
+                # Then calculate the sign of this peak
+                psg[j,k] = sign(Cp[pinds[k],k]-Cp[1,k])
             end
             # Plot populations of final survivors
-            plot(title="Perturbed strain $(j)",yaxis=:log10,xlabel="Time",ylabel="Log population")
+            # plot(title="Perturbed strain $(j)",yaxis=:log10,xlabel="Time",ylabel="Log population")
             # Set range to pick value from
             rn = 1:3
             for k = 1:ps.N
-                # Find and eliminate zeros so that they can be plotted on a log plot
-                inds = (Cp[:,k] .> 0)
-                plot!(Tp[inds],Cp[inds,k],color=wongc[k],label="Strain $(k)")
+                # # Find and eliminate zeros so that they can be plotted on a log plot
+                # inds = (Cp[:,k] .> 0)
+                # plot!(Tp[inds],Cp[inds,k],color=wongc[k],label="Strain $(k)")
                 # Find first non-zero element
                 x1 = findfirst(x->x!=0.0,grds[:,k])
                 # and use to update range
@@ -338,17 +357,21 @@ function analyse_ints()
                 gind = gin + (rn2[1]-1)
                 # Save gradients as "effective" interaction strengths
                 pet_in[k,j] = grds[gind,k]
-                # plot line to peak
-                vline!([Tp[pinds[k]]],label="",color=wongc[k])
-                # And plot as a vertical line
-                vline!([Tp[gind+1]],label="",color=:red)
+                # # plot line to peak
+                # vline!([Tp[pinds[k]]],label="",color=wongc[k])
+                # # And plot as a vertical line
+                # vline!([Tp[gind+1]],label="",color=:red)
+                # if j == 2 && k == 2
+                #     vline!([Tsp],label="",color=:blue)
+                #     ind = findfirst(x->x>0.0,grds[:,k])
+                #     vline!([Tp[ind]],label="",color=:green)
+                # end
             end
-            savefig("Output/perturbpops$(j).png")
-            plot(title="Perturbed strain $(j)",xlabel="Time",ylabel="Concentration")
-            plot!(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)],label="")
-            savefig("Output/perturbconcs$(j).png")
+            # savefig("Output/perturbpops$(j).png")
+            # plot(title="Perturbed strain $(j)",xlabel="Time",ylabel="Concentration")
+            # plot!(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)],label="")
+            # savefig("Output/perturbconcs$(j).png")
         end
-        println("Run $(i) successful")
         # Rescale interactions to see if they match
         if ps.N != 0
             pin = -pet_in/(maximum(abs.(pet_in)))
@@ -359,11 +382,19 @@ function analyse_ints()
             for k = 1:ps.N
                 # Check if signs match
                 if sign(pin[j,k]) != sign(nin[j,k]) && abs(nin[j,k]) > 5e-4
-                    println("Predicted effect of strain $(k) on strain $(j) doesn't match actual effect")
-                    println("Predicted effect:")
-                    println(nin[j,k])
-                    println("Actual effect:")
-                    println(pin[j,k])
+                    println("Run $(i)")
+                    println("Predicted initial effect of strain $(k) on strain $(j) incorrect")
+                end
+                # Check the form of the higher order interactions
+                if sign(R[j,k]+G[j,k]) == sign(G2[j,k])
+                    println("Here")
+                    if sign(nin[j,k]) != -sign(psg[j,k])
+                        # NEED TO WORK OUT WHAT'S GOING ON HERE
+                        println("Run $(i)")
+                        println("Predicted final effect of strain $(k) on strain $(j) incorrect")
+                    end
+                else
+                    # SOMTHING HERE EVENTUALLY
                 end
             end
         end

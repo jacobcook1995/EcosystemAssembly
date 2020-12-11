@@ -4,8 +4,6 @@ using JLD
 using SymPy
 using LinearAlgebra
 using Statistics
-using Plots
-import PyPlot
 
 # function to quantify the interactions
 function quantify_ints()
@@ -251,11 +249,19 @@ function analyse_ints()
     Tmax = 1e5
     # Set fraction to perturb (reduce) population by
     pfrc = 0.5
+    # Setup counters
+    s1 = 0 # Self interaction
+    st = 0 # Correct peak for self interaction
+    n1 = 0 # no first order
+    n1t = 0 # correct peak (no first order)
+    n2 = 0 # no second order
+    n2t = 0 # correct peak (no second order)
+    cc = 0 # correctly predicted consitent peak
+    ci = 0 # incorrectly predicted consitent peak
+    ic = 0 # correctly predicted inconsitent peak
+    ii = 0 # incorrectly predicted inconsitent peak
+    hi = 0 # Higher order interactions of a different sign
     # Set up plotting
-    # DELETE THIS AT SOME POINT
-    # pyplot()
-    # theme(:wong2,dpi=200)
-    # wongc = get_color_palette(wong_palette,57)
     for i = 1:rps
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
@@ -301,6 +307,10 @@ function analyse_ints()
         end
         # Make squared matrix
         G2 = G*G
+        G3 = G2*G
+        G4 = G3*G
+        G5 = G4*G
+        GT = G2
         # concentrations and internal cell parameters are not perturbed
         conc = inf_out[(ps.N+1):(ps.N+ps.M)]
         as = inf_out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
@@ -337,16 +347,11 @@ function analyse_ints()
                 # Find largest deviation from initial value
                 _, pinds[k] = findmax(abs.(Cp[:,k].-Cp[1,k]))
                 # Then calculate the sign of this peak
-                psg[j,k] = sign(Cp[pinds[k],k]-Cp[1,k])
+                psg[k,j] = sign(Cp[pinds[k],k]-Cp[1,k])
             end
-            # Plot populations of final survivors
-            # plot(title="Perturbed strain $(j)",yaxis=:log10,xlabel="Time",ylabel="Log population")
             # Set range to pick value from
             rn = 1:3
             for k = 1:ps.N
-                # # Find and eliminate zeros so that they can be plotted on a log plot
-                # inds = (Cp[:,k] .> 0)
-                # plot!(Tp[inds],Cp[inds,k],color=wongc[k],label="Strain $(k)")
                 # Find first non-zero element
                 x1 = findfirst(x->x!=0.0,grds[:,k])
                 # and use to update range
@@ -357,20 +362,7 @@ function analyse_ints()
                 gind = gin + (rn2[1]-1)
                 # Save gradients as "effective" interaction strengths
                 pet_in[k,j] = grds[gind,k]
-                # # plot line to peak
-                # vline!([Tp[pinds[k]]],label="",color=wongc[k])
-                # # And plot as a vertical line
-                # vline!([Tp[gind+1]],label="",color=:red)
-                # if j == 2 && k == 2
-                #     vline!([Tsp],label="",color=:blue)
-                #     ind = findfirst(x->x>0.0,grds[:,k])
-                #     vline!([Tp[ind]],label="",color=:green)
-                # end
             end
-            # savefig("Output/perturbpops$(j).png")
-            # plot(title="Perturbed strain $(j)",xlabel="Time",ylabel="Concentration")
-            # plot!(Tp,Cp[:,(ps.N+1):(ps.N+ps.M)],label="")
-            # savefig("Output/perturbconcs$(j).png")
         end
         # Rescale interactions to see if they match
         if ps.N != 0
@@ -385,20 +377,63 @@ function analyse_ints()
                     println("Run $(i)")
                     println("Predicted initial effect of strain $(k) on strain $(j) incorrect")
                 end
-                # Check the form of the higher order interactions
-                if sign(R[j,k]+G[j,k]) == sign(G2[j,k])
-                    println("Here")
+                # Check if it's a recovery from perturbation
+                if j == k
+                    s1 += 1
+                    # Check peak is of the expected type
+                    if sign(psg[j,k]) == 1
+                        st += 1
+                    end
+                # Check if no interaction
+                elseif R[j,k]+G[j,k] == 0.0
+                    n1 += 1
+                    # Check that sign of peak matches higher order interaction
+                    if sign(GT[j,k]) == -sign(psg[j,k])
+                        n1t += 1
+                    end
+                # Check if no mediated interaction
+                elseif GT[j,k] == 0.0
+                    n2 += 1
+                    # Check that peak matches initial gradient
+                    if sign(nin[j,k]) == -sign(psg[j,k])
+                        n2t += 1
+                    end
+                # Check if interaction signs match
+                elseif sign(R[j,k]+G[j,k]) == sign(GT[j,k])
                     if sign(nin[j,k]) != -sign(psg[j,k])
-                        # NEED TO WORK OUT WHAT'S GOING ON HERE
-                        println("Run $(i)")
-                        println("Predicted final effect of strain $(k) on strain $(j) incorrect")
+                        # println("Predicted final effect of strain $(k) on strain $(j) incorrect (1)")
+                        ci += 1
+                    else
+                        cc += 1
                     end
                 else
-                    # SOMTHING HERE EVENTUALLY
+                    if sign(nin[j,k]) != sign(psg[j,k])
+                        # println("Predicted final effect of strain $(k) on strain $(j) incorrect (2)")
+                        ii += 1
+                        # Check if higher order interactions could rectify this
+                        if sign(G3[j,k]) != sign(G2[j,k]) || sign(G4[j,k]) != sign(G2[j,k]) || sign(G5[j,k]) != sign(G2[j,k])
+                            hi += 1
+                        end
+                    else
+                        ic += 1
+                    end
                 end
             end
         end
     end
+    println("$(s1) recoveries from perturbations in total")
+    println("$(st) actual recoveries observed")
+    println("$(n1+n2+cc+ci+ic+ii) peaks in total")
+    println("$(n1) peaks with no 1st order interaction")
+    println("Of which $(n1t) are consistent")
+    println("$(n2) peaks with no 2nd order interaction")
+    println("Of which $(n2t) are consistent")
+    println("$(cc+ci) consistent peaks predicted")
+    println("$(cc) consistent peaks found")
+    println("$(ic+ii) inconsistent peaks predicted")
+    println("$(ic) inconsistent peaks found")
+    println("Of the $(ii) incorrect peak $(hi) could be fixed by higher order interactions")
+    println("$(n1t+n2t+cc+ic) out of $(n1+n2+cc+ci+ic+ii) guessed correctly")
     return(nothing)
 end
 

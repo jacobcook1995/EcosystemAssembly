@@ -260,7 +260,7 @@ function analyse_ints()
     ci = 0 # incorrectly predicted consitent peak
     ic = 0 # correctly predicted inconsitent peak
     ii = 0 # incorrectly predicted inconsitent peak
-    hi = 0 # Higher order interactions of a different sign
+    Tt = 2500.0 # threshold T value
     # Set up plotting
     for i = 1:rps
         # Read in relevant files
@@ -310,7 +310,6 @@ function analyse_ints()
         G3 = G2*G
         G4 = G3*G
         G5 = G4*G
-        GT = G2
         # concentrations and internal cell parameters are not perturbed
         conc = inf_out[(ps.N+1):(ps.N+ps.M)]
         as = inf_out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
@@ -377,6 +376,41 @@ function analyse_ints()
                     println("Run $(i)")
                     println("Predicted initial effect of strain $(k) on strain $(j) incorrect")
                 end
+                # Find time spans for each interaction
+                if G2[j,k] != 0
+                    T2 = abs((R[j,k]+G[j,k])/G2[j,k])
+                else
+                    T2 = Inf
+                end
+                if G3[j,k] != 0
+                    T3 = (abs((R[j,k]+G[j,k])/G3[j,k]))^(1/2)
+                else
+                    T3 = Inf
+                end
+                if G4[j,k] != 0
+                    T4 = (abs((R[j,k]+G[j,k])/G4[j,k]))^(1/3)
+                else
+                    T4 = Inf
+                end
+                if G5[j,k] != 0
+                    T5 = (abs((R[j,k]+G[j,k])/G5[j,k]))^(1/4)
+                else
+                    T5 = Inf
+                end
+                # Use T values to select dominant higher order interaction
+                if T2 < T3 && T2 < T4 && T2 < T5
+                    GA = G2[j,k]
+                    TA = T2
+                elseif T3 < T4 && T3 < T5
+                    GA = G3[j,k]
+                    TA = T3
+                elseif T4 < T5
+                    GA = G4[j,k]
+                    TA = T4
+                else
+                    GA = G5[j,k]
+                    TA = T5
+                end
                 # Check if it's a recovery from perturbation
                 if j == k
                     s1 += 1
@@ -388,32 +422,26 @@ function analyse_ints()
                 elseif R[j,k]+G[j,k] == 0.0
                     n1 += 1
                     # Check that sign of peak matches higher order interaction
-                    if sign(GT[j,k]) == -sign(psg[j,k])
+                    if sign(GA) == -sign(psg[j,k])
                         n1t += 1
                     end
                 # Check if no mediated interaction
-                elseif GT[j,k] == 0.0
+                elseif GA == 0.0
                     n2 += 1
                     # Check that peak matches initial gradient
                     if sign(nin[j,k]) == -sign(psg[j,k])
                         n2t += 1
                     end
-                # Check if interaction signs match
-                elseif sign(R[j,k]+G[j,k]) == sign(GT[j,k])
+                # Check if higher order interaction is to slow or if interaction signs match
+            elseif TA > Tt || sign(R[j,k]+G[j,k]) == sign(GA)
                     if sign(nin[j,k]) != -sign(psg[j,k])
-                        # println("Predicted final effect of strain $(k) on strain $(j) incorrect (1)")
                         ci += 1
                     else
                         cc += 1
                     end
                 else
                     if sign(nin[j,k]) != sign(psg[j,k])
-                        # println("Predicted final effect of strain $(k) on strain $(j) incorrect (2)")
                         ii += 1
-                        # Check if higher order interactions could rectify this
-                        if sign(G3[j,k]) != sign(G2[j,k]) || sign(G4[j,k]) != sign(G2[j,k]) || sign(G5[j,k]) != sign(G2[j,k])
-                            hi += 1
-                        end
                     else
                         ic += 1
                     end
@@ -432,7 +460,6 @@ function analyse_ints()
     println("$(cc) consistent peaks found")
     println("$(ic+ii) inconsistent peaks predicted")
     println("$(ic) inconsistent peaks found")
-    println("Of the $(ii) incorrect peak $(hi) could be fixed by higher order interactions")
     println("$(n1t+n2t+cc+ic) out of $(n1+n2+cc+ci+ic+ii) guessed correctly")
     return(nothing)
 end

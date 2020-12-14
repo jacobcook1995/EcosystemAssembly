@@ -578,5 +578,135 @@ function plot_ptrbs()
     return(nothing)
 end
 
+# function to plot interactions types
+function ints_plot()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 4
+        error("Insufficent inputs provided (looking for 4)")
+    end
+    # Preallocate the variables I want to extract from the input
+    Rl = 0
+    Ru = 0
+    syn = true
+    rps = 0
+    # Check that all arguments can be converted to integers
+    try
+        Rl = parse(Int64,ARGS[1])
+        Ru = parse(Int64,ARGS[2])
+        syn = parse(Bool,ARGS[3])
+        rps = parse(Int64,ARGS[4])
+    catch e
+           error("need to provide 3 integers and a bool")
+    end
+    # Check that simulation type is valid
+    if Rl < 1
+        error("lower bound has to be at least one reaction")
+    end
+    if Ru < Rl
+        error("upper bound can't be lower than the lower bound")
+    end
+    # Check that number of simulations is greater than 0
+    if rps < 1
+        error("number of repeats can't be less than 1")
+    end
+    println("Compiled!")
+    # Preallocate memory to store number of interactions
+    ins1 = zeros(rps)
+    ins2 = zeros(rps)
+    ins3 = zeros(rps)
+    ins4 = zeros(rps)
+    # Preallocate memory to store mean interaction strengths
+    mean1 = fill(NaN,rps)
+    mean2 = fill(NaN,rps)
+    mean3 = fill(NaN,rps)
+    mean4 = fill(NaN,rps)
+    # Loop over parameter sets
+    for i = 1:rps
+        # Read in relevant files
+        pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(pfile)
+            error("run $(i) is missing a parameter file")
+        end
+        ofile = "Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(ofile)
+            error("run $(i) is missing an output file")
+        end
+        efile = "Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(efile)
+            error("run $(i) is missing an extinct file")
+        end
+        ifile = "Data/$(Rl)-$(Ru)$(syn)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(ifile)
+            error("run $(i) is missing an interaction file")
+        end
+        # Basically just loading everything out as I'm not sure what I'll need
+        ps = load(pfile,"ps")
+        C = load(ofile,"C")
+        T = load(ofile,"T")
+        out = load(ofile,"out")
+        inf_out = load(ofile,"inf_out")
+        ded = load(efile,"ded")
+        Fatp = load(ifile,"Fatp")
+        frc = load(ifile,"frc")
+        ints = load(ifile,"ints")
+        in_str = load(ifile,"in_str")
+        net_in = load(ifile,"net_in")
+        # Store number of each interaction type
+        ins1[i] = count(x->x==1,ints)
+        ins2[i] = count(x->x==2,ints)
+        ins3[i] = count(x->x==3,ints)
+        ins4[i] = count(x->x==4,ints)
+        # Find corresponding positions
+        pos1 = findall(x->x==1,ints)
+        pos2 = findall(x->x==2,ints)
+        pos3 = findall(x->x==3,ints)
+        pos4 = findall(x->x==4,ints)
+        # Use to find vector of interaction strengths
+        str1 = in_str[pos1]
+        str2 = in_str[pos2]
+        str3 = in_str[pos3]
+        str4 = in_str[pos4]
+        # Check if there are any interactions of that type
+        if length(str1) >= 1
+            # Find mean strength of each interaction
+            mean1[i] = mean(str1)
+        end
+        # Do for each interaction type
+        if length(str2) >= 1
+            mean2[i] = mean(str2)
+        end
+        if length(str3) >= 1
+            mean3[i] = mean(str3)
+        end
+        if length(str4) >= 1
+            mean4[i] = mean(str4)
+        end
+    end
+    # Setup plotting
+    pyplot()
+    theme(:wong2,dpi=200)
+    wongc = get_color_palette(wong_palette,57)
+    # Make plot title
+    tl = ""
+    if syn == true
+        tl = "$(Rl)-$(Ru) reactions per strain"
+    else
+        tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
+    end
+    # Now plot both interactions types and strengths
+    plot(title=tl,xlabel="Number of interactions",ylabel="Number of ecosystems")
+    histogram!(ins1,fillalpha=0.75,label="Competiton")
+    histogram!(ins2,fillalpha=0.75,label="Facilitation")
+    histogram!(ins3,fillalpha=0.75,label="Syntrophy")
+    histogram!(ins4,fillalpha=0.75,label="Pollution")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/IntType$(Rl)-$(Ru)$(syn).png")
+    plot(title=tl,xlabel="Strength of interactions",ylabel="Number of ecosystems")
+    histogram!(mean1,fillalpha=0.75,label="Competiton")
+    histogram!(mean2,fillalpha=0.75,label="Facilitation")
+    histogram!(mean3,fillalpha=0.75,label="Syntrophy")
+    histogram!(mean4,fillalpha=0.75,label="Pollution")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/IntStrength$(Rl)-$(Ru)$(syn).png")
+    return(nothing)
+end
 
-@time plot_ptrbs()
+@time ints_plot()

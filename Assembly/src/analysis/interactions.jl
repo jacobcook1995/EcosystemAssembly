@@ -4,6 +4,8 @@ using JLD
 using SymPy
 using LinearAlgebra
 using Statistics
+using Plots
+import PyPlot
 
 # function to quantify the interactions
 function quantify_ints()
@@ -464,5 +466,117 @@ function analyse_ints()
     return(nothing)
 end
 
+# Function to analyse interaction data
+function plot_ptrbs()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 4
+        error("Insufficent inputs provided (looking for 4)")
+    end
+    # Preallocate the variables I want to extract from the input
+    Rl = 0
+    Ru = 0
+    syn = true
+    rpt = 0
+    # Check that all arguments can be converted to integers
+    try
+        Rl = parse(Int64,ARGS[1])
+        Ru = parse(Int64,ARGS[2])
+        syn = parse(Bool,ARGS[3])
+        rpt = parse(Int64,ARGS[4])
+    catch e
+           error("need to provide 3 integers and a bool")
+    end
+    # Check that simulation type is valid
+    if Rl < 1
+        error("lower bound has to be at least one reaction")
+    end
+    if Ru < Rl
+        error("upper bound can't be lower than the lower bound")
+    end
+    # Check that number of simulations is greater than 0
+    if rpt < 1
+        error("number of repeats can't be less than 1")
+    end
+    println("Compiled!")
+    # Set time to run perturbed dynamics for
+    Tmax = 1e5
+    # Set fraction to perturb (reduce) population by
+    pfrc = 0.5
+    pyplot()
+    theme(:wong2,dpi=200)
+    wongc = get_color_palette(wong_palette,57)
+    # Set up plotting
+    for i = 1:rpt
+        # Read in relevant files
+        pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(pfile)
+            error("run $(i) is missing a parameter file")
+        end
+        ofile = "Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(ofile)
+            error("run $(i) is missing an output file")
+        end
+        efile = "Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(efile)
+            error("run $(i) is missing an extinct file")
+        end
+        ifile = "Data/$(Rl)-$(Ru)$(syn)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(ifile)
+            error("run $(i) is missing an interaction file")
+        end
+        # Basically just loading everything out as I'm not sure what I'll need
+        ps = load(pfile,"ps")
+        C = load(ofile,"C")
+        T = load(ofile,"T")
+        out = load(ofile,"out")
+        inf_out = load(ofile,"inf_out")
+        ded = load(efile,"ded")
+        Fatp = load(ifile,"Fatp")
+        frc = load(ifile,"frc")
+        ints = load(ifile,"ints")
+        in_str = load(ifile,"in_str")
+        net_in = load(ifile,"net_in")
+        # concentrations and internal cell parameters are not perturbed
+        conc = inf_out[(ps.N+1):(ps.N+ps.M)]
+        as = inf_out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
+        ϕs = inf_out[(2*ps.N+ps.M+1):end]
+        # Only populations are perturbed
+        pop = zeros(ps.N)
+        # Perturb each strain in term
+        for j = 1:ps.N
+            # Loop over strains to make perturbation
+            for k = 1:ps.N
+                if k != j
+                    pop[k] = inf_out[k]
+                else
+                    pop[k] = inf_out[k]*(1.0-pfrc)
+                end
+            end
+            # Then run the simulation
+            Cp, Tp = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+            # Preallocate gradients and peak indices
+            grds = zeros(length(Tp)-1,ps.N)
+            pinds = zeros(Int64,ps.N)
+            # Find gradients for each strain
+            for k = 1:ps.N
+                for l = 2:length(Tp)
+                    grds[l-1,k] = (Cp[l,k]-Cp[l-1,k])/(Tp[l]-Tp[l-1])
+                end
+            end
+            # Preallocate plot
+            plot(title="Perturbed strain $(j)",yaxis=:log10,xlabel="Time",ylabel="Log population")
+            # Loop over and plot all strains
+            for k = 1:ps.N
+                # Find and eliminate zeros so that they can be plotted on a log plot
+                inds = (Cp[:,k] .> 0)
+                plot!(Tp[inds],Cp[inds,k],color=wongc[k],label="Strain $(k)")
+            end
+            # Save figure
+            savefig("Output/perturbpops$(j).png")
+        end
+    end
+    return(nothing)
+end
 
-@time analyse_ints()
+
+@time plot_ptrbs()

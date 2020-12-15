@@ -620,6 +620,11 @@ function ints_plot()
     mean2 = fill(NaN,rps)
     mean3 = fill(NaN,rps)
     mean4 = fill(NaN,rps)
+    # Preallocate vectors to store all interaction strengths
+    sts1 = []
+    sts2 = []
+    sts3 = []
+    sts4 = []
     # Loop over parameter sets
     for i = 1:rps
         # Read in relevant files
@@ -670,16 +675,20 @@ function ints_plot()
         if length(str1) >= 1
             # Find mean strength of each interaction
             mean1[i] = mean(str1)
+            sts1 = cat(sts1,str1,dims=1)
         end
         # Do for each interaction type
         if length(str2) >= 1
             mean2[i] = mean(str2)
+            sts2 = cat(sts2,str2,dims=1)
         end
         if length(str3) >= 1
             mean3[i] = mean(str3)
+            sts3 = cat(sts3,str3,dims=1)
         end
         if length(str4) >= 1
             mean4[i] = mean(str4)
+            sts4 = cat(sts4,str4,dims=1)
         end
     end
     # Setup plotting
@@ -701,11 +710,17 @@ function ints_plot()
     histogram!(ins4,fillalpha=0.75,label="Pollution")
     savefig("Output/$(Rl)-$(Ru)$(syn)/IntType$(Rl)-$(Ru)$(syn).png")
     plot(title=tl,xlabel="Strength of interactions",ylabel="Number of ecosystems")
-    histogram!(mean1,fillalpha=0.75,label="Competiton")
-    histogram!(mean2,fillalpha=0.75,label="Facilitation")
-    histogram!(mean3,fillalpha=0.75,label="Syntrophy")
-    histogram!(mean4,fillalpha=0.75,label="Pollution")
+    histogram!(log10.(mean1),fillalpha=0.75,label="Competiton")
+    histogram!(log10.(mean2),fillalpha=0.75,label="Facilitation")
+    histogram!(log10.(mean3),fillalpha=0.75,label="Syntrophy")
+    histogram!(log10.(mean4),fillalpha=0.75,label="Pollution")
     savefig("Output/$(Rl)-$(Ru)$(syn)/IntStrength$(Rl)-$(Ru)$(syn).png")
+    plot(title=tl,xlabel="Log Strength of interactions",ylabel="Number of interactions")
+    histogram!(log10.(sts1),fillalpha=0.75,label="Competiton")
+    histogram!(log10.(sts2),fillalpha=0.75,label="Facilitation")
+    histogram!(log10.(sts3),fillalpha=0.75,label="Syntrophy")
+    histogram!(log10.(sts4),fillalpha=0.75,label="Pollution")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AllIntStrength$(Rl)-$(Ru)$(syn).png")
     return(nothing)
 end
 

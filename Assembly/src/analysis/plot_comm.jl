@@ -456,37 +456,47 @@ end
 # Function to make plots to show the shape of the thermodynamic tradeoff
 function plt_trdff()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
-        error("need to specify community and number of repeats")
+    if length(ARGS) < 4
+        error("Insufficent inputs provided (looking for 4)")
     end
     # Preallocate the variables I want to extract from the input
-    R = 0
+    Rl = 0
+    Ru = 0
+    syn = true
     nR = 0
     # Check that all arguments can be converted to integers
     try
-        R = parse(Int64,ARGS[1])
-        nR = parse(Int64,ARGS[2])
+        Rl = parse(Int64,ARGS[1])
+        Ru = parse(Int64,ARGS[2])
+        syn = parse(Bool,ARGS[3])
+        nR = parse(Int64,ARGS[4])
     catch e
-           error("both inputs must be integer")
+           error("need to provide 3 integers and a bool")
     end
     # Check that simulation type is valid
-    if R < 1
-        error("each strain must have more than 1 reaction")
+    if Rl < 1
+        error("lower bound has to be at least one reaction")
+    end
+    if Ru < Rl
+        error("upper bound can't be lower than the lower bound")
     end
     # Check that number of simulations is greater than 0
     if nR < 1
-        error("Repeat number cannot be less than 1")
+        error("simulation number can't be less than 1")
     end
     println("Compiled!")
-    # Read in standard parameter file
-    pfile = "Data/Type$(R)/ParasType$(R)Run$(nR).jld"
+    # Read in relevant files
+    pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(nR).jld"
     if ~isfile(pfile)
         error("run $(nR) is missing a parameter file")
     end
-    # Read in output data
-    ofile = "Data/Type$(R)/OutputType$(R)Run$(nR).jld"
+    ofile = "Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(nR).jld"
     if ~isfile(ofile)
         error("run $(nR) is missing an output file")
+    end
+    efile = "Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(nR).jld"
+    if ~isfile(efile)
+        error("run $(nR) is missing an extinct file")
     end
     # Read in relevant data
     ps = load(pfile,"ps")
@@ -533,18 +543,19 @@ function plt_trdff()
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=200)
+    wongc = get_color_palette(wong_palette,57)
     plot(ηs,rs,label="Reaction rate")
     plot!(ηs,θs,label="Inhibition")
-    plot!(ηs,as2,label="ATP rate",xlabel=L"\eta")
+    plot!(ηs,as2,label="ATP rate",xlabel="ATP per reaction event")
     savefig("Output/TrdOff.png")
     # Do plot of just the tradeoff
-    plot(ηs,as,label="",xlabel=L"\eta",ylabel="ATP production rate")
+    plot(ηs,as,label="",xlabel="ATP per reaction event",ylabel="ATP production rate")
     savefig("Output/BareTrdOff.png")
     # Want a detailed visulisation of the peak
     inds = findall(x->(3.25<=x<=3.75),ηs)
     plot(ηs[inds],rs[inds],label="Reaction rate")
     plot!(ηs[inds],θs[inds],label="Inhibition")
-    plot!(ηs[inds],as2[inds],label="ATP rate",xlabel=L"\eta")
+    plot!(ηs[inds],as2[inds],label="ATP rate",xlabel="ATP per reaction event")
     savefig("Output/PeakTrdOff.png")
     # Make a vector of η*rate
     as3 = ηs.*rs2
@@ -554,8 +565,10 @@ function plt_trdff()
         lbs[i] = "Prd conc = $(round(Ps[i],sigdigits=3))"
     end
     # Now calculate and plot syntrophy stuff
-    plot(ηs,as3,xlabel=L"\eta",labels=lbs)
+    plot(ηs,as3,xlabel="ATP per reaction event",ylabel="ATP production rate",labels="")#lbs)
     savefig("Output/SynTrdOff.png")
+    plot(ηs,θs,yscale=:log10,xlabel=L"\eta",ylabel=L"\theta",label="",ylims=(1e-15,1e1),color=wongc[2])
+    savefig("Output/LogInhib.png")
     return(nothing)
 end
 
@@ -880,4 +893,4 @@ function basic_info()
     return(nothing)
 end
 
-@time basic_info()
+@time plt_trdff()

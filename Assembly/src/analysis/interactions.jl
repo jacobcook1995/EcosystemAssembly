@@ -6,6 +6,7 @@ using LinearAlgebra
 using Statistics
 using Plots
 import PyPlot
+using LaTeXStrings
 
 # function to quantify the interactions
 function quantify_ints()
@@ -697,11 +698,12 @@ function ints_plot()
     wongc = get_color_palette(wong_palette,57)
     # Make plot title
     tl = ""
-    if syn == true
-        tl = "$(Rl)-$(Ru) reactions per strain"
-    else
-        tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
-    end
+    # TURNING OFF TITLE FOR NOW
+    # if syn == true
+    #     tl = "$(Rl)-$(Ru) reactions per strain"
+    # else
+    #     tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
+    # end
     # Now plot both interactions types and strengths
     plot(title=tl,xlabel="Number of interactions",ylabel="Number of ecosystems")
     histogram!(ins1,fillalpha=0.75,label="Competiton")
@@ -715,7 +717,15 @@ function ints_plot()
     histogram!(log10.(mean3),fillalpha=0.75,label="Syntrophy")
     histogram!(log10.(mean4),fillalpha=0.75,label="Pollution")
     savefig("Output/$(Rl)-$(Ru)$(syn)/IntStrength$(Rl)-$(Ru)$(syn).png")
-    plot(title=tl,xlabel="Log Strength of interactions",ylabel="Number of interactions")
+    # Make range of ticks to label
+    rgn = collect(-14:2:-2)
+    ergn = fill("",length(rgn))
+    # Find corresponding exponentials
+    for i = 1:length(rgn)
+        ergn[i] = L"10^{%$(rgn[i])}"
+    end
+    plot(title=tl,xlabel="Interaction strength",ylabel="Number of interactions")
+    plot!(xticks = (rgn, ergn))
     histogram!(log10.(sts1),fillalpha=0.75,label="Competiton")
     histogram!(log10.(sts2),fillalpha=0.75,label="Facilitation")
     histogram!(log10.(sts3),fillalpha=0.75,label="Syntrophy")

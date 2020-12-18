@@ -734,4 +734,145 @@ function ints_plot()
     return(nothing)
 end
 
-@time ints_plot()
+# function to plot interactions types
+function ints_scat()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 4
+        error("Insufficent inputs provided (looking for 4)")
+    end
+    # Preallocate the variables I want to extract from the input
+    Rl = 0
+    Ru = 0
+    syn = true
+    rps = 0
+    # Check that all arguments can be converted to integers
+    try
+        Rl = parse(Int64,ARGS[1])
+        Ru = parse(Int64,ARGS[2])
+        syn = parse(Bool,ARGS[3])
+        rps = parse(Int64,ARGS[4])
+    catch e
+           error("need to provide 3 integers and a bool")
+    end
+    # Check that simulation type is valid
+    if Rl < 1
+        error("lower bound has to be at least one reaction")
+    end
+    if Ru < Rl
+        error("upper bound can't be lower than the lower bound")
+    end
+    # Check that number of simulations is greater than 0
+    if rps < 1
+        error("number of repeats can't be less than 1")
+    end
+    println("Compiled!")
+    # Preallocate memory to store number of interactions
+    ins3 = zeros(rps)
+    # Preallocate memory to store mean interaction strengths
+    mean3 = fill(NaN,rps)
+    # Preallocate memory to store number of survivors
+    dvs = zeros(rps)
+    # Preallocate relative populations, number and strength of interactions per strain
+    revps = []
+    nints = []
+    sints = []
+    pps = []
+    # Loop over parameter sets
+    for i = 1:rps
+        # Read in relevant files
+        pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(pfile)
+            error("run $(i) is missing a parameter file")
+        end
+        ofile = "Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(ofile)
+            error("run $(i) is missing an output file")
+        end
+        efile = "Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(efile)
+            error("run $(i) is missing an extinct file")
+        end
+        ifile = "Data/$(Rl)-$(Ru)$(syn)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        if ~isfile(ifile)
+            error("run $(i) is missing an interaction file")
+        end
+        # Basically just loading everything out as I'm not sure what I'll need
+        ps = load(pfile,"ps")
+        C = load(ofile,"C")
+        T = load(ofile,"T")
+        out = load(ofile,"out")
+        inf_out = load(ofile,"inf_out")
+        ded = load(efile,"ded")
+        Fatp = load(ifile,"Fatp")
+        frc = load(ifile,"frc")
+        ints = load(ifile,"ints")
+        in_str = load(ifile,"in_str")
+        net_in = load(ifile,"net_in")
+        # Save number of survivors
+        dvs[i] = ps.N
+        # Store number of each interaction type
+        ins3[i] = count(x->x==3,ints)
+        # Find corresponding positions
+        pos3 = findall(x->x==3,ints)
+        # Use to find vector of interaction strengths
+        str3 = in_str[pos3]
+        # Check if there are any interactions of that type
+        if length(str3) >= 1
+            mean3[i] = mean(str3)
+        end
+        # Store realtive population, number and strengths of syn ints of each strain
+        revp = zeros(ps.N)
+        nin = zeros(ps.N)
+        sin = zeros(ps.N)
+        pops = zeros(ps.N)
+        for i = 1:ps.N
+            # Save absolute population
+            pops[i] = inf_out[i]
+            # Calculate relative population
+            revp[i] = inf_out[i]/sum(inf_out[1:ps.N])
+            # Count number of interactions
+            nin[i] = count(x->x==3,ints[i,:,:])
+            # Find indices of these interaction
+            pos = findall(x->x==3,ints[i,:,:])
+            # Use to find vector of interaction strengths
+            str = in_str[i,pos]
+            # Then save the mean of this
+            sin[i] = mean(str)
+        end
+        # Store in overall vectors
+        revps = cat(revps,revp,dims=1)
+        nints = cat(nints,nin,dims=1)
+        sints = cat(sints,sin,dims=1)
+        pps = cat(pps,pops,dims=1)
+    end
+    # Setup plotting
+    pyplot()
+    theme(:wong2,dpi=200)
+    wongc = get_color_palette(wong_palette,57)
+    # Plot diversity against number of syntrophic interactions
+    scatter(ins3,dvs,label="",xlabel="Number of syntrophic interactions",ylabel="Surviving strains")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/NumbInts$(Rl)-$(Ru)$(syn).png")
+    # or maybe against mean interaction strength
+    plot(xscale=:log10)
+    scatter!(mean3,dvs,label="",xlabel="Mean syntrophic interaction strength",ylabel="Surviving strains")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/StrInts$(Rl)-$(Ru)$(syn).png")
+    # Now plot number of interactions as a function of relative population
+    scatter(revps,nints,label="",xlabel="Relative population",ylabel="Number of interactions")
+    savefig("Output/test1.png")
+    # Similar plot for average interation strength
+    plot(yscale=:log10)
+    scatter!(revps,sints,label="",xlabel="Relative population",ylabel="Mean interaction strength")
+    savefig("Output/test2.png")
+    # Now plot number of interactions as a function of absolute population
+    plot(xscale=:log10)
+    scatter!(pps,nints,label="",xlabel="Relative population",ylabel="Number of interactions")
+    savefig("Output/test3.png")
+    # Similar plot for average interation strength
+    plot(yscale=:log10,xscale=:log10)
+    scatter!(pps,sints,label="",xlabel="Relative population",ylabel="Mean interaction strength")
+    savefig("Output/test4.png")
+    return(nothing)
+end
+
+
+@time ints_scat()

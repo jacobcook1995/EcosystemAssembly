@@ -875,4 +875,4 @@ function ints_scat()
 end
 
 
-@time ints_scat()
+@time analyse_ints()

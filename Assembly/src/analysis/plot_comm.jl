@@ -46,23 +46,32 @@ function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64
 end
 
 # A hardcoded extended uniform distribution function used by net_vis()
-function f_ext_un(x::StepRangeLen)
+# THIS NEEDS CHANGING!!!!!
+function f_ext_un(x::StepRangeLen,syn::Bool)
     # Preallocate output
     y = zeros(length(x))
+    # Change limits based on whether syntrophy is on or not
+    if syn == true
+        h1 = 1.0
+        h2 = 1.0
+    else
+        h1 = 0.7352
+        h2 = 0.8624
+    end
     for i = 1:length(x)
         # Check if it's high enough to be in first uniform range
-        if x[i] <= 0.8177
+        if x[i] <= h1
             y[i] += 1
         end
         # Check if it's high enough to be in second uniform range
-        if x[i] <= 0.9089
+        if x[i] <= h2
             y[i] += 1
         end
         # Then subtract if too low
-        if x[i] < -0.0409
+        if x[i] < 0.08756
             y[i] -= 1
         end
-        if x[i] < -0.0818
+        if x[i] < 0.1685
             y[i] -= 1
         end
     end
@@ -72,30 +81,37 @@ end
 # Function to analyse and plot the flux through networks
 function net_vis()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
-        error("need to specify community and number of repeats")
+    if length(ARGS) < 4
+        error("Insufficent inputs provided (looking for 4)")
     end
     # Preallocate the variables I want to extract from the input
-    R = 0
+    Rl = 0
+    Ru = 0
+    syn = true
     nR = 0
     # Check that all arguments can be converted to integers
     try
-        R = parse(Int64,ARGS[1])
-        nR = parse(Int64,ARGS[2])
+        Rl = parse(Int64,ARGS[1])
+        Ru = parse(Int64,ARGS[2])
+        syn = parse(Bool,ARGS[3])
+        nR = parse(Int64,ARGS[4])
     catch e
-           error("both inputs must be integer")
+           error("need to provide 3 integers and a bool")
     end
     # Check that simulation type is valid
-    if R < 1
-        error("each strain must have more than 1 reaction")
+    if Rl < 1
+        error("lower bound has to be at least one reaction")
+    end
+    if Ru < Rl
+        error("upper bound can't be lower than the lower bound")
     end
     # Check that number of simulations is greater than 0
     if nR < 1
-        error("Number of repeats cannot be less than 1")
+        error("simulation number can't be less than 1")
     end
     println("Compiled!")
     # Read in standard parameter file
-    pfile = "Data/Type$(R)/RedParasType$(R)Run1.jld"
+    pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run1.jld"
     if ~isfile(pfile)
         error("run 1 is missing a parameter file")
     end
@@ -122,6 +138,8 @@ function net_vis()
     kcF = []
     ϕpF = []
     efF = []
+    # mimimum product to substrate ratio (to calculate) the efficency
+    mr = 1e-2
     # To store number of ecosystems that reaction is present in
     pres = zeros(ps.O)
     # Data structure to store abundances
@@ -129,15 +147,15 @@ function net_vis()
     # Loop over repeats
     for i = 1:nR
         # Read in relevant files
-        pfile = "Data/Type$(R)/RedParasType$(R)Run$(i).jld"
+        pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/Type$(R)/RedOutputType$(R)Run$(i).jld"
+        ofile = "Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/Type$(R)/RedExtinctType$(R)Run$(i).jld"
+        efile = "Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
@@ -167,8 +185,8 @@ function net_vis()
             ϕpF = cat(ϕpF,ps.mics[j].ϕP,dims=1)
             # Find vector of ΔG0 values
             dG = ps.reacs[ps.mics[j].Reacs].↦:ΔG0
-            # Use to calculate percentage dissipated (under standard conditions)
-            efT = (ps.mics[j].η*ΔGATP.+dG)./(dG)
+            # Use to calculate percentage retained (under standard conditions)
+            efT = -(ps.mics[j].η*ΔGATP)./(dG.+Rgas*ps.T*log(mr))
             # cat efficency in
             efF = cat(efF,efT,dims=1)
         end
@@ -246,7 +264,7 @@ function net_vis()
             # Find relevant ΔG0 value
             dG = ps.reacs[ps.mics[j].Reacs[ind]].ΔG0
             # Use to calculate percentage dissipated (under standard conditions)
-            ef[j] = (ps.mics[j].η[ind]*ΔGATP+dG)/(dG)
+            ef[j] = -(ps.mics[j].η[ind]*ΔGATP)/(dG+Rgas*ps.T*log(mr))
         end
         # Add these kinetic parameters to storage
         KSs = cat(KSs,KS,dims=1)
@@ -277,11 +295,17 @@ function net_vis()
         p = 2 + floor(Int64,i/2)
         xs[i] = "$s→$(p)"
     end
+    tl = ""
+    if syn == true
+        tl = "$(Rl)-$(Ru) reactions per strain"
+    else
+        tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
+    end
     # Plot "presence" data
     groupedbar([nR.-pres pres],bar_position=:stack,labels=["Absent" "Present"])
     plot!(xticks=(1:ps.O,xs),xlabel="Reaction",ylabel="Number of ecosystems")
-    plot!(title="$(R) reactions per strain",legend=:outerright)
-    savefig("Output/Type$(R)/PresenseType$(R).png")
+    plot!(title=tl,legend=:outerright)
+    savefig("Output/$(Rl)-$(Ru)$(syn)/PresenseType$(Rl)-$(Ru)$(syn).png")
     # Now plot "abundance" data
     lbs = Array{String,2}(undef,1,size(abnd,2))
     for i = 1:length(lbs)
@@ -289,26 +313,26 @@ function net_vis()
     end
     groupedbar(abnd,bar_position=:stack,labels=lbs,legend=:outerright)
     plot!(xticks=(1:ps.O,xs),xlabel="Reaction",ylabel="Number of ecosystems")
-    plot!(title="$(R) reactions per strain")
-    savefig("Output/Type$(R)/AbundanceType$(R).png")
+    plot!(title=tl)
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AbundanceType$(Rl)-$(Ru)$(syn).png")
     # Plot histogram of the number of active reactions
     histogram(cA,bins=range(0,stop=O+1,length=O+2))
-    plot!(title="$(R) reactions per strain",xlabel="Number of active reactions")
-    savefig("Output/Type$(R)/ActiveReactionsType$(R).png")
+    plot!(title=tl,xlabel="Number of active reactions")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/ActiveReactionsType$(Rl)-$(Ru)$(syn).png")
     histogram(mf,bins=range(1,stop=O+1,length=O+1),xticks=(1:ps.O,xs))
-    plot!(title="$(R) reactions per strain",xlabel="Reaction with greatest flux")
-    savefig("Output/Type$(R)/MaxFluxType$(R).png")
+    plot!(title=tl,xlabel="Reaction with greatest flux")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/MaxFluxType$(Rl)-$(Ru)$(syn).png")
     # Now find average flux
     fRT /= nR
     # Then plot
     bar(fRT,xticks=(1:ps.O,xs),label="",xlabel="Reaction",ylabel="Average flux")
-    plot!(title="$(R) reactions per strain")
-    savefig("Output/Type$(R)/AverageReacsType$(R).png")
+    plot!(title=tl)
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AverageReacsType$(Rl)-$(Ru)$(syn).png")
     # Then find and plot average mass renormalised flux
     fRTm /= nR
     bar(fRTm,xticks=(1:ps.O,xs),label="",xlabel="Reaction",ylabel="Mass renormalised average flux")
-    plot!(title="$(R) reactions per strain")
-    savefig("Output/Type$(R)/AverageReacsMassType$(R).png")
+    plot!(title=tl)
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AverageReacsMassType$(Rl)-$(Ru)$(syn).png")
     # Preallocate percent data to plot
     perc = zeros(ps.O)
     perc2 = zeros(ps.O)
@@ -330,11 +354,11 @@ function net_vis()
     end
     # Now plot how many strains have each reaction
     bar(perc,label="",ylabel="Average percentage of flux through top strain")
-    plot!(title="$(R) reactions per strain",xlabel="Reaction",xticks=(1:ps.O,xs))
-    savefig("Output/Type$(R)/PercentFluxType$(R).png")
+    plot!(title=tl,xlabel="Reaction",xticks=(1:ps.O,xs))
+    savefig("Output/$(Rl)-$(Ru)$(syn)/PercentFluxType$(Rl)-$(Ru)$(syn).png")
     bar(perc2,label="",ylabel="Percentange of flux (ignoring singles)")
-    plot!(title="$(R) reactions per strain",xlabel="Reaction",xticks=(1:ps.O,xs))
-    savefig("Output/Type$(R)/RedPercentFluxType$(R).png")
+    plot!(title=tl,xlabel="Reaction",xticks=(1:ps.O,xs))
+    savefig("Output/$(Rl)-$(Ru)$(syn)/RedPercentFluxType$(Rl)-$(Ru)$(syn).png")
     # Define distribution functions
     @. f_ln(x,μ,σ) = (1/(x*σ*sqrt(2*π)))*exp(-((log(x)-μ)^2)/(2*σ^2))
     @. f_nm(x,μ,σ) = (1/(σ*sqrt(2*π)))*exp(-(1/2)*((x-μ)/(σ))^2)
@@ -347,7 +371,7 @@ function net_vis()
     h3 = fit(Histogram,krs,bins3,closed=:right)
     bins4 = range(1e-4,stop=maximum(ϕps),length=500)
     h4 = fit(Histogram,ϕps,bins4,closed=:right)
-    bins5 = range(-0.1,stop=1.00,length=500)
+    bins5 = range(-0.0,stop=1.00,length=500)
     h5 = fit(Histogram,efs,bins5,closed=:right)
     # Then plot as bar charts, with inital distribution included
     bar(h1,label="Main reaction")
@@ -358,42 +382,33 @@ function net_vis()
     d1 = f_ln(bins1,μ1,σ1)
     d1 /= maximum(d1)
     plot!(bins1,maximum(h1.weights)*d1,label="Orginal distribution")
-    plot!(title="$(R) reactions per strain",xlabel=L"K_S")
-    savefig("Output/Type$(R)/TopKSType$(R).png")
+    plot!(title=tl,xlabel=L"K_S")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/TopKSType$(Rl)-$(Ru)$(syn).png")
     bar(h2,label="Main reaction")
     μ2 = log(10.0)
     σ2 = log(2)
     d2 = f_ln(bins2,μ2,σ2)
     d2 /= maximum(d2)
     plot!(bins2,maximum(h2.weights)*d2,label="Orginal distribution")
-    plot!(title="$(R) reactions per strain",xlabel=L"k_c")
-    savefig("Output/Type$(R)/TopkcType$(R).png")
+    plot!(title=tl,xlabel=L"k_c")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/TopkcType$(Rl)-$(Ru)$(syn).png")
     bar(h3,label="Main reaction")
     μ3 = log(10.0)
     σ3 = log(2)
     d3 = f_ln(bins3,μ3,σ3)
     d3 /= maximum(d3)
     plot!(bins3,maximum(h3.weights)*d3,label="Orginal distribution")
-    plot!(title="$(R) reactions per strain",xlabel=L"k_r")
-    savefig("Output/Type$(R)/TopkrType$(R).png")
+    plot!(title=tl,xlabel=L"k_r")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/TopkrType$(Rl)-$(Ru)$(syn).png")
     bar(h4,label="Main reaction")
-    μ4 = 1/R
-    # No variation unless R > 1
-    σ4 = 0.0
-    if R != 1
-        σ4 = (1/(R*sqrt(3)))*sqrt(1+(1/R))
-    end
-    d4 = f_nm(bins4,μ4,σ4)
-    d4 /= maximum(d4)
-    plot!(bins4,maximum(h4.weights)*d4,label="Orginal distribution")
-    plot!(title="$(R) reactions per strain",xlabel=L"\phi_p")
-    savefig("Output/Type$(R)/TopPhiPType$(R).png")
+    plot!(title=tl,xlabel=L"\phi_p")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/TopPhiPType$(Rl)-$(Ru)$(syn).png")
     bar(h5,label="Main reaction")
-    d5 = f_ext_un(bins5)
+    d5 = f_ext_un(bins5,syn)
     d5 /= maximum(d5)
-    plot!(bins5,maximum(h5.weights)*d5,label="Orginal distribution",legend=:topright)
-    plot!(title="$(R) reactions per strain",xlabel="Fraction of free energy dissipated")
-    savefig("Output/Type$(R)/TopEfficencyType$(R).png")
+    plot!(bins5,maximum(h5.weights)*d5,label="Orginal distribution",legend=:topleft)
+    plot!(title=tl,xlabel="Fraction of free energy retained")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/TopEfficencyType$(Rl)-$(Ru)$(syn).png")
     # Repeat process for full kinetics data
     bins1 = range(1e-4,stop=maximum(KSF),length=500)
     h1 = fit(Histogram,KSF,bins1,closed=:right)
@@ -403,7 +418,7 @@ function net_vis()
     h3 = fit(Histogram,krF,bins3,closed=:right)
     bins4 = range(1e-4,stop=maximum(ϕpF),length=500)
     h4 = fit(Histogram,ϕpF,bins4,closed=:right)
-    bins5 = range(-0.1,stop=1.00,length=500)
+    bins5 = range(0.0,stop=1.00,length=500)
     h5 = fit(Histogram,efF,bins5,closed=:right)
     # Then plot as bar charts, with inital distribution included
     bar(h1,label="Main reaction")
@@ -414,42 +429,33 @@ function net_vis()
     d1 = f_ln(bins1,μ1,σ1)
     d1 /= maximum(d1)
     plot!(bins1,maximum(h1.weights)*d1,label="Orginal distribution")
-    plot!(title="$(R) reactions per strain",xlabel=L"K_S")
-    savefig("Output/Type$(R)/AllKSType$(R).png")
+    plot!(title=tl,xlabel=L"K_S")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AllKSType$(Rl)-$(Ru)$(syn).png")
     bar(h2,label="All reactions")
     μ2 = log(10.0)
     σ2 = log(2)
     d2 = f_ln(bins2,μ2,σ2)
     d2 /= maximum(d2)
     plot!(bins2,maximum(h2.weights)*d2,label="Orginal distribution")
-    plot!(title="$(R) reactions per strain",xlabel=L"k_c")
-    savefig("Output/Type$(R)/AllkcType$(R).png")
+    plot!(title=tl,xlabel=L"k_c")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AllkcType$(Rl)-$(Ru)$(syn).png")
     bar(h3,label="All reactions")
     μ3 = log(10.0)
     σ3 = log(2)
     d3 = f_ln(bins3,μ3,σ3)
     d3 /= maximum(d3)
     plot!(bins3,maximum(h3.weights)*d3,label="Orginal distribution")
-    plot!(title="$(R) reactions per strain",xlabel=L"k_r")
-    savefig("Output/Type$(R)/AllkrType$(R).png")
+    plot!(title=tl,xlabel=L"k_r")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AllkrType$(Rl)-$(Ru)$(syn).png")
     bar(h4,label="All reactions")
-    μ4 = 1/R
-    # No variation unless R > 1
-    σ4 = 0.0
-    if R != 1
-        σ4 = (1/(R*sqrt(3)))*sqrt(1+(1/R))
-    end
-    d4 = f_nm(bins4,μ4,σ4)
-    d4 /= maximum(d4)
-    plot!(bins4,maximum(h4.weights)*d4,label="Orginal distribution")
-    plot!(title="$(R) reactions per strain",xlabel=L"\phi_p")
-    savefig("Output/Type$(R)/AllPhiPType$(R).png")
+    plot!(title=tl,xlabel=L"\phi_p")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AllPhiPType$(Rl)-$(Ru)$(syn).png")
     bar(h5,label="All reactions")
-    d5 = f_ext_un(bins5)
+    d5 = f_ext_un(bins5,syn)
     d5 /= maximum(d5)
-    plot!(bins5,maximum(h5.weights)*d5,label="Orginal distribution",legend=:topright)
-    plot!(title="$(R) reactions per strain",xlabel="Fraction of free energy dissipated")
-    savefig("Output/Type$(R)/AllEfficencyType$(R).png")
+    plot!(bins5,maximum(h5.weights)*d5,label="Orginal distribution",legend=:topleft)
+    plot!(title=tl,xlabel="Fraction of free energy retained")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AllEfficencyType$(Rl)-$(Ru)$(syn).png")
     return(nothing)
 end
 
@@ -893,4 +899,4 @@ function basic_info()
     return(nothing)
 end
 
-@time plt_trdff()
+@time net_vis()

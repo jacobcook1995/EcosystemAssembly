@@ -46,7 +46,6 @@ function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64
 end
 
 # A hardcoded extended uniform distribution function used by net_vis()
-# THIS NEEDS CHANGING!!!!!
 function f_ext_un(x::StepRangeLen,syn::Bool)
     # Preallocate output
     y = zeros(length(x))
@@ -836,6 +835,8 @@ function basic_info()
     rcs = Array{Int64,1}(undef,0) # Number of reactions (per strain)
     abds = [] # Abundances
     effs = [] # Reaction efficencies
+    # mimimum product to substrate ratio (to calculate) the efficency
+    mr = 1e-2
     # Loop over repeats
     for i = 1:rps
         # Read in relevant files
@@ -871,7 +872,7 @@ function basic_info()
             # Find vector of ΔG0 values
             dG = ps.reacs[ps.mics[j].Reacs].↦:ΔG0
             # Use to calculate percentage dissipated (under standard conditions)
-            efT = (ps.mics[j].η*ΔGATP.+dG)./(dG)
+            efT = -(ps.mics[j].η.*ΔGATP)./(dG.+Rgas*ps.T*log(mr))
             # cat efficency in
             effs = cat(effs,efT,dims=1)
         end
@@ -894,9 +895,9 @@ function basic_info()
     savefig("Output/$(Rl)-$(Ru)$(syn)/Reactions$(Rl)-$(Ru)$(syn).png")
     histogram(log10.(abds),label="",xlabel="Species abundance (log of number of cells)",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Abundance$(Rl)-$(Ru)$(syn).png")
-    histogram((1 .-effs)*100.0,label="",xlabel="Efficency",title=tl)
+    histogram(effs*100.0,label="",xlabel="Efficency",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Efficency$(Rl)-$(Ru)$(syn).png")
     return(nothing)
 end
 
-@time net_vis()
+@time basic_info()

@@ -53,7 +53,7 @@ function assemble()
     kr = 10.0
     # Assume microbes have 3 reactions each
     # Case of 8 metabolites
-    M = 8
+    M = 25
     # Use formula to find how many reactions this implies
     O = 2*M - 3
     # Set time long enough for dynamics to equilbrate

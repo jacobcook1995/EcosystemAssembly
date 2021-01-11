@@ -47,8 +47,8 @@ function assemble()
     flush(stdout)
     # Assume that half saturation occurs at a quarter κ/δ
     KS = (1/4)*5.5e-3
-    # This parameter is estimated from my fits to ATP data
-    kc = 1.49
+    # Arbitary number that seems to give decent survival
+    kc = 10.0
     # The reversibility factor remains the same as previously
     kr = 10.0
     # Assume microbes have 3 reactions each

@@ -4,6 +4,7 @@ using StatsPlots
 using LaTeXStrings
 using JLD
 using StatsBase
+using Statistics
 import PyPlot
 
 # function to calculate the dissipation for an assembled ecosystem
@@ -877,6 +878,18 @@ function basic_info()
             effs = cat(effs,efT,dims=1)
         end
     end
+    # Preallocate vectors
+    ms = zeros(Ru-Rl+1)
+    sds = zeros(Ru-Rl+1)
+    Rs = collect(Rl:Ru)
+    # Loop over number of reactions
+    for j = Rl:Ru
+        # Find indices of this reactions
+        inds = findall(x->x==j,rcs)
+        # Use to find mean and standard deviation of relevant abundances
+        ms[j+1-Rl] = mean(abds[inds])
+        sds[j+1-Rl] = std(abds[inds])
+    end
     # Set up plotting
     pyplot()
     theme(:wong2,dpi=200)
@@ -897,6 +910,9 @@ function basic_info()
     savefig("Output/$(Rl)-$(Ru)$(syn)/Abundance$(Rl)-$(Ru)$(syn).png")
     histogram(effs*100.0,label="",xlabel="Efficency",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Efficency$(Rl)-$(Ru)$(syn).png")
+    scatter([Rs],[ms],yerror=sds,label="")
+    plot!(title=tl,xlabel="Number of reactions",ylabel="Strain abundance (number of cells)")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/AbvsRct$(Rl)-$(Ru)$(syn).png")
     return(nothing)
 end
 

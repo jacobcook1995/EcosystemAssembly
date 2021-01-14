@@ -874,5 +874,4 @@ function ints_scat()
     return(nothing)
 end
 
-
-@time analyse_ints()
+@time ints_plot()

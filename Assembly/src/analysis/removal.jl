@@ -36,10 +36,16 @@ function removal()
         error("number of repeats cannot be less than 1")
     end
     println("Compiled!")
+    flush(stdout)
     # Setup counter
     c = 0
     # Loop over repeats
     for i = 1:nR
+        # Print out every time parameter sets
+        if i % 10 == 0
+            println("Reach run $(i)")
+            flush(stdout)
+        end
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)

@@ -40,8 +40,11 @@ function quantify_ints()
         error("number of repeats can't be less than 1")
     end
     println("Compiled!")
+    flush(stdout)
     # Loop over the repeats
     for i = 1:rps
+        println("Started run $(i)")
+        flush(stdout)
         # Read in relevant files
         pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
         if ~isfile(pfile)
@@ -874,4 +877,4 @@ function ints_scat()
     return(nothing)
 end
 
-@time ints_plot()
+@time quantify_ints()

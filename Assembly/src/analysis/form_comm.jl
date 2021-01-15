@@ -22,7 +22,18 @@ function assemble()
         rps = parse(Int64,ARGS[4])
         syn = parse(Bool,ARGS[5])
     catch e
-           error("all four inputs must be integer")
+           error("need to provide 4 integers and a bool")
+    end
+    # Starting run assumed to be 1
+    Rs = 1
+    # Check if run to start from has been provided
+    if length(ARGS) > 5
+        # Check this argument is an integer
+        try
+            Rs = parse(Int64,ARGS[6])
+        catch e
+            error("intial run number must be integer")
+        end
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -39,6 +50,9 @@ function assemble()
     # Check that number of strains is greater than 0
     if rps < 1
         error("need to do at least 1 simulation")
+    end
+    if Rs > rps
+        error("starting run can't be higher than final run")
     end
     println("Reaction range = $(Rl)-$(Ru)")
     println("Syntrophy on = $(syn)")
@@ -66,7 +80,7 @@ function assemble()
     as = 1e5*ones(N)
     ϕs = ϕR0*ones(N)
     # Now loop over the number of repeats
-    for i = 1:rps
+    for i = Rs:rps
         # Print that the new run has been started
         println("Run $i started!")
         flush(stdout)

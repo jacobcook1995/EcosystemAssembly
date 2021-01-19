@@ -628,9 +628,6 @@ function test()
     T = load(ofile,"T")
     out = load(ofile,"out")
     ded = load(efile,"ded")
-    # Find index I'm interested in
-    println(ps.N)
-    println(ps.mics.↦:R)
     # ind = findfirst(x->x==out[1],C[end,:])
     # m = ps.mics[1]
     # Now move onto plotting
@@ -836,6 +833,8 @@ function basic_info()
     rcs = Array{Int64,1}(undef,0) # Number of reactions (per strain)
     abds = [] # Abundances
     effs = [] # Reaction efficencies
+    # Number of metabolites
+    M = 0
     # mimimum product to substrate ratio (to calculate) the efficency
     mr = 1e-2
     # Loop over repeats
@@ -860,6 +859,10 @@ function basic_info()
         out = load(ofile,"out")
         inf_out = load(ofile,"inf_out")
         ded = load(efile,"ded")
+        # Save metabolite number from the first parameter set
+        if i == 1
+            M = ps.M
+        end
         # Find and store number of survivors
         svs[i] = ps.N
         # Find and store number of reactions
@@ -901,14 +904,18 @@ function basic_info()
     else
         tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
     end
+    # Make survivor bins
+    bs = range(-0.25,stop=M-0.75,length=2*M)
+    # And efficency bins
+    ebs = range(0.0,stop=100.0,length=100)
     # Plot histograms of the data
-    histogram(svs,label="",xlabel="Number of strains",title=tl)
+    histogram(svs,bins=bs,label="",xlabel="Number of strains",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Survivors$(Rl)-$(Ru)$(syn).png")
     histogram(rcs,label="",xlabel="Number of reactions",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Reactions$(Rl)-$(Ru)$(syn).png")
     histogram(log10.(abds),label="",xlabel="Species abundance (log of number of cells)",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Abundance$(Rl)-$(Ru)$(syn).png")
-    histogram(effs*100.0,label="",xlabel="Efficency",title=tl)
+    histogram(effs*100.0,bins=ebs,label="",xlabel="Efficency",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Efficency$(Rl)-$(Ru)$(syn).png")
     scatter([Rs],[ms],yerror=sds,label="")
     plot!(title=tl,xlabel="Number of reactions",ylabel="Strain abundance (number of cells)")
@@ -916,4 +923,4 @@ function basic_info()
     return(nothing)
 end
 
-@time basic_info()
+@time test()

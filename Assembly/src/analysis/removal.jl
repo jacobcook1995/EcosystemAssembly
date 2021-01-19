@@ -38,7 +38,7 @@ function removal()
     println("Compiled!")
     flush(stdout)
     # Setup counter
-    c = 0
+    k = 0
     # Loop over repeats
     for i = 1:nR
         # Print out every time parameter sets
@@ -75,7 +75,7 @@ function removal()
         stab = all(abs.(f[1:ps.N]./out[1:ps.N]) .< 1e-9)
         if stab == true
             # Increment counter
-            c += 1
+            k += 1
             # Write out old data if stable
             # Save extinct strains
             jldopen("Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
@@ -97,7 +97,7 @@ function removal()
             end
         else
             # Set a high final time
-            Tmax = 100*maximum(T)
+            Tmax = 10*maximum(T)
             # Store intial numbers of strains and metabolites
             N = ps.N
             M = ps.M
@@ -108,6 +108,50 @@ function removal()
             ϕs = out[(2*ps.N+ps.M+1):end]
             # Then run the simulation
             Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+            # Preallocate force vector
+            F = Array{Sym,1}(undef,3*ps.N+ps.M)
+            # Find forces using function
+            F = Force(ps,F)
+            # Use final condition to find local forces
+            f = nForce(F,Cl[end,:],ps)
+            # Check if ecosystem is now stable
+            stab2 = true
+            for j = 1:ps.N
+                if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
+                    stab2 = false
+                end
+            end
+            # Set up counter
+            c = 0
+            # If not yet stable run simulation again
+            while stab2 == false
+                # Increment counter
+                c += 1
+                println("Simulation $(i) being repeated time $(c)")
+                # Extract initial conditions
+                pop = Cl[end,1:ps.N]
+                conc = Cl[end,(ps.N+1):(ps.N+ps.M)]
+                as = Cl[end,(ps.N+ps.M+1):(2*ps.N+ps.M)]
+                ϕs = Cl[end,(2*ps.N+ps.M+1):end]
+                # Then run the simulation
+                Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+                # Preallocate force vector
+                F = Array{Sym,1}(undef,3*ps.N+ps.M)
+                # Find forces using function
+                F = Force(ps,F)
+                # Use final condition to find local forces
+                f = nForce(F,Cl[end,:],ps)
+                # Check if ecosystem is now stable
+                stab2 = true
+                for j = 1:ps.N
+                    if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
+                        println(j)
+                        println(Cl[end,j])
+                        println(abs(f[j]/Cl[end,j]))
+                        stab2 = false
+                    end
+                end
+            end
             # Establish which microbes are now extinct
             ext = (Cl[end,1:N] .== 0.0)
             # Preallocate vector to store extinct microbes
@@ -178,7 +222,7 @@ function removal()
             end
         end
     end
-    println("$(c) out of $(nR) were already stable")
+    println("$(k) out of $(nR) were already stable")
     return(nothing)
 end
 

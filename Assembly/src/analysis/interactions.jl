@@ -701,12 +701,11 @@ function ints_plot()
     wongc = get_color_palette(wong_palette,57)
     # Make plot title
     tl = ""
-    # TURNING OFF TITLE FOR NOW
-    # if syn == true
-    #     tl = "$(Rl)-$(Ru) reactions per strain"
-    # else
-    #     tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
-    # end
+    if syn == true
+        tl = "$(Rl)-$(Ru) reactions per strain"
+    else
+        tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
+    end
     # Now plot both interactions types and strengths
     plot(title=tl,xlabel="Number of interactions",ylabel="Number of ecosystems")
     histogram!(ins1,fillalpha=0.75,label="Competiton")

@@ -829,6 +829,8 @@ function basic_info()
     println("Compiled!")
     # Preallocate data
     svs = zeros(Int64,rps) # Number of survivors
+    mbs = zeros(Int64,rps) # Number of metabolites
+    hmb = zeros(Int64,rps) # Lowest (in energy hierachy) metabolite
     # Make containers for the data of uncertain size
     rcs = Array{Int64,1}(undef,0) # Number of reactions (per strain)
     abds = [] # Abundances
@@ -871,7 +873,7 @@ function basic_info()
         end
         # Find and store abundances
         abds = cat(abds,inf_out[1:ps.N],dims=1)
-        # Loop over microbes
+        # Loop over microbes, to find efficencies
         for j = 1:ps.N
             # Find vector of ΔG0 values
             dG = ps.reacs[ps.mics[j].Reacs].↦:ΔG0
@@ -880,6 +882,20 @@ function basic_info()
             # cat efficency in
             effs = cat(effs,efT,dims=1)
         end
+        # Loop over metabolites to find those with non-zero concentrations
+        cm = 0 # Set up counter
+        mm = 0 # Lowest metabolite
+        for j = 1:ps.M
+            if inf_out[ps.N+j] > 0.0
+                # Increment counter
+                cm += 1
+                # And save new minimum metabolite
+                mm = j
+            end
+        end
+        # Save results to vector
+        mbs[i] = cm
+        hmb[i] = mm
     end
     # Preallocate vectors
     ms = zeros(Ru-Rl+1)
@@ -908,6 +924,8 @@ function basic_info()
     bs = range(-0.25,stop=M-0.75,length=2*M)
     # And efficency bins
     ebs = range(0.0,stop=100.0,length=100)
+    # And metabolite bins
+    mbn = range(-0.25,stop=M+0.25,length=2*(M+1))
     # Plot histograms of the data
     histogram(svs,bins=bs,label="",xlabel="Number of strains",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/Survivors$(Rl)-$(Ru)$(syn).png")
@@ -920,7 +938,11 @@ function basic_info()
     scatter([Rs],[ms],yerror=sds,label="")
     plot!(title=tl,xlabel="Number of reactions",ylabel="Strain abundance (number of cells)")
     savefig("Output/$(Rl)-$(Ru)$(syn)/AbvsRct$(Rl)-$(Ru)$(syn).png")
+    histogram(mbs,bins=mbn,label="",xlabel="Final number of metabolites",title=tl)
+    savefig("Output/$(Rl)-$(Ru)$(syn)/NoMets$(Rl)-$(Ru)$(syn).png")
+    histogram(hmb,bins=mbn,label="",xlabel="Lowest energy metabolite",title=tl)
+    savefig("Output/$(Rl)-$(Ru)$(syn)/LowMet$(Rl)-$(Ru)$(syn).png")
     return(nothing)
 end
 
-@time test()
+@time basic_info()

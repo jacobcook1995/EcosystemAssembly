@@ -96,6 +96,8 @@ function removal()
                 write(file,"C",C[1:end,1:end])
             end
         else
+            println("Simulation $(i) unstable")
+            flush(stdout)
             # Set a high final time
             Tmax = 10*maximum(T)
             # Store intial numbers of strains and metabolites
@@ -128,6 +130,7 @@ function removal()
                 # Increment counter
                 c += 1
                 println("Simulation $(i) being repeated time $(c)")
+                flush(stdout)
                 # Extract initial conditions
                 pop = Cl[end,1:ps.N]
                 conc = Cl[end,(ps.N+1):(ps.N+ps.M)]
@@ -223,6 +226,7 @@ function removal()
         end
     end
     println("$(k) out of $(nR) were already stable")
+    flush(stdout)
     return(nothing)
 end
 

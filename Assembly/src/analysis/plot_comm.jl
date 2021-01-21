@@ -5,6 +5,7 @@ using LaTeXStrings
 using JLD
 using StatsBase
 using Statistics
+using DataFrames
 import PyPlot
 
 # function to calculate the dissipation for an assembled ecosystem
@@ -813,7 +814,7 @@ function basic_info()
         syn = parse(Bool,ARGS[3])
         rps = parse(Int64,ARGS[4])
     catch e
-           error("need to provide 3 integers and a bool")
+        error("need to provide 3 integers and a bool")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -856,11 +857,8 @@ function basic_info()
         end
         # Basically just loading everything out as I'm not sure what I'll need
         ps = load(pfile,"ps")
-        C = load(ofile,"C")
-        T = load(ofile,"T")
         out = load(ofile,"out")
         inf_out = load(ofile,"inf_out")
-        ded = load(efile,"ded")
         # Save metabolite number from the first parameter set
         if i == 1
             M = ps.M
@@ -942,6 +940,117 @@ function basic_info()
     savefig("Output/$(Rl)-$(Ru)$(syn)/NoMets$(Rl)-$(Ru)$(syn).png")
     histogram(hmb,bins=mbn,label="",xlabel="Lowest energy metabolite",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/LowMet$(Rl)-$(Ru)$(syn).png")
+    return(nothing)
+end
+
+# function to take in multiple parameter sets and plot composite graphs
+function multi_sets()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 2
+        error("Need to provide number of parameter sets, and number of repeats")
+    end
+    # Preallocate the variables I want to extract from the input
+    Ns = 0
+    Nr = 0
+    # Check that all arguments can be converted to integers
+    try
+        Ns = parse(Int64,ARGS[1])
+        Nr = parse(Int64,ARGS[2])
+    catch e
+        error("number of parameter sets and repeats must both be integer")
+    end
+    # Preallocate vectors to store input
+    Rls = zeros(Int64,Ns)
+    Rus = zeros(Int64,Ns)
+    syns = fill(false,Ns)
+    for i = 1:Ns
+        vld = false
+        while vld == false
+            # Get input from the user
+            println("Provide reaction lower bound")
+            Rl = readline()
+            try
+                Rl = parse(Int64,Rl)
+            catch e
+                Rl = 0 # Set to invalid value
+            end
+            println("Provide reaction upper bound")
+            Ru = readline()
+            try
+                Ru = parse(Int64,Ru)
+            catch e
+                Ru = 0 # Set to invalid value
+            end
+            println("Syntrophy true/false?")
+            syn = readline()
+            try
+                syn = parse(Bool,syn)
+            catch e
+                syn = undef # Set to invalid value
+            end
+            # Repeat checking step
+            rpt = false
+            # Loop over previous entries
+            for j = 1:(i-1)
+                if Ru == Rus[j] && Rl == Rls[j] && syn == syns[j]
+                    rpt = true
+                end
+            end
+            # Check if there is a directory containing these parameter sets
+            if rpt == true
+                println("Parameter set repeated, please enter an orginal one")
+            elseif ~isdir("Data/$(Rl)-$(Ru)$(syn)")
+                println("Parameter set doesn't exist please reenter")
+            else
+                vld = true
+                Rls[i] = Rl
+                Rus[i] = Ru
+                syns[i] = syn
+            end
+        end
+    end
+    # Container to store number of survivors
+    svs = zeros(Int64,Ns,Nr)
+    # Preallocate labels
+    lbs = Array{String}(undef,Ns)
+    # Loop over parameter sets
+    for i = 1:Ns
+        for j = 1:Nr
+            # Read in relevant files
+            pfile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])/RedParasReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j).jld"
+            if ~isfile(pfile)
+                error("parameter set $(i) run $(j) is missing a parameter file")
+            end
+            # Only want final parameter set
+            ps = load(pfile,"ps")
+            # Save number of survivors
+            svs[i,j] = ps.N
+        end
+        # Make and save label
+        lbs[i] = "$(Rls[i])-$(Rus[i]) $(syns[i])"
+    end
+    # Make empty containers to store
+    tl = Array{String,1}(undef,Ns*Nr)
+    tsv = Array{Int64,1}(undef,Ns*Nr)
+    # Fill out with data
+    for i = 1:Ns
+        for j = 1:Nr
+            tl[(i-1)*Nr+j] = lbs[i]
+            tsv[(i-1)*Nr+j] = svs[i,j]
+        end
+    end
+    # Collect everything into one data frame
+    survivors = DataFrame(PSet=tl,ns=tsv)
+    # Setup plotting
+    pyplot()
+    theme(:wong2,dpi=200)
+    # Want to do the plotting here
+    @df survivors violin(:PSet,:ns,linewidth=0,label="")
+    savefig("Output/Violin.png")
+    @df survivors boxplot(:PSet,:ns,fillalpha=0.75,linewidth=2,label="")
+    savefig("Output/Boxplot.png")
+    @df survivors dotplot(:PSet,:ns,marker=(:black, stroke(0)),label="")
+    savefig("Output/Dots.png")
     return(nothing)
 end
 

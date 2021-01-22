@@ -38,12 +38,12 @@ function removal()
     println("Compiled!")
     flush(stdout)
     # Setup counter
-    k = 0
+    cnt = 0
     # Loop over repeats
     for i = 1:nR
         # Print out every time parameter sets
         if i % 10 == 0
-            println("Reach run $(i)")
+            println("Reached run $(i)")
             flush(stdout)
         end
         # Read in relevant files
@@ -75,7 +75,7 @@ function removal()
         stab = all(abs.(f[1:ps.N]./out[1:ps.N]) .< 1e-9)
         if stab == true
             # Increment counter
-            k += 1
+            cnt += 1
             # Write out old data if stable
             # Save extinct strains
             jldopen("Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
@@ -91,7 +91,7 @@ function removal()
                 write(file,"out",out)
                 # This output is basically the output at infinity
                 write(file,"inf_out",out)
-                # # Save time data and dynamics data
+                # Save time data and dynamics data
                 write(file,"T",T)
                 write(file,"C",C[1:end,1:end])
             end
@@ -110,6 +110,12 @@ function removal()
             ϕs = out[(2*ps.N+ps.M+1):end]
             # Then run the simulation
             Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+            # Remove any microbes below threshold
+            for j = 1:ps.N
+                if Cl[end,j] < 1e-5
+                    Cl[end,j] = 0.0
+                end
+            end
             # Preallocate force vector
             F = Array{Sym,1}(undef,3*ps.N+ps.M)
             # Find forces using function
@@ -120,7 +126,12 @@ function removal()
             stab2 = true
             for j = 1:ps.N
                 if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
-                    stab2 = false
+                    # Find magnitude of the change
+                    mg = abs(Cl[end,j] - Cl[1,j])
+                    # Check if the magnitude of change is greater than the minimum value
+                    if mg > minimum(Cl[:,j])
+                        stab2 = false
+                    end
                 end
             end
             # Set up counter
@@ -138,6 +149,12 @@ function removal()
                 ϕs = Cl[end,(2*ps.N+ps.M+1):end]
                 # Then run the simulation
                 Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+                # Remove any microbes below threshold
+                for j = 1:ps.N
+                    if Cl[end,j] < 1e-5
+                        Cl[end,j] = 0.0
+                    end
+                end
                 # Preallocate force vector
                 F = Array{Sym,1}(undef,3*ps.N+ps.M)
                 # Find forces using function
@@ -148,10 +165,12 @@ function removal()
                 stab2 = true
                 for j = 1:ps.N
                     if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
-                        println(j)
-                        println(Cl[end,j])
-                        println(abs(f[j]/Cl[end,j]))
-                        stab2 = false
+                        # Find magnitude of the change
+                        mg = abs(Cl[end,j] - Cl[1,j])
+                        # Check if the magnitude of change is greater than the minimum value
+                        if mg > minimum(Cl[:,j])
+                            stab2 = false
+                        end
                     end
                 end
             end
@@ -225,7 +244,7 @@ function removal()
             end
         end
     end
-    println("$(k) out of $(nR) were already stable")
+    println("$(cnt) out of $(nR) were already stable")
     flush(stdout)
     return(nothing)
 end

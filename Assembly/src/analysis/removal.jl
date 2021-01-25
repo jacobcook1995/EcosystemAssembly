@@ -41,6 +41,16 @@ function removal()
     cnt = 0
     # Loop over repeats
     for i = 1:nR
+        # Assume that output files don't already exist
+        outp = false
+        # Three output files to check the existence of
+        outf1 = "Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        outf2 = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        outf3 = "Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        # Check if all three exist
+        if isfile(outf1) && isfile(outf2) && isfile(outf3)
+            outp = true
+        end
         # Print out every time parameter sets
         if i % 10 == 0
             println("Reached run $(i)")
@@ -73,7 +83,10 @@ function removal()
         f = nForce(F,out,ps)
         # Check if forces are stable
         stab = all(abs.(f[1:ps.N]./out[1:ps.N]) .< 1e-9)
-        if stab == true
+        # Skip further evaluation if output already exists
+        if outp == true
+            println("Simulation $(i) already has output")
+        elseif stab == true
             # Increment counter
             cnt += 1
             # Write out old data if stable

@@ -2,68 +2,6 @@
 using Assembly
 using JLD
 using SymPy
-# DELETE WHEN DONE
-using Plots
-import PyPlot
-
-function cyclic(trj::Array{Float64,1})
-    # Assume cyclical, unless found to be otherwise
-    cyc = true
-    # Find maximum and minimum
-    ma = maximum(trj)
-    mi = minimum(trj)
-    # Check if maximum and minimum aren't within 10% of each other
-    if 0.9*ma > 1.1*mi
-        # Make vector to store region information
-        tst = Array{Int64,1}(undef,length(trj))
-        # Loop over trajectory
-        for k = 1:length(trj)
-            # Check for and indicate peak and trough regions
-            if trj[k] >= 0.9*ma
-                tst[k] = 1
-            elseif trj[k] <= 1.1*mi
-                tst[k] = -1
-            else
-                tst[k] = 0
-            end
-        end
-        # Set counter for the number of cycles
-        cycles = 0.0
-        lstsig = 0 # Container to store last sign
-        # Loop over region information vector, counting peaks + trough
-        for k = 1:length(trj)-1
-            if tst[k] == 0
-                # Check if next sign is non-zero
-                if tst[k+1] != 0 && lstsig != 0
-                    # If new sign matches old sign it's false
-                    if tst[k+1] == lstsig
-                        cyc = false
-                    else
-                        # Counts as half a cycle
-                        cycles += 0.5
-                    end
-                end
-            else
-                # Update lstsig
-                lstsig = tst[k]
-                # Check that sign doesn't suddenly flip
-                if tst[k] != 0 && tst[k] != lstsig
-                    cyc = false
-                end
-            end
-        end
-        # Finally check that there have been multiple cycles
-        if cycles < 2.0
-            cyc = false
-        end
-    end
-    # DELETE THIS WHEN I'M DONE TESTING
-    if cyc == true
-        println(trj)
-        println(tst)
-    end
-    return(cyc)
-end
 
 # function to read in data set and remove non-long term suvivors
 function removal()
@@ -213,26 +151,10 @@ function removal()
                     end
                 end
             end
-            # THIS NEEDS TO BE MOVED TO ONLY BE RUN EVERY FEW TIMES
-            # Make vector of bools
-            cyc = fill(false,ps.N)
-            # Check if ecosystem is cyclical
-            for j = 1:ps.N
-                cyc[j] = cyclic(Cl[:,j])
-                if cyc[j] == true
-                    println("Strain $(j) cyclical")
-                end
-            end
-            # If any trajectory is cyclical then, take system to be "stable"
-            if any(cyc .== true)
-                println("Ecosystem $(i) appears to be oscillatory")
-                flush(stdout)
-                stab2 = true
-            end
             # Set up counter
             c = 0
             # If not yet stable run simulation again
-            while stab2 == false
+            while stab2 == false && c < 50
                 # Increment counter
                 c += 1
                 println("Simulation $(i) being repeated time $(c)")
@@ -271,6 +193,10 @@ function removal()
                         end
                     end
                 end
+            end
+            if c == 50
+                println("Run $(i) is possibly oscilliatory")
+                flush(stdout)
             end
             # Establish which microbes are now extinct
             ext = (Cl[end,1:N] .== 0.0)

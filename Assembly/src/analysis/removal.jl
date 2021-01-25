@@ -6,6 +6,65 @@ using SymPy
 using Plots
 import PyPlot
 
+function cyclic(trj::Array{Float64,1})
+    # Assume cyclical, unless found to be otherwise
+    cyc = true
+    # Find maximum and minimum
+    ma = maximum(trj)
+    mi = minimum(trj)
+    # Check if maximum and minimum aren't within 10% of each other
+    if 0.9*ma > 1.1*mi
+        # Make vector to store region information
+        tst = Array{Int64,1}(undef,length(trj))
+        # Loop over trajectory
+        for k = 1:length(trj)
+            # Check for and indicate peak and trough regions
+            if trj[k] >= 0.9*ma
+                tst[k] = 1
+            elseif trj[k] <= 1.1*mi
+                tst[k] = -1
+            else
+                tst[k] = 0
+            end
+        end
+        # Set counter for the number of cycles
+        cycles = 0.0
+        lstsig = 0 # Container to store last sign
+        # Loop over region information vector, counting peaks + trough
+        for k = 1:length(trj)-1
+            if tst[k] == 0
+                # Check if next sign is non-zero
+                if tst[k+1] != 0 && lstsig != 0
+                    # If new sign matches old sign it's false
+                    if tst[k+1] == lstsig
+                        cyc = false
+                    else
+                        # Counts as half a cycle
+                        cycles += 0.5
+                    end
+                end
+            else
+                # Update lstsig
+                lstsig = tst[k]
+                # Check that sign doesn't suddenly flip
+                if tst[k] != 0 && tst[k] != lstsig
+                    cyc = false
+                end
+            end
+        end
+        # Finally check that there have been multiple cycles
+        if cycles < 2.0
+            cyc = false
+        end
+    end
+    # DELETE THIS WHEN I'M DONE TESTING
+    if cyc == true
+        println(trj)
+        println(tst)
+    end
+    return(cyc)
+end
+
 # function to read in data set and remove non-long term suvivors
 function removal()
     # Check that sufficent arguments have been provided
@@ -43,7 +102,7 @@ function removal()
     # Setup counter
     cnt = 0
     # Loop over repeats
-    for i = 217#1:nR
+    for i = 1:nR
         # Assume that output files don't already exist
         outp = false
         # Three output files to check the existence of
@@ -86,10 +145,6 @@ function removal()
         f = nForce(F,out,ps)
         # Check if forces are stable
         stab = all(abs.(f[1:ps.N]./out[1:ps.N]) .< 1e-9)
-        # Now setup plotting
-        pyplot() # DELETE WHEN DONE
-        # Set a color-blind friendly palette
-        theme(:wong2,dpi=200)
         # Skip further evaluation if output already exists
         if outp == true
             println("Simulation $(i) already has output")
@@ -119,25 +174,6 @@ function removal()
         else
             println("Simulation $(i) unstable")
             flush(stdout)
-            N = ps.N + length(ded)
-            # Plot populations of final survivors
-            plot(title="Populations",yaxis=:log10)
-            for i = 1:N
-                 # Find and eliminate zeros so that they can be plotted on a log plot
-                 inds = (C[:,i] .> 0)
-                 plot!(T[inds],C[inds,i],label="")
-            end
-            savefig("Output/pops0.png")
-            plot(T,C[:,(N+1):(N+ps.M)],label="")
-            savefig("Output/conc0.png")
-            # Loop over all strains
-            for j = 1:ps.N
-                if abs(f[j]/out[j]) > 1e-9
-                    println("Strain $(j) unstable")
-                    println("Population = $(out[j])")
-                    println("Force = $(abs(f[j]/out[j]))")
-                end
-            end
             # Set a high final time
             Tmax = 10*maximum(T)
             # Store intial numbers of strains and metabolites
@@ -150,16 +186,6 @@ function removal()
             ϕs = out[(2*ps.N+ps.M+1):end]
             # Then run the simulation
             Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
-            # Plot populations of final survivors
-            plot(title="Populations",yaxis=:log10)
-            for i = 1:ps.N
-                 # Find and eliminate zeros so that they can be plotted on a log plot
-                 inds = (Cl[:,i] .> 0)
-                 plot!(Tl[inds],Cl[inds,i],label="")
-            end
-            savefig("Output/pops1.png")
-            plot(Tl,Cl[:,(ps.N+1):(ps.N+ps.M)],label="")
-            savefig("Output/conc1.png")
             # Remove any microbes below threshold
             for j = 1:ps.N
                 if Cl[end,j] < 1e-5
@@ -176,22 +202,32 @@ function removal()
             stab2 = true
             for j = 1:ps.N
                 if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
-                    println("Strain $(j) potentially unstable")
-                    println("Force = $(abs(f[j]/Cl[end,j]))")
-                    println("Pop = $(Cl[end,j])")
                     # Find magnitude of the change
                     mg = abs(Cl[end,j] - Cl[1,j])
                     # Check if the magnitude of change is greater than the minimum value
                     if mg > minimum(Cl[:,j])
-                        println("Actually unstable")
-                        println("Mag = $(mg)")
+                        println("Strain $(j) unstable")
+                        println("Pop = $(Cl[end,j])")
+                        flush(stdout)
                         stab2 = false
                     end
-                else
-                    println("Strain $(j) stable")
-                    println("Force = $(abs(f[j]/Cl[end,j]))")
-                    println("Pop = $(Cl[end,j])")
                 end
+            end
+            # THIS NEEDS TO BE MOVED TO ONLY BE RUN EVERY FEW TIMES
+            # Make vector of bools
+            cyc = fill(false,ps.N)
+            # Check if ecosystem is cyclical
+            for j = 1:ps.N
+                cyc[j] = cyclic(Cl[:,j])
+                if cyc[j] == true
+                    println("Strain $(j) cyclical")
+                end
+            end
+            # If any trajectory is cyclical then, take system to be "stable"
+            if any(cyc .== true)
+                println("Ecosystem $(i) appears to be oscillatory")
+                flush(stdout)
+                stab2 = true
             end
             # Set up counter
             c = 0
@@ -208,16 +244,6 @@ function removal()
                 ϕs = Cl[end,(2*ps.N+ps.M+1):end]
                 # Then run the simulation
                 Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
-                # Plot populations of final survivors
-                plot(title="Populations",yaxis=:log10)
-                for i = 1:ps.N
-                     # Find and eliminate zeros so that they can be plotted on a log plot
-                     inds = (Cl[:,i] .> 0)
-                     plot!(Tl[inds],Cl[inds,i],label="")
-                end
-                savefig("Output/pops$(c+1).png")
-                plot(Tl,Cl[:,(ps.N+1):(ps.N+ps.M)],label="")
-                savefig("Output/conc$(c+1).png")
                 # Remove any microbes below threshold
                 for j = 1:ps.N
                     if Cl[end,j] < 1e-5
@@ -234,21 +260,15 @@ function removal()
                 stab2 = true
                 for j = 1:ps.N
                     if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
-                        println("Strain $(j) potentially unstable")
-                        println("Force = $(abs(f[j]/Cl[end,j]))")
-                        println("Pop = $(Cl[end,j])")
                         # Find magnitude of the change
                         mg = abs(Cl[end,j] - Cl[1,j])
                         # Check if the magnitude of change is greater than the minimum value
                         if mg > minimum(Cl[:,j])
-                            println("Actually unstable")
-                            println("Mag = $(mg)")
+                            println("Strain $(j) unstable")
+                            println("Pop = $(Cl[end,j])")
+                            flush(stdout)
                             stab2 = false
                         end
-                    else
-                        println("Strain $(j) stable")
-                        println("Force = $(abs(f[j]/Cl[end,j]))")
-                        println("Pop = $(Cl[end,j])")
                     end
                 end
             end

@@ -2,6 +2,9 @@
 using Assembly
 using JLD
 using SymPy
+# DELETE WHEN DONE
+using Plots
+import PyPlot
 
 # function to read in data set and remove non-long term suvivors
 function removal()
@@ -40,7 +43,7 @@ function removal()
     # Setup counter
     cnt = 0
     # Loop over repeats
-    for i = 1:nR
+    for i = 217#1:nR
         # Assume that output files don't already exist
         outp = false
         # Three output files to check the existence of
@@ -83,9 +86,14 @@ function removal()
         f = nForce(F,out,ps)
         # Check if forces are stable
         stab = all(abs.(f[1:ps.N]./out[1:ps.N]) .< 1e-9)
+        # Now setup plotting
+        pyplot() # DELETE WHEN DONE
+        # Set a color-blind friendly palette
+        theme(:wong2,dpi=200)
         # Skip further evaluation if output already exists
         if outp == true
             println("Simulation $(i) already has output")
+            flush(stdout)
         elseif stab == true
             # Increment counter
             cnt += 1
@@ -111,6 +119,25 @@ function removal()
         else
             println("Simulation $(i) unstable")
             flush(stdout)
+            N = ps.N + length(ded)
+            # Plot populations of final survivors
+            plot(title="Populations",yaxis=:log10)
+            for i = 1:N
+                 # Find and eliminate zeros so that they can be plotted on a log plot
+                 inds = (C[:,i] .> 0)
+                 plot!(T[inds],C[inds,i],label="")
+            end
+            savefig("Output/pops0.png")
+            plot(T,C[:,(N+1):(N+ps.M)],label="")
+            savefig("Output/conc0.png")
+            # Loop over all strains
+            for j = 1:ps.N
+                if abs(f[j]/out[j]) > 1e-9
+                    println("Strain $(j) unstable")
+                    println("Population = $(out[j])")
+                    println("Force = $(abs(f[j]/out[j]))")
+                end
+            end
             # Set a high final time
             Tmax = 10*maximum(T)
             # Store intial numbers of strains and metabolites
@@ -123,6 +150,16 @@ function removal()
             ϕs = out[(2*ps.N+ps.M+1):end]
             # Then run the simulation
             Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+            # Plot populations of final survivors
+            plot(title="Populations",yaxis=:log10)
+            for i = 1:ps.N
+                 # Find and eliminate zeros so that they can be plotted on a log plot
+                 inds = (Cl[:,i] .> 0)
+                 plot!(Tl[inds],Cl[inds,i],label="")
+            end
+            savefig("Output/pops1.png")
+            plot(Tl,Cl[:,(ps.N+1):(ps.N+ps.M)],label="")
+            savefig("Output/conc1.png")
             # Remove any microbes below threshold
             for j = 1:ps.N
                 if Cl[end,j] < 1e-5
@@ -139,12 +176,21 @@ function removal()
             stab2 = true
             for j = 1:ps.N
                 if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
+                    println("Strain $(j) potentially unstable")
+                    println("Force = $(abs(f[j]/Cl[end,j]))")
+                    println("Pop = $(Cl[end,j])")
                     # Find magnitude of the change
                     mg = abs(Cl[end,j] - Cl[1,j])
                     # Check if the magnitude of change is greater than the minimum value
                     if mg > minimum(Cl[:,j])
+                        println("Actually unstable")
+                        println("Mag = $(mg)")
                         stab2 = false
                     end
+                else
+                    println("Strain $(j) stable")
+                    println("Force = $(abs(f[j]/Cl[end,j]))")
+                    println("Pop = $(Cl[end,j])")
                 end
             end
             # Set up counter
@@ -162,6 +208,16 @@ function removal()
                 ϕs = Cl[end,(2*ps.N+ps.M+1):end]
                 # Then run the simulation
                 Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+                # Plot populations of final survivors
+                plot(title="Populations",yaxis=:log10)
+                for i = 1:ps.N
+                     # Find and eliminate zeros so that they can be plotted on a log plot
+                     inds = (Cl[:,i] .> 0)
+                     plot!(Tl[inds],Cl[inds,i],label="")
+                end
+                savefig("Output/pops$(c+1).png")
+                plot(Tl,Cl[:,(ps.N+1):(ps.N+ps.M)],label="")
+                savefig("Output/conc$(c+1).png")
                 # Remove any microbes below threshold
                 for j = 1:ps.N
                     if Cl[end,j] < 1e-5
@@ -178,12 +234,21 @@ function removal()
                 stab2 = true
                 for j = 1:ps.N
                     if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
+                        println("Strain $(j) potentially unstable")
+                        println("Force = $(abs(f[j]/Cl[end,j]))")
+                        println("Pop = $(Cl[end,j])")
                         # Find magnitude of the change
                         mg = abs(Cl[end,j] - Cl[1,j])
                         # Check if the magnitude of change is greater than the minimum value
                         if mg > minimum(Cl[:,j])
+                            println("Actually unstable")
+                            println("Mag = $(mg)")
                             stab2 = false
                         end
+                    else
+                        println("Strain $(j) stable")
+                        println("Force = $(abs(f[j]/Cl[end,j]))")
+                        println("Pop = $(Cl[end,j])")
                     end
                 end
             end

@@ -1011,6 +1011,14 @@ function multi_sets()
     end
     # Container to store number of survivors
     svs = zeros(Int64,Ns,Nr)
+    # Container to store metabolite diversity
+    mbs = zeros(Int64,Ns,Nr)
+    # Container to store lowest metabolite
+    hmb = zeros(Int64,Ns,Nr)
+    # Container to store mean abundances
+    mna = zeros(Float64,Ns,Nr)
+    # Container to store median abundances
+    mda = zeros(Float64,Ns,Nr)
     # Preallocate labels
     lbs = Array{String}(undef,Ns)
     # Loop over parameter sets
@@ -1021,37 +1029,89 @@ function multi_sets()
             if ~isfile(pfile)
                 error("parameter set $(i) run $(j) is missing a parameter file")
             end
+            ofile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])/RedOutputReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j).jld"
+            if ~isfile(ofile)
+                error("parameter set $(i) run $(j) is missing an output file")
+            end
             # Only want final parameter set
             ps = load(pfile,"ps")
+            inf_out = load(ofile,"inf_out")
             # Save number of survivors
             svs[i,j] = ps.N
+            # Loop over metabolites to find those with non-zero concentrations
+            cm = 0 # Set up counter
+            mm = 0 # Lowest metabolite
+            for k = 1:ps.M
+                if inf_out[ps.N+k] > 0.0
+                    # Increment counter
+                    cm += 1
+                    # And save new minimum metabolite
+                    mm = k
+                end
+            end
+            # Save results to vector
+            mbs[i,j] = cm
+            hmb[i,j] = mm
+            # Save mean and median abundances
+            mna[i,j] = mean(inf_out[1:ps.N])
+            mda[i,j] = median(inf_out[1:ps.N])
         end
         # Make and save label
-        lbs[i] = "$(Rls[i])-$(Rus[i]) $(syns[i])"
+        if Rls[i] != Rus[i]
+            lbs[i] = "$(Rls[i])-$(Rus[i]) $(syns[i])"
+        else
+            lbs[i] = "$(Rus[i]) $(syns[i])"
+        end
     end
     # Make empty containers to store
     tl = Array{String,1}(undef,Ns*Nr)
     tsv = Array{Int64,1}(undef,Ns*Nr)
+    tmn = Array{Float64,1}(undef,Ns*Nr)
+    tmd = Array{Float64,1}(undef,Ns*Nr)
     # Fill out with data
     for i = 1:Ns
         for j = 1:Nr
             tl[(i-1)*Nr+j] = lbs[i]
             tsv[(i-1)*Nr+j] = svs[i,j]
+            tmn[(i-1)*Nr+j] = mna[i,j]
+            tmd[(i-1)*Nr+j] = mda[i,j]
         end
     end
     # Collect everything into one data frame
-    survivors = DataFrame(PSet=tl,ns=tsv)
+    survivors = DataFrame(PSet=tl,ns=tsv,mn=tmn,md=tmd)
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=200)
+    wongc = get_color_palette(wong_palette,57)
     # Want to do the plotting here
-    @df survivors violin(:PSet,:ns,linewidth=0,label="")
-    savefig("Output/Violin.png")
-    @df survivors boxplot(:PSet,:ns,fillalpha=0.75,linewidth=2,label="")
-    savefig("Output/Boxplot.png")
-    @df survivors dotplot(:PSet,:ns,marker=(:black, stroke(0)),label="")
-    savefig("Output/Dots.png")
+    plot(title="Ecosystem diversity",ylabel="Number of surviving strains")
+    @df survivors violin!(:PSet,:ns,linewidth=0,label="",color=wongc[2])
+    @df survivors boxplot!(:PSet,:ns,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    savefig("Output/Diversity.png")
+    plot(title="Mean abundances",ylabel="Mean abundance")
+    @df survivors violin!(:PSet,:mn,linewidth=0,label="",color=wongc[2])
+    @df survivors boxplot!(:PSet,:mn,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    savefig("Output/MeanAbund.png")
+    plot(title="Median abundances",ylabel="Median abundance")
+    @df survivors violin!(:PSet,:md,linewidth=0,label="",color=wongc[2])
+    @df survivors boxplot!(:PSet,:md,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    savefig("Output/MedianAbund.png")
+    # Make scatter plot of substrate diversity
+    plot(title="Substrate diversification",ylabel="Number of survivors",xlabel="Number of metabolites")
+    for i = 1:Ns
+        scatter!(mbs[i,:],svs[i,:],label=lbs[i])
+    end
+    # Plot maximum line
+    plot!(3:25,2:24,color=wongc[1],label="")
+    savefig("Output/SubstrateDiversity.png")
+    # And of minimum substrate
+    plot(title="Lowest energy substrate",ylabel="Number of survivors",xlabel="Max substrate reached")
+    for i = 1:Ns
+        scatter!(hmb[i,:],svs[i,:],label=lbs[i])
+    end
+    plot!(3:25,2:24,color=wongc[1],label="")
+    savefig("Output/MinimumSubstrate.png")
     return(nothing)
 end
 
-@time basic_info()
+@time multi_sets()

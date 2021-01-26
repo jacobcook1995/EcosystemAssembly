@@ -834,12 +834,16 @@ function basic_info()
     hmb = zeros(Int64,rps) # Lowest (in energy hierachy) metabolite
     # Make containers for the data of uncertain size
     rcs = Array{Int64,1}(undef,0) # Number of reactions (per strain)
+    Sbs = Array{Array{Int64,1},1}(undef,Ru-Rl+1) # Substrates used in reactions
+    ϕPs = Array{Array{Float64,1},1}(undef,Ru-Rl+1) # Proteome fractions
     abds = [] # Abundances
     effs = [] # Reaction efficencies
     # Number of metabolites
     M = 0
     # mimimum product to substrate ratio (to calculate) the efficency
     mr = 1e-2
+    # Bools to check if data has been written in for each reaction number
+    rs2 = fill(false,Ru-Rl+1)
     # Loop over repeats
     for i = 1:rps
         # Read in relevant files
@@ -868,6 +872,39 @@ function basic_info()
         # Find and store number of reactions
         if ps.N > 0
             rcs = cat(rcs,ps.mics.↦:R,dims=1)
+            # Check if data has already been saved
+            rs = fill(false,Ru-Rl+1)
+            # Make temporary vector to store substrates
+            sbt = Array{Array{Int64,1},1}(undef,Ru-Rl+1)
+            # And to store proetome fractions
+            ϕst = Array{Array{Float64,1},1}(undef,Ru-Rl+1)
+            # Fill out temporary vector
+            for j = 1:ps.N
+                # Find reaction number for strain
+                R = ps.mics[j].R - Rl + 1
+                # Add to relevant collection, save for first time
+                if rs[R] == false
+                    sbt[R] = ps.reacs[ps.mics[j].Reacs].↦:Rct
+                    ϕst[R] = ps.mics[j].ϕP
+                    rs[R] = true
+                else
+                    # Then cat for later times
+                    sbt[R] = cat(sbt[R],ps.reacs[ps.mics[j].Reacs].↦:Rct,dims=1)
+                    ϕst[R] = cat(ϕst[R],ps.mics[j].ϕP,dims=1)
+                end
+            end
+            # And cat into larger collection
+            for j = 1:Ru-Rl+1
+                # Similar step to ensure that first step is written in
+                if rs2[j] == false && rs[j] == true
+                    Sbs[j] = sbt[j]
+                    ϕPs[j] = ϕst[j]
+                    rs2[j] = true
+                elseif rs[j] == true
+                    Sbs[j] = cat(Sbs[j],sbt[j],dims=1)
+                    ϕPs[j] = cat(ϕPs[j],ϕst[j],dims=1)
+                end
+            end
         end
         # Find and store abundances
         abds = cat(abds,inf_out[1:ps.N],dims=1)
@@ -895,6 +932,7 @@ function basic_info()
         mbs[i] = cm
         hmb[i] = mm
     end
+    println("Extracted Data!")
     # Preallocate vectors
     ms = zeros(Ru-Rl+1)
     sds = zeros(Ru-Rl+1)
@@ -940,6 +978,21 @@ function basic_info()
     savefig("Output/$(Rl)-$(Ru)$(syn)/NoMets$(Rl)-$(Ru)$(syn).png")
     histogram(hmb,bins=mbn,label="",xlabel="Lowest energy metabolite",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/LowMet$(Rl)-$(Ru)$(syn).png")
+    # Make complete collection of substrates
+    SbsT = Array{Int64,1}(undef,0)
+    # Plot number of reactions using each substrate for each reaction number
+    for j = 1:Ru-Rl+1
+        histogram(Sbs[j],bins=mbn,label="",title="Strains with $(j+Rl-1) reactions")
+        savefig("Output/$(Rl)-$(Ru)$(syn)/WhichSubs$(Rl)-$(Ru)$(syn)R=$(j+Rl-1).png")
+        SbsT = cat(SbsT,Sbs[j],dims=1)
+    end
+    histogram(SbsT,bins=mbn,label="",title="All strains")
+    savefig("Output/$(Rl)-$(Ru)$(syn)/WhichSubs$(Rl)-$(Ru)$(syn)All.png")
+    # Plot proteome fractions for each reaction number
+    for j = 1:Ru-Rl+1
+        histogram(ϕPs[j],label="",title="Strains with $(j+Rl-1) reactions",xlabel="Proteome fraction")
+        savefig("Output/$(Rl)-$(Ru)$(syn)/ProtFrac$(Rl)-$(Ru)$(syn)R=$(j+Rl-1).png")
+    end
     return(nothing)
 end
 
@@ -1114,4 +1167,4 @@ function multi_sets()
     return(nothing)
 end
 
-@time multi_sets()
+@time basic_info()

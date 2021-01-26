@@ -78,6 +78,19 @@ function quantify_ints()
             out = load(ofile,"out")
             inf_out = load(ofile,"inf_out")
             ded = load(efile,"ded")
+            # For each strain record the metabolities it interacts with
+            mts = Array{Array{Int64,1},1}(undef,ps.N)
+            # Loop over all strains
+            for j = 1:ps.N
+                # Find substrates
+                sbs = ps.reacs[ps.mics[j].Reacs].↦:Rct
+                # Find products
+                pds = ps.reacs[ps.mics[j].Reacs].↦:Prd
+                # Combine into 1 vector (remove repeats)
+                met = unique(cat(sbs,pds,dims=1))
+                # And then store
+                mts[j] = met
+            end
             # Preallocate vector of forces
             F = Array{Sym,1}(undef,3*ps.N+ps.M)
             # Now find vector of forces
@@ -148,10 +161,11 @@ function quantify_ints()
                     # Loop over the strains
                     for k = 1:ps.N
                         # Check whether the effect on the strain is +ve, -ve or ~0
-                        if Fatp[k,j] > 1e-5
+                        # And whether strain has reaction using metabolite j
+                        if Fatp[k,j] > 1e-5 && j ∈ mts[k]
                             # Positive denoted by 1
                             pn0[k] = 1
-                        elseif Fatp[k,j] < -1e-5
+                        elseif Fatp[k,j] < -1e-5 && j ∈ mts[k]
                             # Negative denoted by -1
                             pn0[k] = -1
                         end

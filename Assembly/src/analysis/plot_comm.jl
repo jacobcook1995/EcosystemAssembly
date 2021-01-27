@@ -835,7 +835,6 @@ function basic_info()
     # Make containers for the data of uncertain size
     rcs = Array{Int64,1}(undef,0) # Number of reactions (per strain)
     Sbs = Array{Array{Int64,1},1}(undef,Ru-Rl+1) # Substrates used in reactions
-    ϕPs = Array{Array{Float64,1},1}(undef,Ru-Rl+1) # Proteome fractions
     abds = [] # Abundances
     effs = [] # Reaction efficencies
     # Number of metabolites
@@ -876,8 +875,6 @@ function basic_info()
             rs = fill(false,Ru-Rl+1)
             # Make temporary vector to store substrates
             sbt = Array{Array{Int64,1},1}(undef,Ru-Rl+1)
-            # And to store proetome fractions
-            ϕst = Array{Array{Float64,1},1}(undef,Ru-Rl+1)
             # Fill out temporary vector
             for j = 1:ps.N
                 # Find reaction number for strain
@@ -885,12 +882,10 @@ function basic_info()
                 # Add to relevant collection, save for first time
                 if rs[R] == false
                     sbt[R] = ps.reacs[ps.mics[j].Reacs].↦:Rct
-                    ϕst[R] = ps.mics[j].ϕP
                     rs[R] = true
                 else
                     # Then cat for later times
                     sbt[R] = cat(sbt[R],ps.reacs[ps.mics[j].Reacs].↦:Rct,dims=1)
-                    ϕst[R] = cat(ϕst[R],ps.mics[j].ϕP,dims=1)
                 end
             end
             # And cat into larger collection
@@ -898,11 +893,9 @@ function basic_info()
                 # Similar step to ensure that first step is written in
                 if rs2[j] == false && rs[j] == true
                     Sbs[j] = sbt[j]
-                    ϕPs[j] = ϕst[j]
                     rs2[j] = true
                 elseif rs[j] == true
                     Sbs[j] = cat(Sbs[j],sbt[j],dims=1)
-                    ϕPs[j] = cat(ϕPs[j],ϕst[j],dims=1)
                 end
             end
         end
@@ -988,11 +981,6 @@ function basic_info()
     end
     histogram(SbsT,bins=mbn,label="",title="All strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)/WhichSubs$(Rl)-$(Ru)$(syn)All.png")
-    # Plot proteome fractions for each reaction number
-    for j = 1:Ru-Rl+1
-        histogram(ϕPs[j],label="",title="Strains with $(j+Rl-1) reactions",xlabel="Proteome fraction")
-        savefig("Output/$(Rl)-$(Ru)$(syn)/ProtFrac$(Rl)-$(Ru)$(syn)R=$(j+Rl-1).png")
-    end
     return(nothing)
 end
 

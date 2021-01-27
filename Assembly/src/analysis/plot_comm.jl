@@ -837,6 +837,9 @@ function basic_info()
     Sbs = Array{Array{Int64,1},1}(undef,Ru-Rl+1) # Substrates used in reactions
     abds = [] # Abundances
     effs = [] # Reaction efficencies
+    # Defining stuff that then gets defined in the loop
+    fnd = []
+    avR = []
     # Number of metabolites
     M = 0
     # mimimum product to substrate ratio (to calculate) the efficency
@@ -862,9 +865,32 @@ function basic_info()
         ps = load(pfile,"ps")
         out = load(ofile,"out")
         inf_out = load(ofile,"inf_out")
+        # Calculate mean reaction value for ecosystem
+        mR = sum(ps.mics.↦:R)/ps.N
         # Save metabolite number from the first parameter set
         if i == 1
             M = ps.M
+            # Use to preallocate structure to store average R's
+            avR = Array{Array{Float64,1},1}(undef,M-1)
+            # Vector to record if metabolite has previously been found
+            fnd = fill(false,M-1)
+        end
+        # To store which metabolites exist
+        exst = fill(false,M-1)
+        # Check if each metabolite exists
+        for j = 1:ps.M-1
+            if inf_out[ps.N+j] > 0.0
+                exst[j] = true
+            end
+        end
+        # Find index of lowest existing metabolite
+        ind = findlast(x->x==true,exst)
+        # Store mean value of this index
+        if fnd[ind] == false
+            avR[ind] = [mR]
+            fnd[ind] = true
+        else
+            avR[ind] = cat(avR[ind],mR,dims=1)
         end
         # Find and store number of survivors
         svs[i] = ps.N
@@ -981,6 +1007,17 @@ function basic_info()
     end
     histogram(SbsT,bins=mbn,label="",title="All strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)/WhichSubs$(Rl)-$(Ru)$(syn)All.png")
+    # Make plot for
+    plot(title="Generalism vs Substrate Diversity",ylabel="Average number of reactions")
+    plot!(xlabel="Lowest energy substrate")
+    for i = 1:M-1
+        if fnd[i] == true && length(avR[i]) > 1
+            scatter!([i],[mean(avR[i])],yerror=[std(avR[i])],label="")
+        elseif fnd[i] == true
+            scatter!([i],[mean(avR[i])],label="")
+        end
+    end
+    savefig("Output/$(Rl)-$(Ru)$(syn)/GenvsDiv$(Rl)-$(Ru)$(syn).png")
     return(nothing)
 end
 
@@ -1155,4 +1192,4 @@ function multi_sets()
     return(nothing)
 end
 
-@time basic_info()
+@time test()

@@ -1119,7 +1119,7 @@ function multi_sets()
             # Loop over metabolites to find those with non-zero concentrations
             cm = 0 # Set up counter
             mm = 0 # Lowest metabolite
-            for k = 1:ps.M
+            for k = 2:ps.M
                 if inf_out[ps.N+k] > 0.0
                     # Increment counter
                     cm += 1
@@ -1146,6 +1146,7 @@ function multi_sets()
     tsv = Array{Int64,1}(undef,Ns*Nr)
     tmn = Array{Float64,1}(undef,Ns*Nr)
     tmd = Array{Float64,1}(undef,Ns*Nr)
+    tdv = Array{Int64,1}(undef,Ns*Nr)
     # Fill out with data
     for i = 1:Ns
         for j = 1:Nr
@@ -1153,10 +1154,11 @@ function multi_sets()
             tsv[(i-1)*Nr+j] = svs[i,j]
             tmn[(i-1)*Nr+j] = mna[i,j]
             tmd[(i-1)*Nr+j] = mda[i,j]
+            tdv[(i-1)*Nr+j] = mbs[i,j]
         end
     end
     # Collect everything into one data frame
-    survivors = DataFrame(PSet=tl,ns=tsv,mn=tmn,md=tmd)
+    survivors = DataFrame(PSet=tl,ns=tsv,mn=tmn,md=tmd,sdv=tdv)
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=200)
@@ -1175,21 +1177,25 @@ function multi_sets()
     @df survivors boxplot!(:PSet,:md,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
     savefig("Output/MedianAbund.png")
     # Make scatter plot of substrate diversity
-    plot(title="Substrate diversification",ylabel="Number of survivors",xlabel="Number of metabolites")
+    plot(title="Impact of substrate diversification",ylabel="Number of survivors",xlabel="Number of substrates")
     for i = 1:Ns
         scatter!(mbs[i,:],svs[i,:],label=lbs[i])
     end
     # Plot maximum line
-    plot!(3:25,2:24,color=wongc[1],label="")
+    plot!(2:24,2:24,color=wongc[1],label="")
     savefig("Output/SubstrateDiversity.png")
     # And of minimum substrate
     plot(title="Lowest energy substrate",ylabel="Number of survivors",xlabel="Max substrate reached")
     for i = 1:Ns
         scatter!(hmb[i,:],svs[i,:],label=lbs[i])
     end
-    plot!(3:25,2:24,color=wongc[1],label="")
+    plot!(2:24,2:24,color=wongc[1],label="")
     savefig("Output/MinimumSubstrate.png")
+    plot(title="Substrate diversification",ylabel="Number of substrates")
+    @df survivors violin!(:PSet,:sdv,linewidth=0,label="",color=wongc[2])
+    @df survivors boxplot!(:PSet,:sdv,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    savefig("Output/SubDiv.png")
     return(nothing)
 end
 
-@time test()
+@time basic_info()

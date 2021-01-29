@@ -589,15 +589,17 @@ function test()
     Rl = 0
     Ru = 0
     syn = true
-    rps = 0
+    Nr = 0
+    Ns = 0
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
         Ru = parse(Int64,ARGS[2])
         syn = parse(Bool,ARGS[3])
-        rps = parse(Int64,ARGS[4])
+        Nr = parse(Int64,ARGS[4])
+        Ns = parse(Int64,ARGS[5])
     catch e
-           error("need to provide 3 integers and a bool")
+           error("need to provide 4 integers and a bool")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -607,22 +609,25 @@ function test()
         error("upper bound can't be lower than the lower bound")
     end
     # Check that number of simulations is greater than 0
-    if rps < 1
+    if Nr < 1
         error("simulation number can't be less than 1")
+    end
+    if Ns < 1
+        error("number of strains can't be less than 1")
     end
     println("Compiled!")
     # Read in relevant files
-    pfile = "Data/$(Rl)-$(Ru)$(syn)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(rps).jld"
+    pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(pfile)
-        error("run $(rps) is missing a parameter file")
+        error("run $(Nr) is missing a parameter file")
     end
-    ofile = "Data/$(Rl)-$(Ru)$(syn)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(rps).jld"
+    ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(ofile)
-        error("run $(rps) is missing an output file")
+        error("run $(Nr) is missing an output file")
     end
-    efile = "Data/$(Rl)-$(Ru)$(syn)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(rps).jld"
+    efile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(efile)
-        error("run $(rps) is missing an extinct file")
+        error("run $(Nr) is missing an extinct file")
     end
     ps = load(pfile,"ps")
     C = load(ofile,"C")
@@ -871,20 +876,20 @@ function basic_info()
         if i == 1
             M = ps.M
             # Use to preallocate structure to store average R's
-            avR = Array{Array{Float64,1},1}(undef,M-1)
+            avR = Array{Array{Float64,1},1}(undef,ps.M-1)
             # Vector to record if metabolite has previously been found
-            fnd = fill(false,M-1)
+            fnd = fill(false,ps.M-1)
         end
         # To store which metabolites exist
-        exst = fill(false,M-1)
+        exst = fill(false,ps.M-1)
         # Check if each metabolite exists
         for j = 1:ps.M-1
             if inf_out[ps.N+j] > 0.0
                 exst[j] = true
             end
         end
-        # Find index of lowest existing metabolite
-        ind = findlast(x->x==true,exst)
+        # Count number of existing substrates
+        ind = count(x->x==true,exst)
         # Store mean value of this index
         if fnd[ind] == false
             avR[ind] = [mR]
@@ -1002,14 +1007,15 @@ function basic_info()
     # Plot number of reactions using each substrate for each reaction number
     for j = 1:Ru-Rl+1
         histogram(Sbs[j],bins=mbn,label="",title="Strains with $(j+Rl-1) reactions")
+        plot!(xlabel="Metabolite used by reaction")
         savefig("Output/$(Rl)-$(Ru)$(syn)/WhichSubs$(Rl)-$(Ru)$(syn)R=$(j+Rl-1).png")
         SbsT = cat(SbsT,Sbs[j],dims=1)
     end
-    histogram(SbsT,bins=mbn,label="",title="All strains")
+    histogram(SbsT,bins=mbn,label="",title="All strains",xlabel="Metabolite used by reaction")
     savefig("Output/$(Rl)-$(Ru)$(syn)/WhichSubs$(Rl)-$(Ru)$(syn)All.png")
     # Make plot for
-    plot(title="Generalism vs Substrate Diversity",ylabel="Average number of reactions")
-    plot!(xlabel="Lowest energy substrate")
+    plot(title="Generalism vs Substrate Diversity ($(Rl)-$(Ru) $(syn))",ylabel="Average number of reactions")
+    plot!(xlabel="Number of substrates")
     for i = 1:M-1
         if fnd[i] == true && length(avR[i]) > 1
             scatter!([i],[mean(avR[i])],yerror=[std(avR[i])],label="")
@@ -1198,4 +1204,4 @@ function multi_sets()
     return(nothing)
 end
 
-@time basic_info()
+@time test()

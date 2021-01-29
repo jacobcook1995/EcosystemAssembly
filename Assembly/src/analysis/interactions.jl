@@ -11,7 +11,7 @@ using LaTeXStrings
 # function to quantify the interactions
 function quantify_ints()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 4
+    if length(ARGS) < 5
         error("Insufficent inputs provided (looking for 4)")
     end
     # Preallocate the variables I want to extract from the input
@@ -19,12 +19,14 @@ function quantify_ints()
     Ru = 0
     syn = true
     rps = 0
+    Ni = 0
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
         Ru = parse(Int64,ARGS[2])
         syn = parse(Bool,ARGS[3])
         rps = parse(Int64,ARGS[4])
+        Ni = parse(Int64,ARGS[5])
     catch e
            error("need to provide 3 integers and a bool")
     end
@@ -39,6 +41,10 @@ function quantify_ints()
     if rps < 1
         error("number of repeats can't be less than 1")
     end
+    # Check that initial number of strains is sensible
+    if Ni < 1
+        error("number of strains cannot be less than 1")
+    end
     println("Compiled!")
     flush(stdout)
     # Loop over the repeats
@@ -46,7 +52,7 @@ function quantify_ints()
         # Assume that output files don't already exist
         outp = false
         # Just one output files to check the existence of
-        outf = "Data/$(Rl)-$(Ru)$(syn)$(rps)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld"
+        outf = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         # Check if all three exist
         if isfile(outf)
             outp = true
@@ -59,15 +65,15 @@ function quantify_ints()
             println("Started run $(i)")
             flush(stdout)
             # Read in relevant files
-            pfile = "Data/$(Rl)-$(Ru)$(syn)$(rps)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld"
+            pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
             if ~isfile(pfile)
                 error("run $(i) is missing a parameter file")
             end
-            ofile = "Data/$(Rl)-$(Ru)$(syn)$(rps)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld"
+            ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
             if ~isfile(ofile)
                 error("run $(i) is missing an output file")
             end
-            efile = "Data/$(Rl)-$(Ru)$(syn)$(rps)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld"
+            efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
             if ~isfile(efile)
                 error("run $(i) is missing an extinct file")
             end
@@ -232,7 +238,7 @@ function quantify_ints()
                 end
             end
             # Output all interaction data
-            jldopen("Data/$(Rl)-$(Ru)$(syn)$(rps)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
                 # Save ATP forces and fraction used to generate them
                 write(file,"Fatp",Fatp)
                 write(file,"frc",frc)

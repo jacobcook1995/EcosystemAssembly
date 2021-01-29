@@ -44,9 +44,9 @@ function removal()
         # Assume that output files don't already exist
         outp = false
         # Three output files to check the existence of
-        outf1 = "Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
-        outf2 = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
-        outf3 = "Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        outf1 = "Data/$(Rl)-$(Ru)$(syn)$(nR)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld"
+        outf2 = "Data/$(Rl)-$(Ru)$(syn)$(nR)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld"
+        outf3 = "Data/$(Rl)-$(Ru)$(syn)$(nR)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld"
         # Check if all three exist
         if isfile(outf1) && isfile(outf2) && isfile(outf3)
             outp = true
@@ -57,15 +57,15 @@ function removal()
             flush(stdout)
         end
         # Read in relevant files
-        pfile = "Data/$(Rl)-$(Ru)$(syn)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        pfile = "Data/$(Rl)-$(Ru)$(syn)$(nR)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/$(Rl)-$(Ru)$(syn)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        ofile = "Data/$(Rl)-$(Ru)$(syn)$(nR)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/$(Rl)-$(Ru)$(syn)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        efile = "Data/$(Rl)-$(Ru)$(syn)$(nR)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
@@ -92,15 +92,15 @@ function removal()
             cnt += 1
             # Write out old data if stable
             # Save extinct strains
-            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(nR)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld","w") do file
                 write(file,"ded",ded)
             end
             # the reduced parameter sets
-            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(nR)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld","w") do file
                 write(file,"ps",ps)
             end
             # and the full output
-            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(nR)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld","w") do file
                 # Save final output
                 write(file,"out",out)
                 # This output is basically the output at infinity
@@ -249,15 +249,15 @@ function removal()
             # Gather and output new reduceded data
             ded = cat(ded,ded2,dims=1)
             # Save extinct strains
-            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(nR)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld","w") do file
                 write(file,"ded",ded)
             end
             # the reduced parameter sets
-            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(nR)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld","w") do file
                 write(file,"ps",ps)
             end
             # and the full output
-            jldopen("Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(nR)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(nR).jld","w") do file
                 # Save final output
                 write(file,"out",nout)
                 # Save the output at infinity here

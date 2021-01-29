@@ -88,7 +88,7 @@ function assemble()
         ps = initialise(N,M,O,Rl,Ru,kc,KS,kr,syn)
         # Before running the parameter sets should be saved so that if they crash
         # they can be rerun and hopefully track down where they went wrong
-        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld","w") do file
             write(file,"ps",ps)
         end
         # Find starting time
@@ -131,15 +131,15 @@ function assemble()
             end
         end
         # Save extinct strains
-        jldopen("Output/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+        jldopen("Output/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld","w") do file
             write(file,"ded",ded)
         end
         # the reduced parameter sets
-        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld","w") do file
             write(file,"ps",ps)
         end
         # and the full output
-        jldopen("Output/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+        jldopen("Output/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld","w") do file
             # Save final output
             write(file,"out",out)
             # # Save time data and dynamics data

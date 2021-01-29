@@ -46,7 +46,7 @@ function quantify_ints()
         # Assume that output files don't already exist
         outp = false
         # Just one output files to check the existence of
-        outf = "Data/$(Rl)-$(Ru)$(syn)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        outf = "Data/$(Rl)-$(Ru)$(syn)$(rps)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld"
         # Check if all three exist
         if isfile(outf)
             outp = true
@@ -59,15 +59,15 @@ function quantify_ints()
             println("Started run $(i)")
             flush(stdout)
             # Read in relevant files
-            pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+            pfile = "Data/$(Rl)-$(Ru)$(syn)$(rps)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld"
             if ~isfile(pfile)
                 error("run $(i) is missing a parameter file")
             end
-            ofile = "Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+            ofile = "Data/$(Rl)-$(Ru)$(syn)$(rps)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld"
             if ~isfile(ofile)
                 error("run $(i) is missing an output file")
             end
-            efile = "Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+            efile = "Data/$(Rl)-$(Ru)$(syn)$(rps)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld"
             if ~isfile(efile)
                 error("run $(i) is missing an extinct file")
             end
@@ -232,7 +232,7 @@ function quantify_ints()
                 end
             end
             # Output all interaction data
-            jldopen("Data/$(Rl)-$(Ru)$(syn)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(rps)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(rps).jld","w") do file
                 # Save ATP forces and fraction used to generate them
                 write(file,"Fatp",Fatp)
                 write(file,"frc",frc)
@@ -904,4 +904,5 @@ function ints_scat()
     return(nothing)
 end
 
-@time quantify_ints()
+# @time quantify_ints()
+@time ints_plot()

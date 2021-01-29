@@ -130,7 +130,7 @@ function initialise(N::Int64,M::Int64,O::Int64,Rl::Int64,Ru::Int64,kc::Float64,K
     # All but resource 1 is not supplied
     κ[1] = 3.3e-7 # Metabolite supply rate
     # Chosen so that 100 steps yields slightly more free energy than respiring glucose
-    μrange = 1.5e7*(M/25)
+    μrange = 1.5e6*(M/25)
     # Generate fixed set of reactions
     RP, ΔG = fix_reactions(O,M,μrange,T)
     # Preallocate vector of reactions

@@ -910,5 +910,4 @@ function ints_scat()
     return(nothing)
 end
 
-# @time quantify_ints()
-@time ints_plot()
+@time quantify_ints()

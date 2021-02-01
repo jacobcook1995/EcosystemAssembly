@@ -1037,16 +1037,18 @@ end
 # function to take in multiple parameter sets and plot composite graphs
 function multi_sets()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
-        error("Need to provide number of parameter sets, and number of repeats")
+    if length(ARGS) < 3
+        error("Need to provide number of parameter sets, number of repeats and initial number of strains")
     end
     # Preallocate the variables I want to extract from the input
     Ns = 0
     Nr = 0
+    Ni = 0
     # Check that all arguments can be converted to integers
     try
         Ns = parse(Int64,ARGS[1])
         Nr = parse(Int64,ARGS[2])
+        Ni = parse(Int64,ARGS[3])
     catch e
         error("number of parameter sets and repeats must both be integer")
     end
@@ -1090,7 +1092,7 @@ function multi_sets()
             # Check if there is a directory containing these parameter sets
             if rpt == true
                 println("Parameter set repeated, please enter an orginal one")
-            elseif ~isdir("Data/$(Rl)-$(Ru)$(syn)")
+            elseif ~isdir("Data/$(Rl)-$(Ru)$(syn)$(Ni)")
                 println("Parameter set doesn't exist please reenter")
             else
                 vld = true
@@ -1116,11 +1118,11 @@ function multi_sets()
     for i = 1:Ns
         for j = 1:Nr
             # Read in relevant files
-            pfile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])/RedParasReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j).jld"
+            pfile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)/RedParasReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
             if ~isfile(pfile)
                 error("parameter set $(i) run $(j) is missing a parameter file")
             end
-            ofile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])/RedOutputReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j).jld"
+            ofile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)/RedOutputReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
             if ~isfile(ofile)
                 error("parameter set $(i) run $(j) is missing an output file")
             end
@@ -1211,4 +1213,4 @@ function multi_sets()
     return(nothing)
 end
 
-@time basic_info()
+@time multi_sets()

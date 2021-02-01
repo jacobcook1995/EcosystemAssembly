@@ -619,22 +619,24 @@ end
 # function to plot interactions types
 function ints_plot()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 4
-        error("Insufficent inputs provided (looking for 4)")
+    if length(ARGS) < 5
+        error("Insufficent inputs provided (looking for 5)")
     end
     # Preallocate the variables I want to extract from the input
     Rl = 0
     Ru = 0
     syn = true
     rps = 0
+    Ni = 0
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
         Ru = parse(Int64,ARGS[2])
         syn = parse(Bool,ARGS[3])
         rps = parse(Int64,ARGS[4])
+        Ni = parse(Int64,ARGS[5])
     catch e
-           error("need to provide 3 integers and a bool")
+            error("need to provide 3 integers and a bool")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -646,6 +648,9 @@ function ints_plot()
     # Check that number of simulations is greater than 0
     if rps < 1
         error("number of repeats can't be less than 1")
+    end
+    if Ni < 1
+        error("initial number of strains can't be less than 1")
     end
     println("Compiled!")
     # Preallocate memory to store number of interactions
@@ -666,19 +671,19 @@ function ints_plot()
     # Loop over parameter sets
     for i = 1:rps
         # Read in relevant files
-        pfile = "Data/$(Rl)-$(Ru)$(syn)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/$(Rl)-$(Ru)$(syn)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/$(Rl)-$(Ru)$(syn)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
-        ifile = "Data/$(Rl)-$(Ru)$(syn)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i).jld"
+        ifile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(ifile)
             error("run $(i) is missing an interaction file")
         end
@@ -746,13 +751,13 @@ function ints_plot()
     histogram!(ins2,fillalpha=0.75,label="Facilitation")
     histogram!(ins3,fillalpha=0.75,label="Syntrophy")
     histogram!(ins4,fillalpha=0.75,label="Pollution")
-    savefig("Output/$(Rl)-$(Ru)$(syn)/IntType$(Rl)-$(Ru)$(syn).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/IntType$(Rl)-$(Ru)$(syn)$(Ni).png")
     plot(title=tl,xlabel="Strength of interactions",ylabel="Number of ecosystems")
     histogram!(log10.(mean1),fillalpha=0.75,label="Competiton")
     histogram!(log10.(mean2),fillalpha=0.75,label="Facilitation")
     histogram!(log10.(mean3),fillalpha=0.75,label="Syntrophy")
     histogram!(log10.(mean4),fillalpha=0.75,label="Pollution")
-    savefig("Output/$(Rl)-$(Ru)$(syn)/IntStrength$(Rl)-$(Ru)$(syn).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/IntStrength$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Make range of ticks to label
     rgn = collect(-14:2:-2)
     ergn = fill("",length(rgn))
@@ -766,7 +771,7 @@ function ints_plot()
     histogram!(log10.(sts2),fillalpha=0.75,label="Facilitation")
     histogram!(log10.(sts3),fillalpha=0.75,label="Syntrophy")
     histogram!(log10.(sts4),fillalpha=0.75,label="Pollution")
-    savefig("Output/$(Rl)-$(Ru)$(syn)/AllIntStrength$(Rl)-$(Ru)$(syn).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/AllIntStrength$(Rl)-$(Ru)$(syn)$(Ni).png")
     return(nothing)
 end
 

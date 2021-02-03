@@ -1213,4 +1213,8 @@ function multi_sets()
     return(nothing)
 end
 
-@time multi_sets()
+if length(ARGS) == 3
+    @time multi_sets()
+else
+    @time basic_info()
+end

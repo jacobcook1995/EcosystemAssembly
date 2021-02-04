@@ -22,7 +22,7 @@ function assemble()
         rps = parse(Int64,ARGS[4])
         syn = parse(Bool,ARGS[5])
     catch e
-           error("need to provide 4 integers and a bool")
+            error("need to provide 4 integers and a bool")
     end
     # Starting run assumed to be 1
     Rs = 1

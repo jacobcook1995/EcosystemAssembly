@@ -1195,16 +1195,23 @@ function multi_sets()
     # Need to make a second data frame
     absT = Float64[]
     lbT = String[]
+    mn_abs = zeros(Ns)
     # Fill out with data
     for i = 1:Ns
+        # Make temporary vector for parameter set
+        abst = Float64[]
         for j = 1:Nr
             # Cat data into a single vector
-            absT = cat(absT,abs[i,j],dims=1)
+            abst = cat(abst,abs[i,j],dims=1)
             # Temporary vector of labels
             tl = fill(lbs[i],length(abs[i,j]))
             # Cat into long vector of labels
             lbT = cat(lbT,tl,dims=1)
         end
+        # Calculate and store mean of temporary vector
+        mn_abs[i] = mean(abst)
+        # Cat temporary vector into overall vector
+        absT = cat(absT,abst,dims=1)
     end
     # Collect everything into one data frame
     abundances = DataFrame(PSet=lbT,abun=absT)
@@ -1216,14 +1223,32 @@ function multi_sets()
     plot(title="Ecosystem diversity",ylabel="Number of surviving strains")
     @df survivors violin!(:PSet,:ns,linewidth=0,label="",color=wongc[2])
     @df survivors boxplot!(:PSet,:ns,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    # Plot means
+    for i = 1:Ns
+        # Calculate mean
+        mn = mean(svs[i,:])
+        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+    end
     savefig("Output/Diversity.png")
     plot(title="Mean abundances",ylabel="Mean abundance")
     @df survivors violin!(:PSet,:mn,linewidth=0,label="",color=wongc[2])
     @df survivors boxplot!(:PSet,:mn,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    # Plot means
+    for i = 1:Ns
+        # Calculate mean
+        mn = mean(mna[i,:])
+        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+    end
     savefig("Output/MeanAbund.png")
     plot(title="Median abundances",ylabel="Median abundance")
     @df survivors violin!(:PSet,:md,linewidth=0,label="",color=wongc[2])
     @df survivors boxplot!(:PSet,:md,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    # Plot means
+    for i = 1:Ns
+        # Calculate mean
+        mn = mean(mda[i,:])
+        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+    end
     savefig("Output/MedianAbund.png")
     # Make scatter plot of substrate diversity
     plot(title="Impact of substrate diversification",ylabel="Number of survivors",xlabel="Number of substrates")
@@ -1243,14 +1268,30 @@ function multi_sets()
     plot(title="Substrate diversification",ylabel="Number of substrates")
     @df survivors violin!(:PSet,:sdv,linewidth=0,label="",color=wongc[2])
     @df survivors boxplot!(:PSet,:sdv,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    # Plot means
+    for i = 1:Ns
+        # Calculate mean
+        mn = mean(mbs[i,:])
+        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+    end
     savefig("Output/SubDiv.png")
     plot(title="All abundances",ylabel="Strain abundance")
     @df abundances violin!(:PSet,:abun,linewidth=0,label="",color=wongc[2])
     @df abundances boxplot!(:PSet,:abun,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    # Plot means
+    for i = 1:Ns
+        scatter!([i-0.5],[mn_abs[i]],label="",markershape=:star5,color=wongc[5],markersize=10)
+    end
     savefig("Output/AllAbund.png")
     plot(title="Total abundances",ylabel="Total abundance (per ecosystem)")
     @df survivors violin!(:PSet,:ta,linewidth=0,label="",color=wongc[2])
     @df survivors boxplot!(:PSet,:ta,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    # Plot means
+    for i = 1:Ns
+        # Calculate mean
+        mn = mean(tab[i,:])
+        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+    end
     savefig("Output/TotalAbund.png")
     return(nothing)
 end

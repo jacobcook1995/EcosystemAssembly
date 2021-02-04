@@ -926,7 +926,7 @@ function basic_info()
                 end
             end
             # And cat into larger collection
-            for j = 1:Ru-Rl+1
+            for j = 1:(Ru-Rl+1)
                 # Similar step to ensure that first step is written in
                 if rs2[j] == false && rs[j] == true
                     Sbs[j] = sbt[j]
@@ -1028,14 +1028,14 @@ function basic_info()
     end
     histogram(SbsT,bins=mbn,label="",title="All strains",xlabel="Metabolite used by reaction")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/WhichSubs$(Rl)-$(Ru)$(syn)$(Ni)All.png")
-    # Make plot for
+    # Make plot for strength of generalism
     plot(title="Generalism vs Substrate Diversity ($(Rl)-$(Ru) $(syn))",ylabel="Average number of reactions")
-    plot!(xlabel="Number of substrates")
+    plot!(xlabel="Prob of viable reaction")
     for i = 1:M-1
         if fnd[i] == true && length(avR[i]) > 1
-            scatter!([i],[mean(avR[i])],yerror=[std(avR[i])],label="")
+            scatter!([i/(M-1)],[mean(avR[i])],yerror=[std(avR[i])],label="")
         elseif fnd[i] == true
-            scatter!([i],[mean(avR[i])],label="")
+            scatter!([i/(M-1)],[mean(avR[i])],label="")
         end
     end
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/GenvsDiv$(Rl)-$(Ru)$(syn)$(Ni).png")

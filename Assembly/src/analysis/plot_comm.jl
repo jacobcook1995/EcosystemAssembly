@@ -846,6 +846,7 @@ function basic_info()
     rcs = Array{Int64,1}(undef,0) # Number of reactions (per strain)
     Sbs = Array{Array{Int64,1},1}(undef,Ru-Rl+1) # Substrates used in reactions
     abds = [] # Abundances
+    rabs = [] # Relative abundances
     effs = [] # Reaction efficencies
     # Defining stuff that then gets defined in the loop
     fnd = []
@@ -937,6 +938,8 @@ function basic_info()
         end
         # Find and store abundances
         abds = cat(abds,inf_out[1:ps.N],dims=1)
+        # And relative abundances
+        rabs = cat(rabs,log10.(inf_out[1:ps.N]./sum(inf_out[1:ps.N])),dims=1)
         # Loop over microbes, to find efficencies
         for j = 1:ps.N
             # Find vector of ΔG0 values
@@ -1000,6 +1003,11 @@ function basic_info()
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/Reactions$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(log10.(abds),label="",xlabel="Species abundance (log of number of cells)",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/Abundance$(Rl)-$(Ru)$(syn)$(Ni).png")
+    # Rescale distribution to mean zero
+    rrabs = rabs .- mean(rabs)
+    # Then plot rescaled abundances
+    histogram(rrabs,label="",xlabel="Rescaled log relative abundances",title=tl)
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/RelAbundance$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(effs*100.0,bins=ebs,label="",xlabel="Efficency",title=tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/Efficency$(Rl)-$(Ru)$(syn)$(Ni).png")
     scatter([Rs],[ms],yerror=sds,label="")
@@ -1112,6 +1120,10 @@ function multi_sets()
     mna = zeros(Float64,Ns,Nr)
     # Container to store median abundances
     mda = zeros(Float64,Ns,Nr)
+    # Container to store total abundances
+    tab = zeros(Float64,Ns,Nr)
+    # Empty container for abundances
+    abs = Array{Array{Float64,1},2}(undef,Ns,Nr)
     # Preallocate labels
     lbs = Array{String}(undef,Ns)
     # Loop over parameter sets
@@ -1131,6 +1143,8 @@ function multi_sets()
             inf_out = load(ofile,"inf_out")
             # Save number of survivors
             svs[i,j] = ps.N
+            # Save abundances
+            abs[i,j] = inf_out[1:ps.N]
             # Loop over metabolites to find those with non-zero concentrations
             cm = 0 # Set up counter
             mm = 0 # Lowest metabolite
@@ -1148,6 +1162,8 @@ function multi_sets()
             # Save mean and median abundances
             mna[i,j] = mean(inf_out[1:ps.N])
             mda[i,j] = median(inf_out[1:ps.N])
+            # Also save total abundance
+            tab[i,j] = sum(inf_out[1:ps.N])
         end
         # Make and save label
         if Rls[i] != Rus[i]
@@ -1162,6 +1178,7 @@ function multi_sets()
     tmn = Array{Float64,1}(undef,Ns*Nr)
     tmd = Array{Float64,1}(undef,Ns*Nr)
     tdv = Array{Int64,1}(undef,Ns*Nr)
+    tta = Array{Float64,1}(undef,Ns*Nr)
     # Fill out with data
     for i = 1:Ns
         for j = 1:Nr
@@ -1170,10 +1187,27 @@ function multi_sets()
             tmn[(i-1)*Nr+j] = mna[i,j]
             tmd[(i-1)*Nr+j] = mda[i,j]
             tdv[(i-1)*Nr+j] = mbs[i,j]
+            tta[(i-1)*Nr+j] = tab[i,j]
         end
     end
     # Collect everything into one data frame
-    survivors = DataFrame(PSet=tl,ns=tsv,mn=tmn,md=tmd,sdv=tdv)
+    survivors = DataFrame(PSet=tl,ns=tsv,mn=tmn,md=tmd,sdv=tdv,ta=tta)
+    # Need to make a second data frame
+    absT = Float64[]
+    lbT = String[]
+    # Fill out with data
+    for i = 1:Ns
+        for j = 1:Nr
+            # Cat data into a single vector
+            absT = cat(absT,abs[i,j],dims=1)
+            # Temporary vector of labels
+            tl = fill(lbs[i],length(abs[i,j]))
+            # Cat into long vector of labels
+            lbT = cat(lbT,tl,dims=1)
+        end
+    end
+    # Collect everything into one data frame
+    abundances = DataFrame(PSet=lbT,abun=absT)
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=200)
@@ -1210,6 +1244,14 @@ function multi_sets()
     @df survivors violin!(:PSet,:sdv,linewidth=0,label="",color=wongc[2])
     @df survivors boxplot!(:PSet,:sdv,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
     savefig("Output/SubDiv.png")
+    plot(title="All abundances",ylabel="Strain abundance")
+    @df abundances violin!(:PSet,:abun,linewidth=0,label="",color=wongc[2])
+    @df abundances boxplot!(:PSet,:abun,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    savefig("Output/AllAbund.png")
+    plot(title="Total abundances",ylabel="Total abundance (per ecosystem)")
+    @df survivors violin!(:PSet,:ta,linewidth=0,label="",color=wongc[2])
+    @df survivors boxplot!(:PSet,:ta,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    savefig("Output/TotalAbund.png")
     return(nothing)
 end
 

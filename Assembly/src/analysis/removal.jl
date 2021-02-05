@@ -6,7 +6,7 @@ using SymPy
 # function to read in data set and remove non-long term suvivors
 function removal()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 5
+    if length(ARGS) < 6
         error("Insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
@@ -15,6 +15,7 @@ function removal()
     syn = false
     nR = 0
     Ni = 0
+    en = ARGS[6]
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
@@ -23,7 +24,7 @@ function removal()
         nR = parse(Int64,ARGS[4])
         Ni = parse(Int64,ARGS[5])
     catch e
-           error("should provide 3 integers and a bool")
+           error("should provide 4 integers, a bool, and a string")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -50,9 +51,9 @@ function removal()
         # Assume that output files don't already exist
         outp = false
         # Three output files to check the existence of
-        outf1 = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
-        outf2 = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
-        outf3 = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        outf1 = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        outf2 = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        outf3 = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         # Check if all three exist
         if isfile(outf1) && isfile(outf2) && isfile(outf3)
             outp = true
@@ -63,15 +64,15 @@ function removal()
             flush(stdout)
         end
         # Read in relevant files
-        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
@@ -98,15 +99,15 @@ function removal()
             cnt += 1
             # Write out old data if stable
             # Save extinct strains
-            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
                 write(file,"ded",ded)
             end
             # the reduced parameter sets
-            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
                 write(file,"ps",ps)
             end
             # and the full output
-            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
                 # Save final output
                 write(file,"out",out)
                 # This output is basically the output at infinity
@@ -255,15 +256,15 @@ function removal()
             # Gather and output new reduceded data
             ded = cat(ded,ded2,dims=1)
             # Save extinct strains
-            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
                 write(file,"ded",ded)
             end
             # the reduced parameter sets
-            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
                 write(file,"ps",ps)
             end
             # and the full output
-            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
+            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
                 # Save final output
                 write(file,"out",nout)
                 # Save the output at infinity here

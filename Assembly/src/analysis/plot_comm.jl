@@ -1196,6 +1196,7 @@ function multi_sets()
     absT = Float64[]
     lbT = String[]
     mn_abs = zeros(Ns)
+    sd_abs = zeros(Ns)
     # Fill out with data
     for i = 1:Ns
         # Make temporary vector for parameter set
@@ -1210,11 +1211,14 @@ function multi_sets()
         end
         # Calculate and store mean of temporary vector
         mn_abs[i] = mean(abst)
+        sd_abs[i] = std(abst)
         # Cat temporary vector into overall vector
         absT = cat(absT,abst,dims=1)
     end
     # Collect everything into one data frame
     abundances = DataFrame(PSet=lbT,abun=absT)
+    # Find indices of labels
+    lbI = sortperm(lbs)
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=200)
@@ -1227,7 +1231,8 @@ function multi_sets()
     for i = 1:Ns
         # Calculate mean
         mn = mean(svs[i,:])
-        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+        sdn = std(svs[i,:])
+        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/Diversity.png")
     plot(title="Mean abundances",ylabel="Mean abundance")
@@ -1237,7 +1242,8 @@ function multi_sets()
     for i = 1:Ns
         # Calculate mean
         mn = mean(mna[i,:])
-        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+        sdn = std(mna[i,:])
+        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/MeanAbund.png")
     plot(title="Median abundances",ylabel="Median abundance")
@@ -1247,7 +1253,8 @@ function multi_sets()
     for i = 1:Ns
         # Calculate mean
         mn = mean(mda[i,:])
-        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+        sdn = std(mda[i,:])
+        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/MedianAbund.png")
     # Make scatter plot of substrate diversity
@@ -1272,7 +1279,8 @@ function multi_sets()
     for i = 1:Ns
         # Calculate mean
         mn = mean(mbs[i,:])
-        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+        sdn = std(mbs[i,:])
+        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/SubDiv.png")
     plot(title="All abundances",ylabel="Strain abundance")
@@ -1280,7 +1288,7 @@ function multi_sets()
     @df abundances boxplot!(:PSet,:abun,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
     # Plot means
     for i = 1:Ns
-        scatter!([i-0.5],[mn_abs[i]],label="",markershape=:star5,color=wongc[5],markersize=10)
+        scatter!([lbI[i]-0.5],[mn_abs[i]],yerror=[sd_abs[i]],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/AllAbund.png")
     plot(title="Total abundances",ylabel="Total abundance (per ecosystem)")
@@ -1290,7 +1298,8 @@ function multi_sets()
     for i = 1:Ns
         # Calculate mean
         mn = mean(tab[i,:])
-        scatter!([i-0.5],[mn],label="",markershape=:star5,color=wongc[5],markersize=10)
+        sdn = std(tab[i,:])
+        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/TotalAbund.png")
     return(nothing)

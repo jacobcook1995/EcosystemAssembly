@@ -86,6 +86,12 @@ function quantify_ints()
             ded = load(efile,"ded")
             # For each strain record the metabolities it interacts with
             mts = Array{Array{Int64,1},1}(undef,ps.N)
+            # Preallocate vector of forces
+            F = Array{Sym,1}(undef,3*ps.N+ps.M)
+            # Now find vector of forces
+            F = Force(ps,F)
+            # Find intial unperturbed force
+            Fi = nForce(F,inf_out,ps)
             # Loop over all strains
             for j = 1:ps.N
                 # Find substrates
@@ -157,7 +163,7 @@ function quantify_ints()
                     # Find perturbed forces
                     nF = nForce(F,pout,ps)
                     # Only interested in the forces on the ATP
-                    Fatp[:,j] = nF[(ps.N+ps.M+1):(2*ps.N+ps.M)]
+                    Fatp[:,j] = nF[(ps.N+ps.M+1):(2*ps.N+ps.M)] .- Fi[(ps.N+ps.M+1):(2*ps.N+ps.M)]
                     # Preallocate postive/negative/zero vector
                     pn0 = zeros(Int64,ps.N)
                     # Preallocate supply/consumption/zero vector
@@ -929,4 +935,4 @@ function ints_scat()
     return(nothing)
 end
 
-@time ints_scat()
+@time quantify_ints()

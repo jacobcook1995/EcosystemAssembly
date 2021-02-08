@@ -582,8 +582,8 @@ end
 # function I can use to test particular parameter sets
 function test()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 4
-        error("Insufficent inputs provided (looking for 4)")
+    if length(ARGS) < 6
+        error("Insufficent inputs provided (looking for 6)")
     end
     # Preallocate the variables I want to extract from the input
     Rl = 0
@@ -591,6 +591,7 @@ function test()
     syn = true
     Nr = 0
     Ns = 0
+    en = ARGS[6]
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
@@ -599,7 +600,7 @@ function test()
         Nr = parse(Int64,ARGS[4])
         Ns = parse(Int64,ARGS[5])
     catch e
-           error("need to provide 4 integers and a bool")
+            error("need to provide 4 integers and a bool")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -617,15 +618,15 @@ function test()
     end
     println("Compiled!")
     # Read in relevant files
-    pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
+    pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(pfile)
         error("run $(Nr) is missing a parameter file")
     end
-    ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
+    ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(ofile)
         error("run $(Nr) is missing an output file")
     end
-    efile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
+    efile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(efile)
         error("run $(Nr) is missing an extinct file")
     end
@@ -804,8 +805,8 @@ end
 # Function to plot the basic information about the simulations
 function basic_info()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 5
-        error("Insufficent inputs provided (looking for 4)")
+    if length(ARGS) < 6
+        error("Insufficent inputs provided (looking for 6)")
     end
     # Preallocate the variables I want to extract from the input
     Rl = 0
@@ -813,6 +814,7 @@ function basic_info()
     syn = true
     rps = 0
     Ni = 0
+    en = ARGS[6]
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
@@ -821,7 +823,7 @@ function basic_info()
         rps = parse(Int64,ARGS[4])
         Ni = parse(Int64,ARGS[5])
     catch e
-        error("need to provide 3 integers and a bool")
+        error("need to provide 4 integers, and a bool")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -860,15 +862,15 @@ function basic_info()
     # Loop over repeats
     for i = 1:rps
         # Read in relevant files
-        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
@@ -998,36 +1000,36 @@ function basic_info()
     rbs = range(Rl-0.25,stop=Ru+0.25,length=2*(Ru-Rl+1))
     # Plot histograms of the data
     histogram(svs,bins=bs,label="",xlabel="Number of strains",title=tl)
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/Survivors$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/Survivors$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(rcs,bins=rbs,label="",xlabel="Number of reactions",title=tl)
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/Reactions$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/Reactions$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(log10.(abds),label="",xlabel="Species abundance (log of number of cells)",title=tl)
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/Abundance$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/Abundance$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Rescale distribution to mean zero
     rrabs = rabs .- mean(rabs)
     # Then plot rescaled abundances
     histogram(rrabs,label="",xlabel="Rescaled log relative abundances",title=tl)
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/RelAbundance$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelAbundance$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(effs*100.0,bins=ebs,label="",xlabel="Efficency",title=tl)
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/Efficency$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/Efficency$(Rl)-$(Ru)$(syn)$(Ni).png")
     scatter([Rs],[ms],yerror=sds,label="")
     plot!(title=tl,xlabel="Number of reactions",ylabel="Strain abundance (number of cells)")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/AbvsRct$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/AbvsRct$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(mbs,bins=mbn,label="",xlabel="Final number of metabolites",title=tl)
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/NoMets$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/NoMets$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(hmb,bins=mbn,label="",xlabel="Lowest energy metabolite",title=tl)
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/LowMet$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/LowMet$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Make complete collection of substrates
     SbsT = Array{Int64,1}(undef,0)
     # Plot number of reactions using each substrate for each reaction number
     for j = 1:Ru-Rl+1
         histogram(Sbs[j],bins=mbn,label="",title="Strains with $(j+Rl-1) reactions")
         plot!(xlabel="Metabolite used by reaction")
-        savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/WhichSubs$(Rl)-$(Ru)$(syn)$(Ni)R=$(j+Rl-1).png")
+        savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/WhichSubs$(Rl)-$(Ru)$(syn)$(Ni)R=$(j+Rl-1).png")
         SbsT = cat(SbsT,Sbs[j],dims=1)
     end
     histogram(SbsT,bins=mbn,label="",title="All strains",xlabel="Metabolite used by reaction")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/WhichSubs$(Rl)-$(Ru)$(syn)$(Ni)All.png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/WhichSubs$(Rl)-$(Ru)$(syn)$(Ni)All.png")
     # Make plot for strength of generalism
     plot(title="Generalism vs Substrate Diversity ($(Rl)-$(Ru) $(syn))",ylabel="Average number of reactions")
     plot!(xlabel="Prob of viable reaction")
@@ -1038,7 +1040,7 @@ function basic_info()
             scatter!([i/(M-1)],[mean(avR[i])],label="")
         end
     end
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/GenvsDiv$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/GenvsDiv$(Rl)-$(Ru)$(syn)$(Ni).png")
     return(nothing)
 end
 

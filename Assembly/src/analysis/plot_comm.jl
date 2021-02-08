@@ -1066,6 +1066,7 @@ function multi_sets()
     Rls = zeros(Int64,Ns)
     Rus = zeros(Int64,Ns)
     syns = fill(false,Ns)
+    ens = fill("",Ns)
     for i = 1:Ns
         vld = false
         while vld == false
@@ -1091,24 +1092,27 @@ function multi_sets()
             catch e
                 syn = undef # Set to invalid value
             end
+            println("Provide energy supply level (l/m/h)")
+            en = readline()
             # Repeat checking step
             rpt = false
             # Loop over previous entries
             for j = 1:(i-1)
-                if Ru == Rus[j] && Rl == Rls[j] && syn == syns[j]
+                if Ru == Rus[j] && Rl == Rls[j] && syn == syns[j] && en == ens[j]
                     rpt = true
                 end
             end
             # Check if there is a directory containing these parameter sets
             if rpt == true
                 println("Parameter set repeated, please enter an orginal one")
-            elseif ~isdir("Data/$(Rl)-$(Ru)$(syn)$(Ni)")
+            elseif ~isdir("Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)")
                 println("Parameter set doesn't exist please reenter")
             else
                 vld = true
                 Rls[i] = Rl
                 Rus[i] = Ru
                 syns[i] = syn
+                ens[i] = en
             end
         end
     end
@@ -1132,11 +1136,11 @@ function multi_sets()
     for i = 1:Ns
         for j = 1:Nr
             # Read in relevant files
-            pfile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)/RedParasReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
+            pfile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)$(ens[i])/RedParasReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
             if ~isfile(pfile)
                 error("parameter set $(i) run $(j) is missing a parameter file")
             end
-            ofile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)/RedOutputReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
+            ofile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)$(ens[i])/RedOutputReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
             if ~isfile(ofile)
                 error("parameter set $(i) run $(j) is missing an output file")
             end
@@ -1169,9 +1173,9 @@ function multi_sets()
         end
         # Make and save label
         if Rls[i] != Rus[i]
-            lbs[i] = "$(Rls[i])-$(Rus[i]) $(syns[i])"
+            lbs[i] = "$(Rls[i])-$(Rus[i]) $(syns[i]) $(ens[i])"
         else
-            lbs[i] = "$(Rus[i]) $(syns[i])"
+            lbs[i] = "$(Rus[i])-$(syns[i]) $(ens[i])"
         end
     end
     # Make empty containers to store
@@ -1221,6 +1225,11 @@ function multi_sets()
     abundances = DataFrame(PSet=lbT,abun=absT)
     # Find indices of labels
     lbI = sortperm(lbs)
+    # Find corresponding indices of reordered labels
+    inds = zeros(Int64,Ns)
+    for i = 1:Ns
+        inds[i] = findfirst(x->x==i,lbI)
+    end
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=200)
@@ -1234,7 +1243,7 @@ function multi_sets()
         # Calculate mean
         mn = mean(svs[i,:])
         sdn = std(svs[i,:])
-        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/Diversity.png")
     plot(title="Mean abundances",ylabel="Mean abundance")
@@ -1245,7 +1254,7 @@ function multi_sets()
         # Calculate mean
         mn = mean(mna[i,:])
         sdn = std(mna[i,:])
-        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/MeanAbund.png")
     plot(title="Median abundances",ylabel="Median abundance")
@@ -1256,7 +1265,7 @@ function multi_sets()
         # Calculate mean
         mn = mean(mda[i,:])
         sdn = std(mda[i,:])
-        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/MedianAbund.png")
     # Make scatter plot of substrate diversity
@@ -1282,7 +1291,7 @@ function multi_sets()
         # Calculate mean
         mn = mean(mbs[i,:])
         sdn = std(mbs[i,:])
-        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/SubDiv.png")
     plot(title="All abundances",ylabel="Strain abundance")
@@ -1290,7 +1299,7 @@ function multi_sets()
     @df abundances boxplot!(:PSet,:abun,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
     # Plot means
     for i = 1:Ns
-        scatter!([lbI[i]-0.5],[mn_abs[i]],yerror=[sd_abs[i]],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([inds[i]-0.5],[mn_abs[i]],yerror=[sd_abs[i]],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/AllAbund.png")
     plot(title="Total abundances",ylabel="Total abundance (per ecosystem)")
@@ -1301,7 +1310,7 @@ function multi_sets()
         # Calculate mean
         mn = mean(tab[i,:])
         sdn = std(tab[i,:])
-        scatter!([lbI[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/TotalAbund.png")
     return(nothing)

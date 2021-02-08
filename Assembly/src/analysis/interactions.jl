@@ -938,4 +938,4 @@ function ints_scat()
     return(nothing)
 end
 
-@time ints_plot()
+@time ints_scat()

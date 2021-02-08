@@ -626,8 +626,8 @@ end
 # function to plot interactions types
 function ints_plot()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 5
-        error("Insufficent inputs provided (looking for 5)")
+    if length(ARGS) < 6
+        error("Insufficent inputs provided (looking for 6)")
     end
     # Preallocate the variables I want to extract from the input
     Rl = 0
@@ -635,6 +635,7 @@ function ints_plot()
     syn = true
     rps = 0
     Ni = 0
+    en = ARGS[6]
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
@@ -643,7 +644,7 @@ function ints_plot()
         rps = parse(Int64,ARGS[4])
         Ni = parse(Int64,ARGS[5])
     catch e
-            error("need to provide 3 integers and a bool")
+            error("need to provide 4 integers and a bool")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -678,19 +679,19 @@ function ints_plot()
     # Loop over parameter sets
     for i = 1:rps
         # Read in relevant files
-        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
-        ifile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        ifile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(ifile)
             error("run $(i) is missing an interaction file")
         end
@@ -758,13 +759,13 @@ function ints_plot()
     histogram!(ins2,fillalpha=0.75,label="Facilitation")
     histogram!(ins3,fillalpha=0.75,label="Syntrophy")
     histogram!(ins4,fillalpha=0.75,label="Pollution")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/IntType$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/IntType$(Rl)-$(Ru)$(syn)$(Ni).png")
     plot(title=tl,xlabel="Strength of interactions",ylabel="Number of ecosystems")
     histogram!(log10.(mean1),fillalpha=0.75,label="Competiton")
     histogram!(log10.(mean2),fillalpha=0.75,label="Facilitation")
     histogram!(log10.(mean3),fillalpha=0.75,label="Syntrophy")
     histogram!(log10.(mean4),fillalpha=0.75,label="Pollution")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/IntStrength$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/IntStrength$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Make range of ticks to label
     rgn = collect(-14:2:-2)
     ergn = fill("",length(rgn))
@@ -778,15 +779,15 @@ function ints_plot()
     histogram!(log10.(sts2),fillalpha=0.75,label="Facilitation")
     histogram!(log10.(sts3),fillalpha=0.75,label="Syntrophy")
     histogram!(log10.(sts4),fillalpha=0.75,label="Pollution")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/AllIntStrength$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/AllIntStrength$(Rl)-$(Ru)$(syn)$(Ni).png")
     return(nothing)
 end
 
 # function to plot interactions types
 function ints_scat()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 5
-        error("Insufficent inputs provided (looking for 5)")
+    if length(ARGS) < 6
+        error("Insufficent inputs provided (looking for 6)")
     end
     # Preallocate the variables I want to extract from the input
     Rl = 0
@@ -794,6 +795,7 @@ function ints_scat()
     syn = true
     rps = 0
     Ni = 0
+    en = ARGS[6]
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
@@ -839,19 +841,19 @@ function ints_scat()
     # Loop over parameter sets
     for i = 1:rps
         # Read in relevant files
-        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(pfile)
             error("run $(i) is missing a parameter file")
         end
-        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(ofile)
             error("run $(i) is missing an output file")
         end
-        efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(efile)
             error("run $(i) is missing an extinct file")
         end
-        ifile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        ifile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
         if ~isfile(ifile)
             error("run $(i) is missing an interaction file")
         end
@@ -907,33 +909,33 @@ function ints_scat()
     wongc = get_color_palette(wong_palette,57)
     # Plot diversity against number of syntrophic interactions
     scatter(ins3,dvs,label="",xlabel="Number of syntrophic interactions",ylabel="Surviving strains")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/NumbInts$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/NumbInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # or maybe against mean interaction strength
     plot(xscale=:log10)
     scatter!(i3str,dvs,label="",xlabel="Mean syntrophic interaction strength",ylabel="Surviving strains")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/StrInts$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/StrInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative number of syntrophy interactions against diversity
     scatter(rsyn,dvs,label="",xlabel="Relative number of syntrophic interactions",ylabel="Surviving strains")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/RelNumbInts$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelNumbInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative number of thermodynamic interactions against diversity
     scatter(rthm,dvs,label="",xlabel="Relative number of thermodynamic interactions",ylabel="Surviving strains")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/RelThermInts$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelThermInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative number of cooperative interactions against diversity
     scatter(rcp,dvs,label="",xlabel="Relative number of cooperative interactions",ylabel="Surviving strains")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/RelCoopInts$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelCoopInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative strength of syntrophic interactions
     scatter(mean3./(mean1.+mean2.+mean3.+mean4),dvs,label="")
     plot!(xlabel="Relative strength of syntrophic interactions",ylabel="Surviving strains")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/RelSynStr$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelSynStr$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative strength of syntrophic interactions
     scatter((mean3.+mean4)./(mean1.+mean2.+mean3.+mean4),dvs,label="")
     plot!(xlabel="Relative strength of thermodynamic interactions",ylabel="Surviving strains")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/RelThermStr$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelThermStr$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative strength of cooperative interactions
     scatter((mean2.+mean4)./(mean1.+mean2.+mean3.+mean4),dvs,label="")
     plot!(xlabel="Relative strength of cooperative interactions",ylabel="Surviving strains")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/RelCoopStr$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelCoopStr$(Rl)-$(Ru)$(syn)$(Ni).png")
     return(nothing)
 end
 
-@time quantify_ints()
+@time ints_plot()

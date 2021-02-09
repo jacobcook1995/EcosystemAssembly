@@ -1092,7 +1092,7 @@ function multi_sets()
             catch e
                 syn = undef # Set to invalid value
             end
-            println("Provide energy supply level (l/m/h)")
+            println("Provide energy supply level (l/i/h)")
             en = readline()
             # Repeat checking step
             rpt = false
@@ -1175,7 +1175,7 @@ function multi_sets()
         if Rls[i] != Rus[i]
             lbs[i] = "$(Rls[i])-$(Rus[i]) $(syns[i]) $(ens[i])"
         else
-            lbs[i] = "$(Rus[i])-$(syns[i]) $(ens[i])"
+            lbs[i] = "$(Rus[i]) $(syns[i]) $(ens[i])"
         end
     end
     # Make empty containers to store
@@ -1316,8 +1316,108 @@ function multi_sets()
     return(nothing)
 end
 
-if length(ARGS) == 3
-    @time multi_sets()
-else
-    @time basic_info()
+# Function to plot survivorship with time
+function plot_survivors()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 7
+        error("Insufficent inputs provided (looking for 7)")
+    end
+    # Preallocate the variables I want to extract from the input
+    Rl = 0
+    Ru = 0
+    syn = true
+    rps = 0
+    Ni = 0
+    en = ARGS[6]
+    fT = 0.0
+    # Check that all arguments can be converted to integers
+    try
+        Rl = parse(Int64,ARGS[1])
+        Ru = parse(Int64,ARGS[2])
+        syn = parse(Bool,ARGS[3])
+        rps = parse(Int64,ARGS[4])
+        Ni = parse(Int64,ARGS[5])
+        fT = parse(Float64,ARGS[7])
+    catch e
+        error("need to provide 4 integers, a bool, a string, and a float")
+    end
+    # Check that simulation type is valid
+    if Rl < 1
+        error("lower bound has to be at least one reaction")
+    end
+    if Ru < Rl
+        error("upper bound can't be lower than the lower bound")
+    end
+    # Check that number of simulations is greater than 0
+    if rps < 1
+        error("number of repeats can't be less than 1")
+    end
+    if Ni < 1
+        error("number of initial strains can't be less than 1")
+    end
+    if fT <= 0.0 || fT > 1.0
+        error("fraction of time considered can't be less than 1")
+    end
+    println("Compiled!")
+    # Choosing to sample a thousand points for now
+    ips = 1000
+    # Read in first data file
+    ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run1Ns$(Ni).jld"
+    if ~isfile(ofile)
+        error("run 1 is missing an output file")
+    end
+    T = load(ofile,"T")
+    # An extract maximum time
+    Tmax = T[end]
+    # Make vector of times to check at
+    Ts = collect(range(0.0,Tmax*fT,length=ips))
+    # Preallocate number of survivors
+    svs = zeros(ips,rps)
+    # Loop over repeats
+    for i = 1:rps
+        # Read in relevant files
+        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+        if ~isfile(ofile)
+            error("run $(i) is missing an output file")
+        end
+        # Load full dynamics
+        C = load(ofile,"C")
+        T = load(ofile,"T")
+        # Loop over the time points
+        for j = 1:ips
+            # Find first time point greater than or equal to one were looking for
+            ind = findfirst(x->x>=Ts[j],T)
+            # If time points are equal just save number of survivors
+            if T[ind] == Ts[j]
+                svs[j,i] = count(x->x>0.0,C[ind,1:Ni])
+            else
+                # Otherwise need to (linearly) interpolate
+                dT = (T[ind]-Ts[j])/(T[ind]-T[ind-1])
+                svs[j,i] = (1-dT)*count(x->x>0.0,C[ind,1:Ni]) + dT*count(x->x>0.0,C[ind-1,1:Ni])
+            end
+        end
+    end
+    # Preallocate means, sds and ribbons
+    msvs = zeros(ips)
+    sdsvs = zeros(ips)
+    # Find mean and std of survivor numbers
+    for i = 1:ips
+        msvs[i] = mean(svs[i,:])
+        sdsvs[i] = std(svs[i,:])
+    end
+    # Set up plotting
+    pyplot()
+    # Set a color-blind friendly palette
+    theme(:wong2,dpi=200)
+    plot(Ts,msvs,ribbon=sdsvs,label="")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/SvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
+    return(nothing)
 end
+
+@time plot_survivors()
+
+# if length(ARGS) == 3
+#     @time multi_sets()
+# else
+#     @time basic_info()
+# end

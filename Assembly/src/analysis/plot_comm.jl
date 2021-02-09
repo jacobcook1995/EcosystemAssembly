@@ -1319,8 +1319,8 @@ end
 # Function to plot survivorship with time
 function plot_survivors()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 7
-        error("Insufficent inputs provided (looking for 7)")
+    if length(ARGS) < 6
+        error("Insufficent inputs provided (looking for 6)")
     end
     # Preallocate the variables I want to extract from the input
     Rl = 0
@@ -1328,7 +1328,6 @@ function plot_survivors()
     syn = true
     rps = 0
     Ni = 0
-    en = ARGS[6]
     fT = 0.0
     # Check that all arguments can be converted to integers
     try
@@ -1337,9 +1336,9 @@ function plot_survivors()
         syn = parse(Bool,ARGS[3])
         rps = parse(Int64,ARGS[4])
         Ni = parse(Int64,ARGS[5])
-        fT = parse(Float64,ARGS[7])
+        fT = parse(Float64,ARGS[6])
     catch e
-        error("need to provide 4 integers, a bool, a string, and a float")
+        error("need to provide 4 integers, a bool, and a float")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -1359,58 +1358,103 @@ function plot_survivors()
         error("fraction of time considered can't be less than 1")
     end
     println("Compiled!")
+    # Want to look at all three energy conditions
+    ens = ["l","i","h"]
     # Choosing to sample a thousand points for now
     ips = 1000
-    # Read in first data file
-    ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run1Ns$(Ni).jld"
+    # Read in first data file (chose l)
+    ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)l/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run1Ns$(Ni).jld"
     if ~isfile(ofile)
-        error("run 1 is missing an output file")
+        error("run 1 energy supply l is missing an output file")
     end
+    pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)l/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run1Ns$(Ni).jld"
+    if ~isfile(ofile)
+        error("run 1 energy supply l is missing an parameter file")
+    end
+    ps = load(pfile,"ps")
     T = load(ofile,"T")
-    # An extract maximum time
+    # And extract maximum time
     Tmax = T[end]
     # Make vector of times to check at
     Ts = collect(range(0.0,Tmax*fT,length=ips))
-    # Preallocate number of survivors
-    svs = zeros(ips,rps)
+    # Preallocate number of survivors, and substrate diversities
+    svs = zeros(ips,rps,length(ens))
+    dv = zeros(ips,rps,length(ens))
+    dvf = zeros(ips,rps,length(ens))
+    # Set threshold for substrate being properly diversified
+    tsh = 1e-7
     # Loop over repeats
     for i = 1:rps
-        # Read in relevant files
-        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
-        if ~isfile(ofile)
-            error("run $(i) is missing an output file")
-        end
-        # Load full dynamics
-        C = load(ofile,"C")
-        T = load(ofile,"T")
-        # Loop over the time points
-        for j = 1:ips
-            # Find first time point greater than or equal to one were looking for
-            ind = findfirst(x->x>=Ts[j],T)
-            # If time points are equal just save number of survivors
-            if T[ind] == Ts[j]
-                svs[j,i] = count(x->x>0.0,C[ind,1:Ni])
-            else
-                # Otherwise need to (linearly) interpolate
-                dT = (T[ind]-Ts[j])/(T[ind]-T[ind-1])
-                svs[j,i] = (1-dT)*count(x->x>0.0,C[ind,1:Ni]) + dT*count(x->x>0.0,C[ind-1,1:Ni])
+        for j = 1:length(ens)
+            # Read in relevant files
+            ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(ens[j])/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld"
+            if ~isfile(ofile)
+                error("run $(i) energy supply $(ens[j]) is missing an output file")
+            end
+            # Load full dynamics
+            C = load(ofile,"C")
+            T = load(ofile,"T")
+            # Loop over the time points
+            for k = 1:ips
+                # Find first time point greater than or equal to one were looking for
+                ind = findfirst(x->x>=Ts[k],T)
+                # If time points are equal just save number of survivors
+                if T[ind] == Ts[k]
+                    svs[k,i,j] = count(x->x>0.0,C[ind,1:Ni])
+                    dv[k,i,j] = count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)])
+                    dvf[k,i,j] = count(x->x>tsh,C[ind,(Ni+1):(Ni+ps.M-1)])
+                else
+                    # Otherwise need to (linearly) interpolate
+                    dT = (T[ind]-Ts[k])/(T[ind]-T[ind-1])
+                    svs[k,i,j] = (1-dT)*count(x->x>0.0,C[ind,1:Ni]) + dT*count(x->x>0.0,C[ind-1,1:Ni])
+                    dv[k,i,j] = (1-dT)*count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)]) + dT*count(x->x>0.0,C[ind-1,(Ni+1):(Ni+ps.M-1)])
+                    dvf[k,i,j] = (1-dT)*count(x->x>tsh,C[ind,(Ni+1):(Ni+ps.M-1)]) + dT*count(x->x>tsh,C[ind-1,(Ni+1):(Ni+ps.M-1)])
+                end
             end
         end
     end
-    # Preallocate means, sds and ribbons
-    msvs = zeros(ips)
-    sdsvs = zeros(ips)
-    # Find mean and std of survivor numbers
+    # Preallocate means and sds
+    msvs = zeros(ips,length(ens))
+    sdsvs = zeros(ips,length(ens))
+    mdv = zeros(ips,length(ens))
+    sddv = zeros(ips,length(ens))
+    mdvf = zeros(ips,length(ens))
+    sddvf = zeros(ips,length(ens))
+    # Find mean and std of survivor numbers and substrate diversification
     for i = 1:ips
-        msvs[i] = mean(svs[i,:])
-        sdsvs[i] = std(svs[i,:])
+        for j = 1:length(ens)
+            msvs[i,j] = mean(svs[i,:,j])
+            sdsvs[i,j] = std(svs[i,:,j])
+            mdv[i,j] = mean(dv[i,:,j])
+            sddv[i,j] = std(dv[i,:,j])
+            mdvf[i,j] = mean(dvf[i,:,j])
+            sddvf[i,j] = std(dvf[i,:,j])
+        end
     end
     # Set up plotting
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=200)
-    plot(Ts,msvs,ribbon=sdsvs,label="")
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/SvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
+    # Make labels
+    lb = ["low","intermediate","high"]
+    # Plot survivors
+    plot(title="Survival ($(Rl)-$(Ru) $(syn))",xlabel="Time",ylabel="Number of surviving strains")
+    for i = 1:length(ens)
+        plot!(Ts,msvs[:,i],ribbon=sdsvs[:,i],label=lb[i])
+    end
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/SvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
+    # Plot substrate diversity
+    plot(title="Diversification ($(Rl)-$(Ru) $(syn))",xlabel="Time",ylabel="Number of substrates")
+    for i = 1:length(ens)
+        plot!(Ts,mdv[:,i],ribbon=sddv[:,i],label=lb[i])
+    end
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/DvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
+    # Plot substrate diversity
+    plot(title="Diversification ($(Rl)-$(Ru) $(syn))",xlabel="Time",ylabel="Number of substrates (above threshold)")
+    for i = 1:length(ens)
+        plot!(Ts,mdvf[:,i],ribbon=sddvf[:,i],label=lb[i])
+    end
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/FullDvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
     return(nothing)
 end
 

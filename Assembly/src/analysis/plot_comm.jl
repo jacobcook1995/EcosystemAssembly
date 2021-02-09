@@ -1377,10 +1377,11 @@ function plot_survivors()
     Tmax = T[end]
     # Make vector of times to check at
     Ts = collect(range(0.0,Tmax*fT,length=ips))
-    # Preallocate number of survivors, and substrate diversities
+    # Preallocate number of survivors, substrate diversities, and number of strains declining
     svs = zeros(ips,rps,length(ens))
     dv = zeros(ips,rps,length(ens))
     dvf = zeros(ips,rps,length(ens))
+    dcl = zeros(ips,rps,length(ens))
     # Set threshold for substrate being properly diversified
     tsh = 1e-7
     # Loop over repeats
@@ -1410,6 +1411,12 @@ function plot_survivors()
                     dv[k,i,j] = (1-dT)*count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)]) + dT*count(x->x>0.0,C[ind-1,(Ni+1):(Ni+ps.M-1)])
                     dvf[k,i,j] = (1-dT)*count(x->x>tsh,C[ind,(Ni+1):(Ni+ps.M-1)]) + dT*count(x->x>tsh,C[ind-1,(Ni+1):(Ni+ps.M-1)])
                 end
+                # For the declines, don't think theres any point interpolating
+                if k != 1
+                    dcl[k,i,j] = count(x->x<0.0,C[ind,1:Ni].-C[ind-1,1:Ni])
+                else
+                    dcl[k,i,j] = NaN
+                end
             end
         end
     end
@@ -1420,6 +1427,8 @@ function plot_survivors()
     sddv = zeros(ips,length(ens))
     mdvf = zeros(ips,length(ens))
     sddvf = zeros(ips,length(ens))
+    mdcl = zeros(ips,length(ens))
+    sddcl = zeros(ips,length(ens))
     # Find mean and std of survivor numbers and substrate diversification
     for i = 1:ips
         for j = 1:length(ens)
@@ -1429,6 +1438,8 @@ function plot_survivors()
             sddv[i,j] = std(dv[i,:,j])
             mdvf[i,j] = mean(dvf[i,:,j])
             sddvf[i,j] = std(dvf[i,:,j])
+            mdcl[i,j] = mean(dcl[i,:,j])
+            sddcl[i,j] = std(dcl[i,:,j])
         end
     end
     # Set up plotting
@@ -1455,6 +1466,12 @@ function plot_survivors()
         plot!(Ts,mdvf[:,i],ribbon=sddvf[:,i],label=lb[i])
     end
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/FullDvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
+    # Plot number of declining strains
+    plot(title="Decline ($(Rl)-$(Ru) $(syn))",xlabel="Time",ylabel="Number of decling strains")
+    for i = 1:length(ens)
+        plot!(Ts,mdcl[:,i],ribbon=sddcl[:,i],label=lb[i])
+    end
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/DeclTime$(Rl)-$(Ru)$(syn)$(Ni).png")
     return(nothing)
 end
 

@@ -1246,7 +1246,7 @@ function multi_sets()
         scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/Diversity.png")
-    plot(title="Mean abundances",ylabel="Mean abundance")
+    plot(title="Mean abundances",ylabel="Mean abundance",yaxis=:log10)
     @df survivors violin!(:PSet,:mn,linewidth=0,label="",color=wongc[2])
     @df survivors boxplot!(:PSet,:mn,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
     # Plot means
@@ -1257,7 +1257,7 @@ function multi_sets()
         scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/MeanAbund.png")
-    plot(title="Median abundances",ylabel="Median abundance")
+    plot(title="Median abundances",ylabel="Median abundance",yaxis=:log10)
     @df survivors violin!(:PSet,:md,linewidth=0,label="",color=wongc[2])
     @df survivors boxplot!(:PSet,:md,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
     # Plot means
@@ -1294,7 +1294,7 @@ function multi_sets()
         scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/SubDiv.png")
-    plot(title="All abundances",ylabel="Strain abundance")
+    plot(title="All abundances",ylabel="Strain abundance",yaxis=:log10)
     @df abundances violin!(:PSet,:abun,linewidth=0,label="",color=wongc[2])
     @df abundances boxplot!(:PSet,:abun,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
     # Plot means
@@ -1302,7 +1302,7 @@ function multi_sets()
         scatter!([inds[i]-0.5],[mn_abs[i]],yerror=[sd_abs[i]],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/AllAbund.png")
-    plot(title="Total abundances",ylabel="Total abundance (per ecosystem)")
+    plot(title="Total abundances",ylabel="Total abundance (per ecosystem)",yaxis=:log10)
     @df survivors violin!(:PSet,:ta,linewidth=0,label="",color=wongc[2])
     @df survivors boxplot!(:PSet,:ta,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
     # Plot means

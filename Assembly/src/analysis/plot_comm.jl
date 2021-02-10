@@ -1377,11 +1377,10 @@ function plot_survivors()
     Tmax = T[end]
     # Make vector of times to check at
     Ts = collect(range(0.0,Tmax*fT,length=ips))
-    # Preallocate number of survivors, substrate diversities, and number of strains declining
+    # Preallocate number of survivors, substrate diversities, total abundance
     svs = zeros(ips,rps,length(ens))
     dv = zeros(ips,rps,length(ens))
-    dvf = zeros(ips,rps,length(ens))
-    dcl = zeros(ips,rps,length(ens))
+    tab = zeros(ips,rps,length(ens))
     # Set threshold for substrate being properly diversified
     tsh = 1e-7
     # Loop over repeats
@@ -1403,19 +1402,13 @@ function plot_survivors()
                 if T[ind] == Ts[k]
                     svs[k,i,j] = count(x->x>0.0,C[ind,1:Ni])
                     dv[k,i,j] = count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)])
-                    dvf[k,i,j] = count(x->x>tsh,C[ind,(Ni+1):(Ni+ps.M-1)])
+                    tab[k,i,j] = sum(C[ind,1:Ni])
                 else
                     # Otherwise need to (linearly) interpolate
                     dT = (T[ind]-Ts[k])/(T[ind]-T[ind-1])
                     svs[k,i,j] = (1-dT)*count(x->x>0.0,C[ind,1:Ni]) + dT*count(x->x>0.0,C[ind-1,1:Ni])
                     dv[k,i,j] = (1-dT)*count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)]) + dT*count(x->x>0.0,C[ind-1,(Ni+1):(Ni+ps.M-1)])
-                    dvf[k,i,j] = (1-dT)*count(x->x>tsh,C[ind,(Ni+1):(Ni+ps.M-1)]) + dT*count(x->x>tsh,C[ind-1,(Ni+1):(Ni+ps.M-1)])
-                end
-                # For the declines, don't think theres any point interpolating
-                if k != 1
-                    dcl[k,i,j] = count(x->x<0.0,C[ind,1:Ni].-C[ind-1,1:Ni])
-                else
-                    dcl[k,i,j] = NaN
+                    tab[k,i,j] = (1-dT)*sum(C[ind,1:Ni]) + dT*sum(C[ind,1:Ni])
                 end
             end
         end
@@ -1425,10 +1418,8 @@ function plot_survivors()
     sdsvs = zeros(ips,length(ens))
     mdv = zeros(ips,length(ens))
     sddv = zeros(ips,length(ens))
-    mdvf = zeros(ips,length(ens))
-    sddvf = zeros(ips,length(ens))
-    mdcl = zeros(ips,length(ens))
-    sddcl = zeros(ips,length(ens))
+    mta = zeros(ips,length(ens))
+    sdta = zeros(ips,length(ens))
     # Find mean and std of survivor numbers and substrate diversification
     for i = 1:ips
         for j = 1:length(ens)
@@ -1436,10 +1427,8 @@ function plot_survivors()
             sdsvs[i,j] = std(svs[i,:,j])
             mdv[i,j] = mean(dv[i,:,j])
             sddv[i,j] = std(dv[i,:,j])
-            mdvf[i,j] = mean(dvf[i,:,j])
-            sddvf[i,j] = std(dvf[i,:,j])
-            mdcl[i,j] = mean(dcl[i,:,j])
-            sddcl[i,j] = std(dcl[i,:,j])
+            mta[i,j] = mean(tab[i,:,j])
+            sdta[i,j] = std(tab[i,:,j])
         end
     end
     # Set up plotting
@@ -1460,25 +1449,18 @@ function plot_survivors()
         plot!(Ts,mdv[:,i],ribbon=sddv[:,i],label=lb[i])
     end
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/DvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
-    # Plot substrate diversity
-    plot(title="Diversification ($(Rl)-$(Ru) $(syn))",xlabel="Time",ylabel="Number of substrates (above threshold)")
+    # Plot total abundances
+    plot(title="Ecosystem abundance ($(Rl)-$(Ru) $(syn))",xlabel="Time",ylabel="Total abundance")
     for i = 1:length(ens)
-        plot!(Ts,mdvf[:,i],ribbon=sddvf[:,i],label=lb[i])
+        plot!(Ts,mta[:,i],ribbon=sdta[:,i],label=lb[i])
     end
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/FullDvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
-    # Plot number of declining strains
-    plot(title="Decline ($(Rl)-$(Ru) $(syn))",xlabel="Time",ylabel="Number of decling strains")
-    for i = 1:length(ens)
-        plot!(Ts,mdcl[:,i],ribbon=sddcl[:,i],label=lb[i])
-    end
-    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/DeclTime$(Rl)-$(Ru)$(syn)$(Ni).png")
+    savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)/TotalAbTime$(Rl)-$(Ru)$(syn)$(Ni).png")
     return(nothing)
 end
 
-@time plot_survivors()
-
-# if length(ARGS) == 3
-#     @time multi_sets()
-# else
-#     @time basic_info()
-# end
+if length(ARGS) == 3
+    @time multi_sets()
+else
+    @time basic_info()
+    # @time plot_survivors()
+end

@@ -1185,6 +1185,7 @@ function multi_sets()
     tmd = Array{Float64,1}(undef,Ns*Nr)
     tdv = Array{Int64,1}(undef,Ns*Nr)
     tta = Array{Float64,1}(undef,Ns*Nr)
+    enl = Array{String,1}(undef,Ns*Nr)
     # Fill out with data
     for i = 1:Ns
         for j = 1:Nr
@@ -1194,13 +1195,15 @@ function multi_sets()
             tmd[(i-1)*Nr+j] = mda[i,j]
             tdv[(i-1)*Nr+j] = mbs[i,j]
             tta[(i-1)*Nr+j] = tab[i,j]
+            enl[(i-1)*Nr+j] = ens[i]
         end
     end
     # Collect everything into one data frame
-    survivors = DataFrame(PSet=tl,ns=tsv,mn=tmn,md=tmd,sdv=tdv,ta=tta)
+    survivors = DataFrame(PSet=tl,ns=tsv,mn=tmn,md=tmd,sdv=tdv,ta=tta,en=enl)
     # Need to make a second data frame
     absT = Float64[]
     lbT = String[]
+    enT = String[]
     mn_abs = zeros(Ns)
     sd_abs = zeros(Ns)
     # Fill out with data
@@ -1214,6 +1217,10 @@ function multi_sets()
             tl = fill(lbs[i],length(abs[i,j]))
             # Cat into long vector of labels
             lbT = cat(lbT,tl,dims=1)
+            # Temporary vector of labels
+            el = fill(ens[i],length(abs[i,j]))
+            # Cat into long vector of energies
+            enT = cat(enT,el,dims=1)
         end
         # Calculate and store mean of temporary vector
         mn_abs[i] = mean(abst)
@@ -1222,13 +1229,23 @@ function multi_sets()
         absT = cat(absT,abst,dims=1)
     end
     # Collect everything into one data frame
-    abundances = DataFrame(PSet=lbT,abun=absT)
+    abundances = DataFrame(PSet=lbT,abun=absT,en=enT)
     # Find indices of labels
     lbI = sortperm(lbs)
     # Find corresponding indices of reordered labels
-    inds = zeros(Int64,Ns)
+    pos = zeros(Float64,Ns)
+    # Find posistions for mean and std
     for i = 1:Ns
-        inds[i] = findfirst(x->x==i,lbI)
+        p = 0.5
+        if syns[i] == true
+            p += 1.0
+        end
+        if ens[i] == "i"
+            p += 2.4
+        elseif ens[i] == "l"
+            p += 4.8
+        end
+        pos[i] = p
     end
     # Setup plotting
     pyplot()
@@ -1236,81 +1253,66 @@ function multi_sets()
     wongc = get_color_palette(wong_palette,57)
     # Want to do the plotting here
     plot(title="Ecosystem diversity",ylabel="Number of surviving strains")
-    @df survivors violin!(:PSet,:ns,linewidth=0,label="",color=wongc[2])
-    @df survivors boxplot!(:PSet,:ns,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    @df survivors violin!(:PSet,:ns,linewidth=0,label="",color=wongc[2],group=:en)
+    @df survivors boxplot!(:PSet,:ns,color=wongc[4],fillalpha=0.75,linewidth=2,label="",group=:en)
     # Plot means
     for i = 1:Ns
         # Calculate mean
         mn = mean(svs[i,:])
         sdn = std(svs[i,:])
-        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/Diversity.png")
     plot(title="Mean abundances",ylabel="Mean abundance",yaxis=:log10)
-    @df survivors violin!(:PSet,:mn,linewidth=0,label="",color=wongc[2])
-    @df survivors boxplot!(:PSet,:mn,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    @df survivors violin!(:PSet,:mn,linewidth=0,label="",color=wongc[2],group=:en)
+    @df survivors boxplot!(:PSet,:mn,color=wongc[4],fillalpha=0.75,linewidth=2,label="",group=:en)
     # Plot means
     for i = 1:Ns
         # Calculate mean
         mn = mean(mna[i,:])
         sdn = std(mna[i,:])
-        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/MeanAbund.png")
     plot(title="Median abundances",ylabel="Median abundance",yaxis=:log10)
-    @df survivors violin!(:PSet,:md,linewidth=0,label="",color=wongc[2])
-    @df survivors boxplot!(:PSet,:md,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    @df survivors violin!(:PSet,:md,linewidth=0,label="",color=wongc[2],group=:en)
+    @df survivors boxplot!(:PSet,:md,color=wongc[4],fillalpha=0.75,linewidth=2,label="",group=:en)
     # Plot means
     for i = 1:Ns
         # Calculate mean
         mn = mean(mda[i,:])
         sdn = std(mda[i,:])
-        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/MedianAbund.png")
-    # Make scatter plot of substrate diversity
-    plot(title="Impact of substrate diversification",ylabel="Number of survivors",xlabel="Number of substrates")
-    for i = 1:Ns
-        scatter!(mbs[i,:],svs[i,:],label=lbs[i])
-    end
-    # Plot maximum line
-    plot!(2:24,2:24,color=wongc[1],label="")
-    savefig("Output/SubstrateDiversity.png")
-    # And of minimum substrate
-    plot(title="Lowest energy substrate",ylabel="Number of survivors",xlabel="Max substrate reached")
-    for i = 1:Ns
-        scatter!(hmb[i,:],svs[i,:],label=lbs[i])
-    end
-    plot!(2:24,2:24,color=wongc[1],label="")
-    savefig("Output/MinimumSubstrate.png")
     plot(title="Substrate diversification",ylabel="Number of substrates")
-    @df survivors violin!(:PSet,:sdv,linewidth=0,label="",color=wongc[2])
-    @df survivors boxplot!(:PSet,:sdv,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    @df survivors violin!(:PSet,:sdv,linewidth=0,label="",color=wongc[2],group=:en)
+    @df survivors boxplot!(:PSet,:sdv,color=wongc[4],fillalpha=0.75,linewidth=2,label="",group=:en)
     # Plot means
     for i = 1:Ns
         # Calculate mean
         mn = mean(mbs[i,:])
         sdn = std(mbs[i,:])
-        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/SubDiv.png")
     plot(title="All abundances",ylabel="Strain abundance",yaxis=:log10)
-    @df abundances violin!(:PSet,:abun,linewidth=0,label="",color=wongc[2])
-    @df abundances boxplot!(:PSet,:abun,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    @df abundances violin!(:PSet,:abun,linewidth=0,label="",color=wongc[2],group=:en)
+    @df abundances boxplot!(:PSet,:abun,color=wongc[4],fillalpha=0.75,linewidth=2,label="",group=:en)
     # Plot means
     for i = 1:Ns
-        scatter!([inds[i]-0.5],[mn_abs[i]],yerror=[sd_abs[i]],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([pos[i]],[mn_abs[i]],yerror=[sd_abs[i]],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/AllAbund.png")
     plot(title="Total abundances",ylabel="Total abundance (per ecosystem)",yaxis=:log10)
-    @df survivors violin!(:PSet,:ta,linewidth=0,label="",color=wongc[2])
-    @df survivors boxplot!(:PSet,:ta,color=wongc[4],fillalpha=0.75,linewidth=2,label="")
+    @df survivors violin!(:PSet,:ta,linewidth=0,label="",color=wongc[2],group=:en)
+    @df survivors boxplot!(:PSet,:ta,color=wongc[4],fillalpha=0.75,linewidth=2,label="",group=:en)
     # Plot means
     for i = 1:Ns
         # Calculate mean
         mn = mean(tab[i,:])
         sdn = std(tab[i,:])
-        scatter!([inds[i]-0.5],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        scatter!([pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/TotalAbund.png")
     return(nothing)
@@ -1319,8 +1321,8 @@ end
 # Function to plot survivorship with time
 function plot_survivors()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 6
-        error("Insufficent inputs provided (looking for 6)")
+    if length(ARGS) < 7
+        error("Insufficent inputs provided (looking for 7)")
     end
     # Preallocate the variables I want to extract from the input
     Rl = 0
@@ -1329,6 +1331,7 @@ function plot_survivors()
     rps = 0
     Ni = 0
     fT = 0.0
+    sT = 0.0
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
@@ -1337,8 +1340,9 @@ function plot_survivors()
         rps = parse(Int64,ARGS[4])
         Ni = parse(Int64,ARGS[5])
         fT = parse(Float64,ARGS[6])
+        sT = parse(Float64,ARGS[7])
     catch e
-        error("need to provide 4 integers, a bool, and a float")
+        error("need to provide 4 integers, a bool, and two floats")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -1355,7 +1359,10 @@ function plot_survivors()
         error("number of initial strains can't be less than 1")
     end
     if fT <= 0.0 || fT > 1.0
-        error("fraction of time considered can't be less than 1")
+        error("final time can't be greater than 1, or less than zero")
+    end
+    if sT >= fT || sT < 0.0
+        error("starting time can't be equal to final time, or less than zero")
     end
     println("Compiled!")
     # Want to look at all three energy conditions
@@ -1376,7 +1383,7 @@ function plot_survivors()
     # And extract maximum time
     Tmax = T[end]
     # Make vector of times to check at
-    Ts = collect(range(0.0,Tmax*fT,length=ips))
+    Ts = collect(range(Tmax*sT,Tmax*fT,length=ips))
     # Preallocate number of survivors, substrate diversities, total abundance
     svs = zeros(ips,rps,length(ens))
     dv = zeros(ips,rps,length(ens))
@@ -1420,15 +1427,15 @@ function plot_survivors()
     sddv = zeros(ips,length(ens))
     mta = zeros(ips,length(ens))
     sdta = zeros(ips,length(ens))
-    # Find mean and std of survivor numbers and substrate diversification
+    # Find mean and standard errors of survivor numbers and substrate diversification
     for i = 1:ips
         for j = 1:length(ens)
             msvs[i,j] = mean(svs[i,:,j])
-            sdsvs[i,j] = std(svs[i,:,j])
+            sdsvs[i,j] = sem(svs[i,:,j])
             mdv[i,j] = mean(dv[i,:,j])
-            sddv[i,j] = std(dv[i,:,j])
+            sddv[i,j] = sem(dv[i,:,j])
             mta[i,j] = mean(tab[i,:,j])
-            sdta[i,j] = std(tab[i,:,j])
+            sdta[i,j] = sem(tab[i,:,j])
         end
     end
     # Set up plotting
@@ -1460,7 +1467,8 @@ end
 
 if length(ARGS) == 3
     @time multi_sets()
+elseif length(ARGS) == 7
+    @time plot_survivors()
 else
     @time basic_info()
-    # @time plot_survivors()
 end

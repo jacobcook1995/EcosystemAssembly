@@ -10,6 +10,8 @@ import PyPlot
 
 # function to calculate the dissipation for an assembled ecosystem
 function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64,1})
+    # Set all elements of out less than zero to zero
+    out[out.<0.0] .= 0.0
     # Define number of strains
     N = length(ms)
     # check that parameter set is sensible given the output
@@ -1128,6 +1130,8 @@ function multi_sets()
     mda = zeros(Float64,Ns,Nr)
     # Container to store total abundances
     tab = zeros(Float64,Ns,Nr)
+    # Container to store dissipation
+    dsp = zeros(Float64,Ns,Nr)
     # Empty container for abundances
     abs = Array{Array{Float64,1},2}(undef,Ns,Nr)
     # Preallocate labels
@@ -1170,6 +1174,8 @@ function multi_sets()
             mda[i,j] = median(inf_out[1:ps.N])
             # Also save total abundance
             tab[i,j] = sum(inf_out[1:ps.N])
+            # Find and save dissipation
+            dsp[i,j] = log10(dissipation(ps,ps.mics,inf_out))
         end
         # Make and save label
         if Rls[i] != Rus[i]
@@ -1178,7 +1184,7 @@ function multi_sets()
             lbs[i] = "$(Rus[i]) $(syns[i]) $(ens[i])"
         end
     end
-    # Make empty containers to store
+    # Make empty containers to store data as 1D vector
     tl = Array{String,1}(undef,Ns*Nr)
     tsv = Array{Int64,1}(undef,Ns*Nr)
     tmn = Array{Float64,1}(undef,Ns*Nr)
@@ -1186,6 +1192,7 @@ function multi_sets()
     tdv = Array{Int64,1}(undef,Ns*Nr)
     tta = Array{Float64,1}(undef,Ns*Nr)
     enl = Array{String,1}(undef,Ns*Nr)
+    eps = Array{Float64,1}(undef,Ns*Nr)
     # Fill out with data
     for i = 1:Ns
         for j = 1:Nr
@@ -1196,10 +1203,11 @@ function multi_sets()
             tdv[(i-1)*Nr+j] = mbs[i,j]
             tta[(i-1)*Nr+j] = tab[i,j]
             enl[(i-1)*Nr+j] = ens[i]
+            eps[(i-1)*Nr+j] = dsp[i,j]
         end
     end
     # Collect everything into one data frame
-    survivors = DataFrame(PSet=tl,ns=tsv,mn=tmn,md=tmd,sdv=tdv,ta=tta,en=enl)
+    survivors = DataFrame(PSet=tl,ns=tsv,mn=tmn,md=tmd,sdv=tdv,ta=tta,en=enl,ent=eps)
     # Need to make a second data frame
     absT = Float64[]
     lbT = String[]
@@ -1296,6 +1304,17 @@ function multi_sets()
         scatter!([pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/SubDiv.png")
+    plot(title="Entropy productions",ylabel="Entropy production (per ecosystem)")
+    @df survivors violin!(:PSet,:ent,linewidth=0,label="",color=wongc[2],group=:en)
+    @df survivors boxplot!(:PSet,:ent,color=wongc[4],fillalpha=0.75,linewidth=2,label="",group=:en)
+    # Plot means
+    for i = 1:Ns
+        # Calculate mean
+        mn = mean(dsp[i,:])
+        sdn = std(dsp[i,:])
+        scatter!([pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+    end
+    savefig("Output/EntropyProduction.png")
     plot(title="All abundances",ylabel="Strain abundance",yaxis=:log10)
     @df abundances violin!(:PSet,:abun,linewidth=0,label="",color=wongc[2],group=:en)
     @df abundances boxplot!(:PSet,:abun,color=wongc[4],fillalpha=0.75,linewidth=2,label="",group=:en)

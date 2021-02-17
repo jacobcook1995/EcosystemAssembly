@@ -11,7 +11,7 @@ export annpos, corrparr
 export wong_palette
 
 # A function to return positions for labels
-function annpos(datax::Array{Float64,1},datay::Array{Float64,1},δx=0.15::Float64,δy=0.125::Float64)
+function annpos(datax::Array{Float64,1},datay::Array{Float64,1},δx=0.10::Float64,δy=0.0::Float64)
     # Need minimas and maximas
     xmax = maximum(datax)
     xmin = minimum(datax)

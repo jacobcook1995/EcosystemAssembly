@@ -51,7 +51,129 @@ function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64
     return(dsp)
 end
 
-function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens::Array{String,1},Ni::Int64,Nr::Int64)
+# Function to make bar chart of the diversity loss
+function divloss(Rl::Int64,Ru::Int64,syn::Bool,en::String,Ni::Int64,Nr::Int64)
+    # Read in relevant files
+    pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ni).jld"
+    if ~isfile(pfile)
+        error("run $(Nr) is missing a parameter file")
+    end
+    ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ni).jld"
+    if ~isfile(ofile)
+        error("run $(Nr) is missing an output file")
+    end
+    efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ni).jld"
+    if ~isfile(efile)
+        error("run $(Nr) is missing an extinct file")
+    end
+    # Load everything that's potentially useful
+    ps = load(pfile,"ps")
+    C = load(ofile,"C")
+    T = load(ofile,"T")
+    out = load(ofile,"out")
+    ded = load(efile,"ded")
+    # Remake inital list of microbes
+    ms = Array{MicrobeP,1}(undef,Ni)
+    # Setup counter
+    cnt = 0
+    # Loop over all microbes
+    for i = 1:Ni
+        # Check if it is a survivor
+        if C[end,i] != 0.0 && C[end,i] ∈ out
+            # If it is find and save it
+            ind = findfirst(x->x==C[end,i],out)
+            ms[i] = ps.mics[ind]
+        else
+            # Update counter
+            cnt += 1
+            # Use next element from ded vector
+            ms[i] = ded[cnt]
+        end
+    end
+    r_cat = zeros(Int64,Ni)
+    # Loop over every microbe in here and catagorise
+    for i = 1:Ni
+        # Find index of main reaction
+        _, ind = findmax(ms[i].ϕP)
+        # Find reaction
+        r = ps.reacs[ms[i].Reacs[ind]]
+        # And store index
+        r_cat[i] = r.Rct
+    end
+    # Choose number of time points to do
+    Tp = 8
+    # Find and save maximum time
+    Tmax = T[end]
+    # Make vector of the time points
+    # IS THIS A SENSIBLE TIME RANGE???
+    Ts = [collect(range(0.0,stop=Tmax/25.0,length=Tp-1)); Tmax]
+    # Container to time varying diversity and abundance data
+    abT = zeros(Float64,Tp,ps.M)
+    # Loop over reactions
+    for i = 1:ps.M
+        # Find all indices for this reaction
+        inds = findall(x->x==i,r_cat)
+        for j = 1:Tp
+            # Find first index past time point
+            Tind = findfirst(x->x>=Ts[j],T)
+            # Sum abundances of survivors
+            if Tind != 1
+                # Interpolate abundances
+                dT = ((Ts[j]-T[Tind-1])*sum(C[Tind,inds]) + (T[Tind]-Ts[j])*sum(C[Tind-1,inds]))/(T[Tind]-T[Tind-1])
+                # Then save
+                abT[j,i] = dT
+            else
+                abT[j,i] = sum(C[Tind,inds])
+            end
+        end
+    end
+    # Rescale bars to 1
+    for i = 1:Tp
+        abT[i,:] = abT[i,:]/(sum(abT[i,:]))
+    end
+    # Create xlabels
+    xs = fill("",Tp)
+    for i = 1:Tp
+        if Ts[i] != 0.0
+            # Round time
+            Tr = round(Ts[i],sigdigits=2)
+            # Find power of ten
+            p10 = floor(Int64,log10(Tr))
+            # reduce T by this factor of 10
+            rT = Tr/(10.0^p10)
+            # Put together as label
+            xs[i] = "$(rT)e$(p10)"
+        else
+            xs[i] = "0.0"
+        end
+    end
+    # Load in colorschemes
+    a = ColorSchemes.tab20.colors
+    b = ColorSchemes.tab20b.colors
+    # Empty array to store colors
+    cls = Array{RGB{Float64},1}(undef,40)
+    for i = 1:20
+        cls[i] = a[i]
+    end
+    for i = 21:40
+        cls[i] = b[i-20]
+    end
+    # Make my own color scheme
+    sch = ColorScheme(cls)
+    # Now setup plotting
+    pyplot(dpi=200)
+    p = groupedbar(abT,bar_position=:stack,label="",palette=sch)
+    plot!(p,xticks=(1:Tp,xs),ylabel="Relative abundance",xlabel="Time (s)")
+    plot!(p,title="Diversity with time")
+    # Add annotation
+    px, py = annpos([0.25; convert(Float64,Tp)],[1.0;0.0],0.10,0.05)
+    annotate!(px,py,text("A",17,:black))
+    savefig(p,"Output/Fig3/abT.png")
+    return(p)
+end
+
+function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens::Array{String,1},
+                Ni::Int64,Nr::Int64,dRl::Int64,dRu::Int64,dsyn::Bool,den::String,runN::Int64)
     # Check if all these vectors are the same length
     if length(Rls) != length(Rus) || length(Rls) != length(syns) || length(Rls) != length(ens)
         error("length of vectors doesn't match")
@@ -178,7 +300,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     maxd = convert(Float64,maximum(svs))
     mind = convert(Float64,maximum(svs))
     # Add annotation
-    px, py = annpos([-0.5;7.0],[maxd; mind; msd])
+    px, py = annpos([0.2;7.0],[maxd; mind; msd],0.10,0.05)
     annotate!(px,py,text("B",17,:black))
     savefig(p1,"Output/Fig3/Diversity.png")
     p2 = plot(title="Substrate diversification",ylabel="Number of substrates")
@@ -196,7 +318,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     maxs = convert(Float64,maximum(mbs))
     mins = convert(Float64,maximum(mbs))
     # Add annotation
-    px, py = annpos([-0.5;7.0],[maxs; mins; msd])
+    px, py = annpos([0.2;7.0],[maxs; mins; msd],0.10,0.05)
     annotate!(px,py,text("C",17,:black))
     savefig(p2,"Output/Fig3/SubDiv.png")
     p3 = plot(title="Entropy production",ylabel="Ecosystem entropy production rate ($(JKs))",yaxis=:log10)
@@ -214,165 +336,24 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     maxe = convert(Float64,maximum(dsp))
     mine = convert(Float64,maximum(dsp))
     # Add annotation
-    px, py = annpos([-0.5;7.0],[maxe; mine; msd])
+    px, py = annpos([0.2;7.0],[maxe; mine; msd],0.10,0.2)
     annotate!(px,py,text("D",17,:black))
     savefig(p3,"Output/Fig3/EntropyProduction.png")
-    # NOW WANT TO MAKE PLOT OF STRAIN DIVERSITY WITH TIME
-    p4 = plot(title="Placeholder")
+    # Run div loss function to make extra plot
+    p4 = divloss(dRl,dRu,dsyn,den,Ni,runN)
     # Now want to make a plot incorperating all four previous plots
     pt = plot(p4,p2,p1,p3,layout=4,size=(1200,800))
     savefig(pt,"Output/Fig3/figure3.png")
     return(nothing)
 end
 
-# Function to make bar chart of the diversity loss
-function divloss(Rl::Int64,Ru::Int64,syn::Bool,en::String,Ni::Int64,Nr::Int64)
-    # Read in relevant files
-    pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ni).jld"
-    if ~isfile(pfile)
-        error("run $(Nr) is missing a parameter file")
-    end
-    ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ni).jld"
-    if ~isfile(ofile)
-        error("run $(Nr) is missing an output file")
-    end
-    efile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ni).jld"
-    if ~isfile(efile)
-        error("run $(Nr) is missing an extinct file")
-    end
-    # Load everything that's potentially useful
-    ps = load(pfile,"ps")
-    C = load(ofile,"C")
-    T = load(ofile,"T")
-    out = load(ofile,"out")
-    ded = load(efile,"ded")
-    # Remake inital list of microbes
-    ms = Array{MicrobeP,1}(undef,Ni)
-    # Setup counter
-    cnt = 0
-    # Loop over all microbes
-    for i = 1:Ni
-        # Check if it is a survivor
-        if C[end,i] != 0.0 && C[end,i] ∈ out
-            # If it is find and save it
-            ind = findfirst(x->x==C[end,i],out)
-            ms[i] = ps.mics[ind]
-        else
-            # Update counter
-            cnt += 1
-            # Use next element from ded vector
-            ms[i] = ded[cnt]
-        end
-    end
-    r_cat = zeros(Int64,Ni)
-    # Loop over every microbe in here and catagorise
-    for i = 1:Ni
-        # Find index of main reaction
-        _, ind = findmax(ms[i].ϕP)
-        # Find reaction
-        r = ps.reacs[ms[i].Reacs[ind]]
-        # And store index
-        r_cat[i] = r.Rct
-    end
-    # Count number of metabolites
-    R = ps.M
-    # Container to store start and finish data
-    divsf = zeros(Float64,2,R)
-    for i = 1:R
-        # Count intial number of strains in this catagory
-        divsf[1,i] = count(x->x==i,r_cat)
-        # Find all indices for this reaction
-        inds = findall(x->x==i,r_cat)
-        # Loop over indices to check if strain survives
-        divsf[2,i] = count(x->x!=0.0,C[end,inds])
-    end
-    # Container for abundance start and finish data
-    absf = zeros(Float64,2,R)
-    for i = 1:R
-        # Find all indices for this reaction
-        inds = findall(x->x==i,r_cat)
-        # loop over points
-        for j = 1:2
-            if j == 1
-                absf[j,i] = sum(C[1,inds])
-            else
-                absf[j,i] = sum(C[end,inds])
-            end
-        end
-    end
-    # Rescale bars to 1
-    for i = 1:2
-        divsf[i,:] = divsf[i,:]/(sum(divsf[i,:]))
-        absf[i,:] = absf[i,:]/(sum(absf[i,:]))
-    end
-    # Choose number of time points to do
-    Tp = 10
-    # Find and save maximum time
-    Tmax = T[end]
-    # Make vector of the time points
-    # IS THIS A SENSIBLE TIME RANGE???
-    Ts = collect(range(0.0,stop=Tmax/25.0,length=Tp))
-    # Container to time varying diversity and abundance data
-    divT = zeros(Float64,Tp,R)
-    abT = zeros(Float64,Tp,R)
-    # Loop over reactions
-    for i = 1:R
-        # Find all indices for this reaction
-        inds = findall(x->x==i,r_cat)
-        for j = 1:Tp
-            # Find first index past time point
-            Tind = findfirst(x->x>=Ts[j],T)
-            # Count number of surviving strain
-            divT[j,i] = count(x->x!=0.0,C[Tind,inds])
-            # Sum abundances of survivors
-            if Tind != 1
-                # Interpolate abundances
-                dT = ((Ts[j]-T[Tind-1])*sum(C[Tind,inds]) + (T[Tind]-Ts[j])*sum(C[Tind-1,inds]))/(T[Tind]-T[Tind-1])
-                # Then save
-                abT[j,i] = dT
-            else
-                abT[j,i] = sum(C[Tind,inds])
-            end
-        end
-    end
-    # Rescale bars to 1
-    for i = 1:Tp
-        divT[i,:] = divT[i,:]/(sum(divT[i,:]))
-        abT[i,:] = abT[i,:]/(sum(abT[i,:]))
-    end
-    # Create labels
-    labs = fill("",1,R)
-    for i = 1:10
-        labs[i] = "$(i)"
-    end
-    println(ps.N)
-    # Load in colorschemes
-    a = ColorSchemes.tab20.colors
-    b = ColorSchemes.tab20.colors
-    # Then combine them
-    c = cat(a,b,dims=1)
-    # Make my own color scheme
-    sch = ColorScheme([c[i] for i in 1:40])
-    # Now setup plotting
-    pyplot(dpi=200)
-    groupedbar(divsf,bar_position=:stack,label="",palette=sch)
-    savefig("Output/Fig3/divsf.png")
-    groupedbar(absf,bar_position=:stack,label="",palette=sch)
-    savefig("Output/Fig3/absf.png")
-    groupedbar(divT,bar_position=:stack,label="",palette=sch)
-    savefig("Output/Fig3/divT.png")
-    groupedbar(abT,bar_position=:stack,label="",palette=sch)
-    savefig("Output/Fig3/abT.png")
-    return(nothing)
-end
+# DELETE THIS WHEN DONE
+# @time divloss(1,5,true,"i",250,89)
 
-@time divloss(1,5,true,"h",250,165)
-# @time divloss(1,5,true,"i",250,89) looks fairly good
+# Hard code parameters here
+l = [1,1,1,1,1,1]
+u = [5,5,5,5,5,5]
+s = [true,true,true,false,false,false]
+e = ["l","i","h","l","i","h"]
 
-# # Hard code parameters here
-# l = [1,1,1,1,1,1]
-# u = [5,5,5,5,5,5]
-# s = [true,true,true,false,false,false]
-# e = ["l","i","h","l","i","h"]
-#
-# @time figure3(l,u,s,e,250,250)
+@time figure3(l,u,s,e,250,250,1,5,true,"i",89)

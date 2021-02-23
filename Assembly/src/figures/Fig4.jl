@@ -98,16 +98,19 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=200)
-    # NEED TO FIND AND PLOT SOME COMMEN LINE HERE!!!!
+    # NEED TO FIND AND PLOT SOME COMMON LINE HERE!!!!
     # Make labels
     lb = ["low-true" "low-false" "high-true" "high-false"]
     # Plot survivors
     p1 = plot(title="Diversity with time",xlabel="Time",ylabel="Number of surviving strains")
     plot!(p1,Ts,msvs[:,1:L],ribbon=sdsvs[:,1:L],labels=lb,legend=:right)
     # Twin the xaxis and then plot substrate diversity
-    plot!(p1,twinx(),Ts,mdv[:,1:L],ribbon=sddv[:,1:L],labels="",ylabel="Number of substrates")
+    plot!(twinx(),Ts,mdv[:,1:L],ribbon=sddv[:,1:L],labels="",ylabel="Number of substrates")
     # Increase left margin
     plot!(p1,right_margin=20.0mm)
+    # Add annotation
+    px, py = annpos(Ts,[5.0,250.0],0.10,0.041)
+    annotate!(p1,px,py,text("A",17,:black))
     savefig(p1,"Output/Fig4/DvTime$(Rl)-$(Ru).png")
     # Plot total abundances
     p2 = plot(title="Ecosystem abundance with time",xlabel="Time",ylabel="Total abundance")
@@ -115,7 +118,17 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     for i = 1:L
         plot!(p2,Ts,mta[:,i],ribbon=sdta[:,i],label=lb[i])
     end
+    # Add annotation
+    maxab = vec(mta.+sdta)
+    px, py = annpos(Ts,maxab,0.10,0.2)
+    annotate!(p2,px,py,text("B",17,:black))
     savefig(p2,"Output/Fig4/TotalAbTime$(Rl)-$(Ru).png")
+    # MAKING TEMPORARY GRAPHS, DELETE LATER
+    p3 = plot(title="PLACEHOLDER")
+    p4 = plot(title="PLACEHOLDER")
+    # Plot all graphs as a single figure
+    pt = plot(p1,p3,p2,p4,layout=(2,2),size=(1200,800),margin=15.0mm)
+    savefig(pt,"Output/Fig4/figure4.png")
     return(nothing)
 end
 

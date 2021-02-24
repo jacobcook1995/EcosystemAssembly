@@ -23,8 +23,8 @@ function therm_unf(pop::Array{Float64,1},conc::Array{Float64,1},ms::Array{Microb
         for j = 1:R
             # Find corresponding reaction
             r = ps.reacs[ms[i].Reacs[j]]
-            # Check that substrate concentration is non-zero
-            if conc[r.Rct] != 0.0
+            # Check that substrate concentration is meaningfully above zero
+            if conc[r.Rct] > 1e-10
                 # Find theta value
                 θt = θ_smooth(conc[r.Rct],conc[r.Prd],ps.T,ms[i].η[j],r.ΔG0)
                 # Check if reaction is unfeasible
@@ -36,34 +36,6 @@ function therm_unf(pop::Array{Float64,1},conc::Array{Float64,1},ms::Array{Microb
     end
     # Return as a proportion unfeasible
     return(Ruf/RT)
-end
-
-
-# Function to find proportion of reactions with no substrate
-function no_sub(pop::Array{Float64,1},conc::Array{Float64,1},ms::Array{MicrobeP,1},ps::FullParameters)
-    # Find indices of surving populations
-    inds = findall(x->x>0.0,pop)
-    # Setup two seperate counters
-    RT = 0 # Total number of reactions
-    Rns = 0 # Number of reactions with no substrate
-    # Loop over indices
-    for i = inds
-        # Find number of reactions to loop over
-        R = ms[i].R
-        # Add this to the total
-        RT += R
-        # Loop over reactions
-        for j = 1:R
-            # Find corresponding reaction
-            r = ps.reacs[ms[i].Reacs[j]]
-            # Check if substrate concentration is zero
-            if conc[r.Rct] == 0.0
-                Rns += 1
-            end
-        end
-    end
-    # Return as a proportion unfeasible
-    return(Rns/RT)
 end
 
 function av_eff(pop::Array{Float64,1},conc::Array{Float64,1},ms::Array{MicrobeP,1},ps::FullParameters)
@@ -127,7 +99,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     tab = zeros(ips,rps,L)
     # New containers, for non-viable reactions and efficencies
     ufR = zeros(ips,rps,L)
-    nsR = zeros(ips,rps,L)
     efs = zeros(ips,rps,L)
     # Set threshold for substrate being properly diversified
     tsh = 1e-7
@@ -148,7 +119,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                 dv[:,:,(j-1)*le+l] = load(tfile,"dv")
                 tab[:,:,(j-1)*le+l] = load(tfile,"tab")
                 ufR[:,:,(j-1)*le+l] = load(tfile,"ufR")
-                nsR[:,:,(j-1)*le+l] = load(tfile,"nsR")
                 efs[:,:,(j-1)*le+l] = load(tfile,"efs")
             else
                 println("Generating $(ens[j])-$(syns[l]) data")
@@ -201,7 +171,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                             dv[k,i,(j-1)*le+l] = count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)])
                             tab[k,i,(j-1)*le+l] = sum(C[ind,1:Ni])
                             ufR[k,i,(j-1)*le+l] = therm_unf(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
-                            nsR[k,i,(j-1)*le+l] = no_sub(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
                             efs[k,i,(j-1)*le+l] = av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
                         else
                             # Otherwise need to (linearly) interpolate
@@ -212,8 +181,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                             tab[k,i,(j-1)*le+l] = (1-dT)*sum(C[ind,1:Ni]) + dT*sum(C[ind,1:Ni])
                             ufR[k,i,(j-1)*le+l] = (1-dT)*therm_unf(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
                             ufR[k,i,(j-1)*le+l] += dT*therm_unf(C[ind-1,1:Ni],C[ind-1,(Ni+1):(Ni+ps.M)],ms,ps)
-                            nsR[k,i,(j-1)*le+l] = (1-dT)*no_sub(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
-                            nsR[k,i,(j-1)*le+l] += dT*no_sub(C[ind-1,1:Ni],C[ind-1,(Ni+1):(Ni+ps.M)],ms,ps)
                             efs[k,i,(j-1)*le+l] = (1-dT)*av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
                             efs[k,i,(j-1)*le+l] += dT*av_eff(C[ind-1,1:Ni],C[ind-1,(Ni+1):(Ni+ps.M)],ms,ps)
                         end
@@ -226,7 +193,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                     write(file,"dv",dv[:,:,(j-1)*le+l])
                     write(file,"tab",tab[:,:,(j-1)*le+l])
                     write(file,"ufR",ufR[:,:,(j-1)*le+l])
-                    write(file,"nsR",nsR[:,:,(j-1)*le+l])
                     write(file,"efs",efs[:,:,(j-1)*le+l])
                 end
             end
@@ -243,10 +209,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     sdvia = zeros(ips,L)
     mufR = zeros(ips,L)
     sdufR = zeros(ips,L)
-    mnsR = zeros(ips,L)
-    sdnsR = zeros(ips,L)
-    mimR = zeros(ips,L)
-    sdimR = zeros(ips,L)
     mefs = zeros(ips,L)
     sdefs = zeros(ips,L)
     # Find mean and standard errors of survivor numbers and substrate diversification
@@ -263,10 +225,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                 sdta[i,(j-1)*le+k] = sem(tab[i,:,(j-1)*le+k])
                 mufR[i,(j-1)*le+k] = mean(ufR[i,:,(j-1)*le+k])
                 sdufR[i,(j-1)*le+k] = sem(ufR[i,:,(j-1)*le+k])
-                mnsR[i,(j-1)*le+k] = mean(nsR[i,:,(j-1)*le+k])
-                sdnsR[i,(j-1)*le+k] = sem(nsR[i,:,(j-1)*le+k])
-                mimR[i,(j-1)*le+k] = mean(nsR[i,:,(j-1)*le+k].+ufR[i,:,(j-1)*le+k])
-                sdimR[i,(j-1)*le+k] = sem(nsR[i,:,(j-1)*le+k].+ufR[i,:,(j-1)*le+k])
                 mefs[i,(j-1)*le+k] = mean(efs[i,:,(j-1)*le+k])
                 sdefs[i,(j-1)*le+k] = sem(efs[i,:,(j-1)*le+k])
             end
@@ -314,21 +272,24 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     px, py = annpos(Ts,maxab,0.15,0.2)
     annotate!(p2,px,py,text("B",17,:black))
     savefig(p2,"Output/Fig4/TotalAbTime$(Rl)-$(Ru).png")
-    # PLACEHOLDER GRAPHS, NEED TO DECIDE WHICH OF THESE TO KEEP
-    p3 = plot(title="Unfeasible reactions",xlabel="Time",ylabel="Proportion of unfeasible reactions")
-    plot!(p3,Ts,mufR[:,1:L],ribbon=sdufR[:,1:L],labels=lb)
+    # Plot graph of thermodynamically unfeasible reactions
+    p3 = plot(title="Thermodynamically unfeasible reactions",xlabel="Time",ylabel="Proportion of unfeasible reactions")
+    # Add annotation
+    maxuf = vec(mufR.+sdufR)
+    px, py = annpos(Ts,maxuf,0.15,0.05)
+    annotate!(p3,px,py,text("D",17,:black))
+    plot!(p3,Ts,mufR[:,1:L],ribbon=sdufR[:,1:L],labels=lb,palette=wongc[2:5])
     savefig(p3,"Output/Fig4/Unfeasible.png")
-    p4 = plot(title="Reactions with no substrate",xlabel="Time",ylabel="Proportion of reactions without substrate")
-    plot!(p4,Ts,mnsR[:,1:L],ribbon=sdnsR[:,1:L],labels=lb)
-    savefig(p4,"Output/Fig4/Nosub.png")
-    p5 = plot(title="Impossible reactions",xlabel="Time",ylabel="Proportion of impossible reactions")
-    plot!(p5,Ts,mimR[:,1:L],ribbon=sdimR[:,1:L],labels=lb)
-    savefig(p5,"Output/Fig4/ImpossibleReactions.png")
-    p6 = plot(title="Average efficency with time",xlabel="Time",ylabel="Efficency of reactions")
-    plot!(p6,Ts,mefs[:,1:L],ribbon=sdefs[:,1:L],labels=lb)
-    savefig(p6,"Output/Fig4/Efficency.png")
+    # Plot graph of efficencies
+    p4 = plot(title="Average efficency with time",xlabel="Time",ylabel="Efficency of reactions")
+    plot!(p4,Ts,mefs[:,1:L],ribbon=sdefs[:,1:L],labels=lb,palette=wongc[2:5])
+    # Add annotation
+    maxefs = vec(mefs.+sdefs)
+    px, py = annpos(Ts,maxefs,0.15,0.05)
+    annotate!(p4,px,py,text("C",17,:black))
+    savefig(p4,"Output/Fig4/Efficency.png")
     # Plot all graphs as a single figure
-    pt = plot(p1,p3,p2,p4,layout=(2,2),size=(1200,800),margin=15.0mm)
+    pt = plot(p1,p4,p2,p3,layout=(2,2),size=(1200,800),margin=15.0mm)
     savefig(pt,"Output/Fig4/figure4.png")
     return(nothing)
 end

@@ -36,10 +36,13 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     # Preallocate number of survivors, substrate diversities, total abundance
     L = length(ens)*length(syns)
     svs = zeros(ips,rps,L)
+    via = zeros(ips,rps,L)
     dv = zeros(ips,rps,L)
     tab = zeros(ips,rps,L)
     # Set threshold for substrate being properly diversified
     tsh = 1e-7
+    # Threshold meaningful/viable population
+    popt = 1e-5
     # Calculate length
     le = length(ens)
     # Loop over repeats
@@ -61,12 +64,14 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                     # If time points are equal just save number of survivors
                     if T[ind] == Ts[k]
                         svs[k,i,(j-1)*le+l] = count(x->x>0.0,C[ind,1:Ni])
+                        via[k,i,(j-1)*le+l] = count(x->x>=popt,C[ind,1:Ni])
                         dv[k,i,(j-1)*le+l] = count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)])
                         tab[k,i,(j-1)*le+l] = sum(C[ind,1:Ni])
                     else
                         # Otherwise need to (linearly) interpolate
                         dT = (T[ind]-Ts[k])/(T[ind]-T[ind-1])
                         svs[k,i,(j-1)*le+l] = (1-dT)*count(x->x>0.0,C[ind,1:Ni]) + dT*count(x->x>0.0,C[ind-1,1:Ni])
+                        via[k,i,(j-1)*le+l] = (1-dT)*count(x->x>=popt,C[ind,1:Ni]) + dT*count(x->x>=popt,C[ind-1,1:Ni])
                         dv[k,i,(j-1)*le+l] = (1-dT)*count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)]) + dT*count(x->x>0.0,C[ind-1,(Ni+1):(Ni+ps.M-1)])
                         tab[k,i,(j-1)*le+l] = (1-dT)*sum(C[ind,1:Ni]) + dT*sum(C[ind,1:Ni])
                     end
@@ -81,12 +86,16 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     sddv = zeros(ips,L)
     mta = zeros(ips,L)
     sdta = zeros(ips,L)
+    mvia = zeros(ips,L)
+    sdvia = zeros(ips,L)
     # Find mean and standard errors of survivor numbers and substrate diversification
     for i = 1:ips
         for j = 1:length(ens)
             for k = 1:length(syns)
                 msvs[i,(j-1)*le+k] = mean(svs[i,:,(j-1)*le+k])
                 sdsvs[i,(j-1)*le+k] = sem(svs[i,:,(j-1)*le+k])
+                mvia[i,(j-1)*le+k] = mean(via[i,:,(j-1)*le+k])
+                sdvia[i,(j-1)*le+k] = sem(via[i,:,(j-1)*le+k])
                 mdv[i,(j-1)*le+k] = mean(dv[i,:,(j-1)*le+k])
                 sddv[i,(j-1)*le+k] = sem(dv[i,:,(j-1)*le+k])
                 mta[i,(j-1)*le+k] = mean(tab[i,:,(j-1)*le+k])
@@ -98,7 +107,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=200)
-    # NEED TO FIND AND PLOT SOME COMMON LINE HERE!!!!
     # Make labels
     lb = ["low-true" "low-false" "high-true" "high-false"]
     # Plot survivors
@@ -109,7 +117,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     # Increase left margin
     plot!(p1,right_margin=20.0mm)
     # Add annotation
-    px, py = annpos(Ts,[5.0,250.0],0.10,0.041)
+    px, py = annpos(Ts,[5.0,250.0],0.15,0.05)
     annotate!(p1,px,py,text("A",17,:black))
     savefig(p1,"Output/Fig4/DvTime$(Rl)-$(Ru).png")
     # Plot total abundances
@@ -120,11 +128,17 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     end
     # Add annotation
     maxab = vec(mta.+sdta)
-    px, py = annpos(Ts,maxab,0.10,0.2)
+    px, py = annpos(Ts,maxab,0.15,0.2)
     annotate!(p2,px,py,text("B",17,:black))
     savefig(p2,"Output/Fig4/TotalAbTime$(Rl)-$(Ru).png")
-    # MAKING TEMPORARY GRAPHS, DELETE LATER
-    p3 = plot(title="PLACEHOLDER")
+    p3 = plot(title="Viable strains with time",xlabel="Time",ylabel="Number of strains above threshold")
+    plot!(p3,Ts,mvia[:,1:L],ribbon=sdvia[:,1:L],labels=lb)
+    # Add annotation
+    maxv = vec(mvia.+sdvia)
+    px, py = annpos(Ts,maxv,0.15,0.05)
+    annotate!(p3,px,py,text("C",17,:black))
+    savefig(p3,"Output/Fig4/ViableStrains.png")
+    # PLACEHOLDER GRAPH
     p4 = plot(title="PLACEHOLDER")
     # Plot all graphs as a single figure
     pt = plot(p1,p3,p2,p4,layout=(2,2),size=(1200,800),margin=15.0mm)

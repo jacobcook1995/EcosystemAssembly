@@ -11,6 +11,30 @@ using ColorSchemes
 using Distributions
 import PyPlot
 
+# Function do Welch's t test
+function my_t_test(data1::Array,data2::Array)
+    # Find sample sizes
+    N1 = length(data1)
+    N2 = length(data2)
+    # Preallocate means and standard deviation
+    sam_m = zeros(2)
+    sam_sd = zeros(2)
+    # Calculate means and standard deviations
+    sam_m[1] = mean(data1)
+    sam_sd[1] = std(data1)
+    sam_m[2] = mean(data2)
+    sam_sd[2] = std(data2)
+    # Calculate t value
+    t = (sam_m[1]-sam_m[2])/sqrt((sam_sd[1]^2)/N1+(sam_sd[2]^2)/N2)
+    # Calculate ν value
+    ν = (((sam_sd[1]^2)/N1+(sam_sd[2]^2)/N2)^2)/((sam_sd[1]^4)/((N1^2)*(N1-1))+(sam_sd[2]^4)/((N2^2)*(N2-1)))
+    # make corresponding t distribution
+    T = TDist(ν)
+    # Two tailed test
+    P = 2*(1-cdf(T,abs(t)))
+    return(P)
+end
+
 # function to calculate the dissipation for an assembled ecosystem
 function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64,1})
     # Set all elements of out less than zero to zero
@@ -281,9 +305,6 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     JKs = L"JK^{-1}s^{-1}"
     # Container to store mean + sd for each case
     msd = zeros(Ns)
-    # Preallocate sample means and standard deviations
-    sam_m = zeros(2)
-    sam_sd = zeros(2)
     # Find variables to loop over
     vars = unique(ens)
     # Add a t test here
@@ -292,26 +313,15 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
         en = vars[i]
         # Find indices to do comparisons over
         inds = findall(x->x==en,ens)
-        # Loop over two indices
-        for j = 1:length(inds)
-            # Calculate means and standard deviations
-            sam_m[j] = mean(svs[inds[j],:])
-            sam_sd[j] = std(svs[inds[j],:])
-        end
-        # Calculate t value
-        t = (sam_m[1]-sam_m[2])/sqrt((sam_sd[1]^2)/Nr+(sam_sd[2]^2)/Nr)
-        # Calculate ν value
-        ν = (((sam_sd[1]^2)/Nr+(sam_sd[2]^2)/Nr)^2)/((sam_sd[1]^4)/((Nr^2)*(Nr-1))+(sam_sd[2]^4)/((Nr^2)*(Nr-1)))
-        # make corresponding t distribution
-        T = TDist(ν)
-        # Two tailed test
-        P = 2*(1-cdf(T,abs(t)))
-        println("Looking at energy case $(en)")
-        println("t value $(t)")
-        println("ν value $(ν)")
-        println("P value $(P)")
+        # Calculate all three
+        Pd = my_t_test(svs[inds[1],:],svs[inds[2],:])
+        Ps = my_t_test(mbs[inds[1],:],mbs[inds[2],:])
+        Pe = my_t_test(dsp[inds[1],:],dsp[inds[2],:])
+        println("Looking at $(en) case")
+        println("Diversity P value = $(Pd)")
+        println("Substrate diversification P value = $(Ps)")
+        println("Entropy production P value = $(Pe)")
     end
-    return(nothing)
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=200)

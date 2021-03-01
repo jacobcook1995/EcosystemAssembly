@@ -274,6 +274,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     tdv = Array{Int64,1}(undef,Ns*Nr)
     enl = Array{String,1}(undef,Ns*Nr)
     eps = Array{Float64,1}(undef,Ns*Nr)
+    spm = Array{Float64,1}(undef,Ns*Nr)
     # Fill out with data
     for i = 1:Ns
         for j = 1:Nr
@@ -282,10 +283,11 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
             tdv[(i-1)*Nr+j] = mbs[i,j]
             enl[(i-1)*Nr+j] = ens[i]
             eps[(i-1)*Nr+j] = dsp[i,j]
+            spm[(i-1)*Nr+j] = svs[i,j]/mbs[i,j]
         end
     end
     # Collect everything into one data frame
-    survivors = DataFrame(PSet=tl,ns=tsv,sdv=tdv,en=enl,ent=eps)
+    survivors = DataFrame(PSet=tl,ns=tsv,sdv=tdv,en=enl,ent=eps,rat=spm)
     # Find corresponding indices of reordered labels
     pos = zeros(Float64,Ns)
     # Find posistions for mean and std
@@ -317,10 +319,12 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
         Pd = my_t_test(svs[inds[1],:],svs[inds[2],:])
         Ps = my_t_test(mbs[inds[1],:],mbs[inds[2],:])
         Pe = my_t_test(dsp[inds[1],:],dsp[inds[2],:])
+        Pr = my_t_test(svs[inds[1],:]./mbs[inds[1],:],svs[inds[2],:]./mbs[inds[2],:])
         println("Looking at $(en) case")
         println("Diversity P value = $(Pd)")
         println("Substrate diversification P value = $(Ps)")
         println("Entropy production P value = $(Pe)")
+        println("Ratio P value = $(Pr)")
     end
     # Setup plotting
     pyplot()
@@ -334,8 +338,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     for i = 1:Ns
         # Calculate mean
         mn = mean(svs[i,:])
-        # sdn = std(svs[i,:])
-        sdn = sem(svs[i,:])
+        sdn = std(svs[i,:])
+        # sdn = sem(svs[i,:])
         msd[i] = mn + sdn
         scatter!(p1,[pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
@@ -353,8 +357,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     for i = 1:Ns
         # Calculate mean
         mn = mean(mbs[i,:])
-        # sdn = std(mbs[i,:])
-        sdn = sem(mbs[i,:])
+        sdn = std(mbs[i,:])
+        # sdn = sem(mbs[i,:])
         msd[i] = mn + sdn
         scatter!(p2,[pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
@@ -372,8 +376,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     for i = 1:Ns
         # Calculate mean
         mn = mean(dsp[i,:])
-        # sdn = std(dsp[i,:])
-        sdn = sem(dsp[i,:])
+        sdn = std(dsp[i,:])
+        # sdn = sem(dsp[i,:])
         msd[i] = mn + sdn
         scatter!(p3,[pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
@@ -389,6 +393,19 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     # Now want to make a plot incorperating all four previous plots
     pt = plot(p4,p2,p1,p3,layout=4,size=(1200,800))
     savefig(pt,"Output/Fig3/figure3.png")
+    # Want to do the plotting here
+    plot(title="Ratio",ylabel="Survivors per substrate")
+    @df survivors violin!(:PSet,:rat,linewidth=0,label="",color=wongc[2],group=:en)
+    @df survivors boxplot!(:PSet,:rat,color=wongc[4],fillalpha=0.75,linewidth=2,label="",group=:en)
+    # Plot means
+    for i = 1:Ns
+        # Calculate mean
+        mr = mean(svs[i,:]./mbs[i,:])
+        sdr = std(svs[i,:]./mbs[i,:])
+        # sdr = sem(svs[i,:]./mbs[i,:])
+        scatter!([pos[i]],[mr],yerror=[sdr],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+    end
+    savefig("Output/Fig3/Ratio.png")
     return(nothing)
 end
 

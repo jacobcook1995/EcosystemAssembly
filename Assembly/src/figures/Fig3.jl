@@ -8,6 +8,7 @@ using StatsBase
 using Statistics
 using LaTeXStrings
 using ColorSchemes
+using Distributions
 import PyPlot
 
 # function to calculate the dissipation for an assembled ecosystem
@@ -280,6 +281,37 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     JKs = L"JK^{-1}s^{-1}"
     # Container to store mean + sd for each case
     msd = zeros(Ns)
+    # Preallocate sample means and standard deviations
+    sam_m = zeros(2)
+    sam_sd = zeros(2)
+    # Find variables to loop over
+    vars = unique(ens)
+    # Add a t test here
+    for i = 1:length(vars)
+        # find energy condition to look for
+        en = vars[i]
+        # Find indices to do comparisons over
+        inds = findall(x->x==en,ens)
+        # Loop over two indices
+        for j = 1:length(inds)
+            # Calculate means and standard deviations
+            sam_m[j] = mean(svs[inds[j],:])
+            sam_sd[j] = std(svs[inds[j],:])
+        end
+        # Calculate t value
+        t = (sam_m[1]-sam_m[2])/sqrt((sam_sd[1]^2)/Nr+(sam_sd[2]^2)/Nr)
+        # Calculate ν value
+        ν = (((sam_sd[1]^2)/Nr+(sam_sd[2]^2)/Nr)^2)/((sam_sd[1]^4)/((Nr^2)*(Nr-1))+(sam_sd[2]^4)/((Nr^2)*(Nr-1)))
+        # make corresponding t distribution
+        T = TDist(ν)
+        # Two tailed test
+        P = 2*(1-cdf(T,abs(t)))
+        println("Looking at energy case $(en)")
+        println("t value $(t)")
+        println("ν value $(ν)")
+        println("P value $(P)")
+    end
+    return(nothing)
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=200)
@@ -292,7 +324,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     for i = 1:Ns
         # Calculate mean
         mn = mean(svs[i,:])
-        sdn = std(svs[i,:])
+        # sdn = std(svs[i,:])
+        sdn = sem(svs[i,:])
         msd[i] = mn + sdn
         scatter!(p1,[pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
@@ -310,7 +343,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     for i = 1:Ns
         # Calculate mean
         mn = mean(mbs[i,:])
-        sdn = std(mbs[i,:])
+        # sdn = std(mbs[i,:])
+        sdn = sem(mbs[i,:])
         msd[i] = mn + sdn
         scatter!(p2,[pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
@@ -328,7 +362,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     for i = 1:Ns
         # Calculate mean
         mn = mean(dsp[i,:])
-        sdn = std(dsp[i,:])
+        # sdn = std(dsp[i,:])
+        sdn = sem(dsp[i,:])
         msd[i] = mn + sdn
         scatter!(p3,[pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end

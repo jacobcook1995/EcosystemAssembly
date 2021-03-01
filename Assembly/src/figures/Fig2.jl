@@ -45,9 +45,28 @@ function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64
     return(dsp)
 end
 
-function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf::Float64)
+function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf::Float64,rps::Int64)
     println("Compiled!")
-    # Read in relevant files
+    # Set intial number of concentrations, and preallocate the final ones
+    nmi = ones(rps)
+    nmf = zeros(rps)
+    # Loop over all repeats to find substrate diversification
+    for i = 1:rps
+        # Read in relevant files
+        pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ns).jld"
+        if ~isfile(pfile)
+            error("run $(i) is missing a parameter file")
+        end
+        ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ns).jld"
+        if ~isfile(ofile)
+            error("run $(Nr) is missing an output file")
+        end
+        # Load required data
+        ps = load(pfile,"ps")
+        inf_out = load(ofile,"inf_out")
+        nmf[i] = count(x->x>0.0,inf_out[(ps.N+1):(ps.N+ps.M)])
+    end
+    # Read in specific files needed for the dynamics
     pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(pfile)
         error("run $(Nr) is missing a parameter file")
@@ -104,9 +123,23 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
         dff = setdiff(1:Ns,is[1:i-1])
         is[i] = dff[1]
     end
+    # Set suitable threshold for viable usage of metabolite 3
+    tsh3 = 1e-4
+    # Find and save time where metabolite three has first crossed threshold
+    ind3 = findfirst(x->x>=tsh3,C[:,Ns+3])
+    T3 = T[ind3]
     # Now move onto plotting
     pyplot()
     theme(:wong2,dpi=200)
+    # Find maximum number of substrates (convert to integer)
+    mS = convert(Int64,maximum(nmf))
+    # make appropriate bins
+    rbins = range(-0.25,stop=mS+0.75,length=mS+2)
+    # make histograms
+    ph = plot(xlabel="Number of substrates")
+    histogram!(ph,nmi,color=:black,label="",bins=rbins)
+    histogram!(ph,nmf,color=:red,label="",bins=rbins)
+    savefig(ph,"Output/Fig2/hist.png")
     # Plot all the populations
     p1 = plot(title="Population dynamics",yaxis=:log10,xlabel="Time (s)",ylabel="Population (# cells)")
     # Store max and min C values
@@ -126,6 +159,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     px, py = annpos([0.0; Tend],[maxC; minC])
     # Different because log10 scale used
     annotate!(px,py,text("A",17,:black),δx=0.10,δy=0.125)
+    vline!(p1,[T3],color=:red,style=:dash,label="")
     savefig(p1,"Output/Fig2/pops.png")
     # Now plot concentrations
     p2 = plot(title="Substrate diversification",xlabel="Time (s)",ylabel="Concentration (moles)")
@@ -139,9 +173,9 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
         inds = (T .<= Tend)
         # Can't switch theme but can switch pallete to avoid repeated colors
         if (i-Ns) >= 20
-            plot!(p2,T[inds],C[inds,i],label="",palette=:darktest)
+            plot!(p2[1],T[inds],C[inds,i],label="",palette=:darktest)
         else
-            plot!(p2,T[inds],C[inds,i],label="")
+            plot!(p2[1],T[inds],C[inds,i],label="")
         end
         # Store max and min C values in range
         maxC[c] = maximum(C[inds,i])
@@ -150,6 +184,12 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
     annotate!(px,py,text("B",17,:black))
+    vline!(p2[1],[T3],color=:red,style=:dash,label="")
+    # Define box for inset here
+    box = (1,bbox(0.7,0.25,0.275,0.275,:bottom,:left))
+    histogram!(p2,nmi,color=:black,label="Initial",bins=rbins,inset_subplots=box,subplot=2)
+    histogram!(p2[2],nmf,color=:red,label="Final",bins=rbins,xlabel="Number of substrates")
+    plot!(p2[2],guidefontsize=6,legendfontsize=6,tickfontsize=4)
     savefig(p2,"Output/Fig2/concs.png")
     # Now plot proteome fraction
     p3 = plot(title="Proteome dynamics",xlabel="Time (s)",ylabel="Ribosome fraction")
@@ -169,6 +209,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
     annotate!(px,py,text("D",17,:black))
+    vline!(p3,[T3],color=:red,style=:dash,label="")
     savefig(p3,"Output/Fig2/fracs.png")
     # container to store entropy production
     ep = zeros(length(T))
@@ -184,6 +225,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],ep[inds])
     annotate!(px,py,text("C",17,:black))
+    vline!(p4,[T3],color=:red,style=:dash,label="")
     savefig(p4,"Output/Fig2/entp.png")
     # Now want to make a plot incorperating all four previous plots
     pt = plot(p1,p4,p2,p3,layout=4,size=(1200,800))
@@ -191,4 +233,4 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     return(nothing)
 end
 
-@time figure2(1,5,true,61,250,"i",0.015)
+@time figure2(1,5,true,61,250,"i",0.01,250)

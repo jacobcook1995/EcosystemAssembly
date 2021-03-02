@@ -2,6 +2,7 @@
 using Assembly
 using Plots
 using JLD
+using Plots.PlotMeasures
 import PyPlot
 
 # function to calculate the dissipation for an assembled ecosystem
@@ -228,7 +229,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     vline!(p4,[T3],color=:red,style=:dash,label="")
     savefig(p4,"Output/Fig2/entp.png")
     # Now want to make a plot incorperating all four previous plots
-    pt = plot(p1,p4,p2,p3,layout=4,size=(1200,800))
+    pt = plot(p1,p4,p2,p3,layout=4,size=(1200,800),margin=5mm)
     savefig(pt,"Output/Fig2/figure2.png")
     return(nothing)
 end

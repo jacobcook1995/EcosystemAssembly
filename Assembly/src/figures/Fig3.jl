@@ -338,8 +338,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     for i = 1:Ns
         # Calculate mean
         mn = mean(svs[i,:])
-        sdn = std(svs[i,:])
-        # sdn = sem(svs[i,:])
+        # Calculate 99% confidence interval
+        sdn = sem(svs[i,:])*2.576
         msd[i] = mn + sdn
         scatter!(p1,[pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
@@ -357,8 +357,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     for i = 1:Ns
         # Calculate mean
         mn = mean(mbs[i,:])
-        sdn = std(mbs[i,:])
-        # sdn = sem(mbs[i,:])
+        # Calculate 99% confidence interval
+        sdn = sem(mbs[i,:])*2.576
         msd[i] = mn + sdn
         scatter!(p2,[pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
@@ -376,8 +376,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     for i = 1:Ns
         # Calculate mean
         mn = mean(dsp[i,:])
-        sdn = std(dsp[i,:])
-        # sdn = sem(dsp[i,:])
+        # Calculate 99% confidence interval
+        sdn = sem(dsp[i,:])*2.576
         msd[i] = mn + sdn
         scatter!(p3,[pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
@@ -400,17 +400,14 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     # Plot means
     for i = 1:Ns
         # Calculate mean
-        mr = mean(svs[i,:]./mbs[i,:])
-        sdr = std(svs[i,:]./mbs[i,:])
-        # sdr = sem(svs[i,:]./mbs[i,:])
-        scatter!([pos[i]],[mr],yerror=[sdr],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
+        mn = mean(svs[i,:]./mbs[i,:])
+        # Calculate 99% confidence interval
+        sdn = sem(svs[i,:]./mbs[i,:])*2.576
+        scatter!([pos[i]],[mn],yerror=[sdn],label="",shape=:star5,color=wongc[5],ms=10,msc=wongc[5])
     end
     savefig("Output/Fig3/Ratio.png")
     return(nothing)
 end
-
-# DELETE THIS WHEN DONE
-# @time divloss(1,5,true,"i",250,89)
 
 # Hard code parameters here
 l = [1,1,1,1,1,1]

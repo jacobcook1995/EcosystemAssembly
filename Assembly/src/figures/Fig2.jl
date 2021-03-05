@@ -2,6 +2,7 @@
 using Assembly
 using Plots
 using JLD
+using StatsBase
 using Plots.PlotMeasures
 import PyPlot
 
@@ -132,17 +133,8 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Now move onto plotting
     pyplot()
     theme(:wong2,dpi=200)
-    # Find maximum number of substrates (convert to integer)
-    mS = convert(Int64,maximum(nmf))
-    # make appropriate bins
-    rbins = range(-0.25,stop=mS+0.75,length=mS+2)
-    # make histograms
-    ph = plot(xlabel="Number of substrates")
-    histogram!(ph,nmi,color=:black,label="",bins=rbins)
-    histogram!(ph,nmf,color=:red,label="",bins=rbins)
-    savefig(ph,"Output/Fig2/hist.png")
     # Plot all the populations
-    p1 = plot(title="Population dynamics",yaxis=:log10,xlabel="Time (s)",ylabel="Population (# cells)")
+    p1 = plot(yaxis=:log10,ylabel="Population (# cells)")
     # Store max and min C values
     maxC = zeros(length(is))
     minC = zeros(length(is))
@@ -163,7 +155,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     vline!(p1,[T3],color=:red,style=:dash,label="")
     savefig(p1,"Output/Fig2/pops.png")
     # Now plot concentrations
-    p2 = plot(title="Substrate diversification",xlabel="Time (s)",ylabel="Concentration (moles)")
+    p2 = plot(ylabel="Concentration (moles)")
     # Store max and min C values
     maxC = zeros(length(is))
     minC = zeros(length(is))
@@ -174,9 +166,9 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
         inds = (T .<= Tend)
         # Can't switch theme but can switch pallete to avoid repeated colors
         if (i-Ns) >= 20
-            plot!(p2[1],T[inds],C[inds,i],label="",palette=:darktest)
+            plot!(p2,T[inds],C[inds,i],label="",palette=:darktest)
         else
-            plot!(p2[1],T[inds],C[inds,i],label="")
+            plot!(p2,T[inds],C[inds,i],label="")
         end
         # Store max and min C values in range
         maxC[c] = maximum(C[inds,i])
@@ -184,16 +176,30 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     end
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
-    annotate!(px,py,text("B",17,:black))
-    vline!(p2[1],[T3],color=:red,style=:dash,label="")
+    annotate!(px,py,text("C",17,:black))
+    vline!(p2,[T3],color=:red,style=:dash,label="")
+    # Find maximum number of substrates (convert to integer)
+    mS = convert(Int64,maximum(nmf))
+    # make appropriate bins
+    rbins = range(-0.25,stop=mS+0.75,length=mS+2)
     # Define box for inset here
     box = (1,bbox(0.7,0.25,0.275,0.275,:bottom,:left))
-    histogram!(p2,nmi,color=:black,label="Initial",bins=rbins,inset_subplots=box,subplot=2)
-    histogram!(p2[2],nmf,color=:red,label="Final",bins=rbins,xlabel="Number of substrates")
-    plot!(p2[2],guidefontsize=6,legendfontsize=6,tickfontsize=4)
+    # Find initial and final histograms
+    hi = fit(Histogram,nmi,rbins,closed=:right)
+    hf = fit(Histogram,nmf,rbins,closed=:right)
+    # Find height of peaks of both distribution
+    hmaxi = maximum(hi.weights)
+    hmaxf = maximum(hf.weights)
+    # Scale distributions so that their peaks match, has to be done this way to preserve Int64 type
+    hf.weights = hf.weights*hmaxi
+    hi.weights = hi.weights*2*hmaxf
+    # Then plot as bar charts, with inital distribution included
+    bar!(p2,hi,color=:black,label="Initial",inset_subplots=box,subplot=2)
+    bar!(p2[2],hf,color=:red,label="Final",xlabel="Number of substrates")
+    plot!(p2[2],guidefontsize=8,legendfontsize=8,tickfontsize=6,yaxis=false,grid=false)#yticks=false)
     savefig(p2,"Output/Fig2/concs.png")
     # Now plot proteome fraction
-    p3 = plot(title="Proteome dynamics",xlabel="Time (s)",ylabel="Ribosome fraction")
+    p3 = plot(ylabel="Ribosome fraction")
     # Store max and min C values
     maxC = zeros(length(is))
     minC = zeros(length(is))
@@ -209,7 +215,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     end
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
-    annotate!(px,py,text("D",17,:black))
+    annotate!(px,py,text("B",17,:black))
     vline!(p3,[T3],color=:red,style=:dash,label="")
     savefig(p3,"Output/Fig2/fracs.png")
     # container to store entropy production
@@ -219,17 +225,17 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
         # Calculate entropy production at each step
         ep[i] = dissipation(ps,ms,C[i,:])
     end
-    p4 = plot(title="Entropy production",xlabel="Time (s)",ylabel="Entropy production (J/K per s)")
+    p4 = plot(xlabel="Time (s)",ylabel="Entropy production (J/K per s)")
     # Find and eliminate points after end time
     inds = (T .<= Tend)
     plot!(p4,T[inds],ep[inds],label="")
     # Add annotation
     px, py = annpos([0.0; Tend],ep[inds])
-    annotate!(px,py,text("C",17,:black))
+    annotate!(px,py,text("D",17,:black))
     vline!(p4,[T3],color=:red,style=:dash,label="")
     savefig(p4,"Output/Fig2/entp.png")
     # Now want to make a plot incorperating all four previous plots
-    pt = plot(p1,p4,p2,p3,layout=4,size=(1200,800),margin=5mm)
+    pt = plot(p1,p3,p2,p4,layout=(4,1),size=(600,1600),margin=5mm)
     savefig(pt,"Output/Fig2/figure2.png")
     return(nothing)
 end

@@ -140,9 +140,37 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
             Tms[i] = NaN
         end
     end
+    # Set threshold to be considered accumulated
+    acct = 2e-3
+    # Preallocate checks that they went over the threshold
+    mtr = fill(false,ps.M)
+    # And exhaustion times
+    exT = zeros(ps.M)
+    # Loop over all metabolites and check if they went over the thrshold
+    for i = 1:ps.M
+        # Check if concentration goes over threshold
+        mtr[i] = any(x->x>=acct,C[:,Ns+i])
+        # If it does find exhaustion time
+        if mtr[i] == true
+            # Find index of first going over the time
+            ind = findfirst(x->x>=acct,C[:,Ns+i])
+            # Then check if it drops below again
+            if any(x->x<acct,C[(ind+1):end,Ns+i])
+                # If so find first point below the threshold
+                ind2 = findfirst(x->x<acct,C[(ind+1):end,Ns+i])
+                # Use to find exhaustion time
+                exT[i] = T[ind2+ind]
+            else
+                exT[i] = NaN
+            end
+        else
+            exT[i] = NaN
+        end
+    end
     # Now move onto plotting
     pyplot()
     theme(:wong2,dpi=200)
+    wongc = wong2_palette()
     # Plot all the populations
     p1 = plot(yaxis=:log10,ylabel="Population (# cells)")
     # Store max and min C values
@@ -206,7 +234,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Then plot as bar charts, with inital distribution included
     bar!(p2,hi,color=:black,label="Initial",inset_subplots=box,subplot=2)
     bar!(p2[2],hf,color=:red,label="Final",xlabel="Number of substrates")
-    plot!(p2[2],guidefontsize=8,legendfontsize=8,tickfontsize=6,yaxis=false,grid=false)#yticks=false)
+    plot!(p2[2],guidefontsize=8,legendfontsize=8,tickfontsize=6,yaxis=false,grid=false)
     savefig(p2,"Output/Fig2/concs.png")
     # Now plot proteome fraction
     p3 = plot(ylabel="Ribosome fraction")
@@ -243,6 +271,12 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     px, py = annpos([0.0; Tend],ep[inds])
     annotate!(px,py,text("D",17,:black))
     vline!(p4,[Tms[3]],color=:red,style=:dash,label="")
+    for i = 1:ps.M
+        if mtr[i] == true
+            vline!(p4,[exT[i]],style=:dot,color=wongc[i],label="")
+            # plot!(p4,[exT[i];exT[i]],[0.0;-0.01],color=:black,label="")
+        end
+    end
     savefig(p4,"Output/Fig2/entp.png")
     # Now want to make a plot incorperating all four previous plots
     pt = plot(p1,p3,p2,p4,layout=(4,1),size=(600,1600),margin=5mm)

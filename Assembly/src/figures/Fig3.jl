@@ -235,11 +235,13 @@ function divloss(Rl::Int64,Ru::Int64,syn::Bool,en::String,Ni::Int64,Nr::Int64,rp
     px, py = annpos([0.25; convert(Float64,Tp)],[1.0;0.0],0.10,0.05)
     annotate!(px,py,text("A",17,:black))
     # Define box for subplot
-    box = (1,bbox(0.65,0.7,0.28,0.2,:bottom,:left))
+    box = (1,bbox(0.63,0.7,0.31,0.25,:bottom,:left))
+    # make appropriate bins
+    rbins = range(-0.5,stop=ps.M+0.5,length=ps.M+2)
     # Plot histogram into the subplot
-    histogram!(p,Si,color=:black,label="Initial",inset_subplots=box,subplot=2)
-    histogram!(p[2],Sf,color=:red,label="Final",xlabel=L"^{2}D")
-    plot!(p[2],guidefontsize=6,legendfontsize=6,tickfontsize=4)
+    histogram!(p,Si,color=:black,bins=rbins,label="Initial",inset_subplots=box,subplot=2)
+    histogram!(p[2],Sf,color=:red,bins=rbins,label="Final",xlabel=L"^{2}D")
+    plot!(p[2],guidefontsize=8,legendfontsize=8,tickfontsize=6,yaxis=false,grid=false)
     savefig(p,"Output/Fig3/abT.png")
     return(p)
 end
@@ -337,7 +339,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=200)
-    wongc = get_color_palette(wong_palette,57)
+    wongc = wong2_palette()
     # Want to do the plotting here
     p1 = plot(title="Ecosystem diversity",ylabel="Number of surviving strains",xlabel="Condition")
     # Plot means
@@ -394,9 +396,9 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
 end
 
 # Hard code parameters here
-l = [1,1,1,1,1,1]
-u = [5,5,5,5,5,5]
-s = [true,true,true,false,false,false]
-e = ["l","i","h","l","i","h"]
+l = [1,1,1,1]
+u = [5,5,5,5]
+s = [true,true,false,false]
+e = ["l","h","l","h"]
 
 @time figure3(l,u,s,e,250,250,1,5,true,"i",89)

@@ -66,7 +66,8 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
         # Load required data
         ps = load(pfile,"ps")
         inf_out = load(ofile,"inf_out")
-        nmf[i] = count(x->x>0.0,inf_out[(ps.N+1):(ps.N+ps.M)])
+        # Only want to count substrates
+        nmf[i] = count(x->x>0.0,inf_out[(ps.N+1):(ps.N+ps.M-1)])
     end
     # Read in specific files needed for the dynamics
     pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
@@ -127,9 +128,18 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     end
     # Set suitable threshold for viable usage of metabolite 3
     tsh3 = 1e-4
-    # Find and save time where metabolite three has first crossed threshold
-    ind3 = findfirst(x->x>=tsh3,C[:,Ns+3])
-    T3 = T[ind3]
+    # Preallocate threshold times
+    Tms = zeros(ps.M)
+    # Find and save times where metabolites have first crossed threshold
+    for i = 1:ps.M
+        ind = findfirst(x->x>=tsh3,C[:,Ns+i])
+        # Check if threshold actually is ever crossed
+        if ind != nothing
+            Tms[i] = T[ind]
+        else
+            Tms[i] = NaN
+        end
+    end
     # Now move onto plotting
     pyplot()
     theme(:wong2,dpi=200)
@@ -152,7 +162,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     px, py = annpos([0.0; Tend],[maxC; minC])
     # Different because log10 scale used
     annotate!(px,py,text("A",17,:black),δx=0.10,δy=0.125)
-    vline!(p1,[T3],color=:red,style=:dash,label="")
+    vline!(p1,[Tms[3]],color=:red,style=:dash,label="")
     savefig(p1,"Output/Fig2/pops.png")
     # Now plot concentrations
     p2 = plot(ylabel="Concentration (moles)")
@@ -177,11 +187,11 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
     annotate!(px,py,text("C",17,:black))
-    vline!(p2,[T3],color=:red,style=:dash,label="")
+    vline!(p2,[Tms[3]],color=:red,style=:dash,label="")
     # Find maximum number of substrates (convert to integer)
     mS = convert(Int64,maximum(nmf))
     # make appropriate bins
-    rbins = range(-0.25,stop=mS+0.75,length=mS+2)
+    rbins = range(-0.5,stop=mS+0.5,length=mS+2)
     # Define box for inset here
     box = (1,bbox(0.7,0.25,0.275,0.275,:bottom,:left))
     # Find initial and final histograms
@@ -216,7 +226,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
     annotate!(px,py,text("B",17,:black))
-    vline!(p3,[T3],color=:red,style=:dash,label="")
+    vline!(p3,[Tms[3]],color=:red,style=:dash,label="")
     savefig(p3,"Output/Fig2/fracs.png")
     # container to store entropy production
     ep = zeros(length(T))
@@ -232,7 +242,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],ep[inds])
     annotate!(px,py,text("D",17,:black))
-    vline!(p4,[T3],color=:red,style=:dash,label="")
+    vline!(p4,[Tms[3]],color=:red,style=:dash,label="")
     savefig(p4,"Output/Fig2/entp.png")
     # Now want to make a plot incorperating all four previous plots
     pt = plot(p1,p3,p2,p4,layout=(4,1),size=(600,1600),margin=5mm)

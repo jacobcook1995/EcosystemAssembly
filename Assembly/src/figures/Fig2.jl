@@ -266,15 +266,14 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     p4 = plot(xlabel="Time (s)",ylabel="Entropy production (J/K per s)")
     # Find and eliminate points after end time
     inds = (T .<= Tend)
-    plot!(p4,T[inds],ep[inds],label="")
+    plot!(p4,T[inds],ep[inds],label="",ylim=(-0.01,Inf))
     # Add annotation
     px, py = annpos([0.0; Tend],ep[inds])
     annotate!(px,py,text("D",17,:black))
     vline!(p4,[Tms[3]],color=:red,style=:dash,label="")
     for i = 1:ps.M
         if mtr[i] == true
-            vline!(p4,[exT[i]],style=:dot,color=wongc[i],label="")
-            # plot!(p4,[exT[i];exT[i]],[0.0;-0.01],color=:black,label="")
+            plot!(p4,[exT[i];exT[i]],[-0.01;0.01],color=wongc[i],style=:solid,label="")
         end
     end
     savefig(p4,"Output/Fig2/entp.png")

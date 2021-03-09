@@ -6,6 +6,7 @@ using StatsBase
 using Plots.PlotMeasures
 import PyPlot
 
+# function to find average efficency
 function av_eff(pop::Array{Float64,1},conc::Array{Float64,1},ms::Array{MicrobeP,1},ps::FullParameters)
     # Define mimimum product to substrate ratio (to calculate) the efficency
     mr = 1e-2
@@ -26,6 +27,24 @@ function av_eff(pop::Array{Float64,1},conc::Array{Float64,1},ms::Array{MicrobeP,
     # Average across populations
     avef = efT/sum(pop)
     return(avef)
+end
+
+# funtion to find average growth rate
+function av_λ(pop::Array{Float64,1},as::Array{Float64,1},ϕRs::Array{Float64,1},ms::Array{MicrobeP,1})
+    # Find indices of surving populations
+    inds = findall(x->x>0.0,pop)
+    # weighted total growth rate (starts at zero)
+    λT = 0.0
+    # Loop over survivors
+    for i = inds
+        # Find growth rate for this particular strain
+        λt = λs(as[i],ϕRs[i],ms[i])
+        # Weight by population and add to total
+        λT += pop[i]*λt
+    end
+    # Divide weighted growth rate by total abundance
+    λT /= sum(pop)
+    return(λT)
 end
 
 function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rps::Int64,
@@ -61,8 +80,9 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     via = zeros(ips,rps,L)
     dv = zeros(ips,rps,L)
     tab = zeros(ips,rps,L)
-    # New containers, for efficencies, dissipations and energy generation rates
+    # New containers, for efficencies and growth rates
     efs = zeros(ips,rps,L)
+    λts = zeros(ips,rps,L)
     # Set threshold for substrate being properly diversified
     tsh = 1e-7
     # Threshold meaningful/viable population
@@ -82,6 +102,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                 dv[:,:,(j-1)*le+l] = load(tfile,"dv")
                 tab[:,:,(j-1)*le+l] = load(tfile,"tab")
                 efs[:,:,(j-1)*le+l] = load(tfile,"efs")
+                λts[:,:,(j-1)*le+l] = load(tfile,"λts")
             else
                 println("Generating $(ens[j])-$(syns[l]) data")
                 for i = 1:rps
@@ -133,6 +154,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                             dv[k,i,(j-1)*le+l] = count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)])
                             tab[k,i,(j-1)*le+l] = sum(C[ind,1:Ni])
                             efs[k,i,(j-1)*le+l] = av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
+                            λts[k,i,(j-1)*le+l] = av_λ(C[ind,1:Ni],C[ind,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind,(2*Ni+ps.M+1):end],ms)
                         else
                             # Otherwise need to (linearly) interpolate
                             dT = (T[ind]-Ts[k])/(T[ind]-T[ind-1])
@@ -142,6 +164,8 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                             tab[k,i,(j-1)*le+l] = (1-dT)*sum(C[ind,1:Ni]) + dT*sum(C[ind,1:Ni])
                             efs[k,i,(j-1)*le+l] = (1-dT)*av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
                             efs[k,i,(j-1)*le+l] += dT*av_eff(C[ind-1,1:Ni],C[ind-1,(Ni+1):(Ni+ps.M)],ms,ps)
+                            λts[k,i,(j-1)*le+l] = (1-dT)*av_λ(C[ind,1:Ni],C[ind,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind,(2*Ni+ps.M+1):end],ms)
+                            λts[k,i,(j-1)*le+l] += dT*av_λ(C[ind-1,1:Ni],C[ind-1,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind-1,(2*Ni+ps.M+1):end],ms)
                         end
                     end
                 end
@@ -152,6 +176,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                     write(file,"dv",dv[:,:,(j-1)*le+l])
                     write(file,"tab",tab[:,:,(j-1)*le+l])
                     write(file,"efs",efs[:,:,(j-1)*le+l])
+                    write(file,"λts",efs[:,:,(j-1)*le+l])
                 end
             end
         end
@@ -167,7 +192,8 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     sdvia = zeros(ips,L)
     mefs = zeros(ips,L)
     sdefs = zeros(ips,L)
-    mdsp = zeros(ips,L)
+    mλts = zeros(ips,L)
+    sdλts = zeros(ips,L)
     # Find mean and standard errors of survivor numbers and substrate diversification
     for i = 1:ips
         for j = 1:length(ens)
@@ -182,6 +208,8 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                 sdta[i,(j-1)*le+k] = sem(tab[i,:,(j-1)*le+k])
                 mefs[i,(j-1)*le+k] = mean(efs[i,:,(j-1)*le+k])
                 sdefs[i,(j-1)*le+k] = sem(efs[i,:,(j-1)*le+k])
+                mλts[i,(j-1)*le+k] = mean(λts[i,:,(j-1)*le+k])
+                sdλts[i,(j-1)*le+k] = sem(λts[i,:,(j-1)*le+k])
             end
         end
     end
@@ -235,8 +263,16 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     px, py = annpos(Ts,maxefs,0.15,0.05)
     annotate!(p3,px,py,text("C",17,:black))
     savefig(p3,"Output/Fig4/Efficency.png")
+    # Plot graph of growth rates
+    p4 = plot(title="Growth rate with time",xlabel="Time",ylabel="Growth rate")
+    plot!(p4,Ts,mλts[:,1:L],ribbon=sdλts[:,1:L],labels=lb,palette=wongc[2:5])
+    # Add annotation
+    maxλts = vec(mλts.+sdλts)
+    px, py = annpos(Ts,maxλts,0.15,0.05)
+    annotate!(p4,px,py,text("D",17,:black))
+    savefig(p4,"Output/Fig4/GrowthRate.png")
     # Plot all graphs as a single figure
-    pt = plot(p1,p2,p3,layout=3,size=(1200,800),margin=15.0mm)
+    pt = plot(p1,p2,p3,p4,layout=4,size=(1200,800),margin=15.0mm)
     savefig(pt,"Output/Fig4/figure4.png")
     return(nothing)
 end

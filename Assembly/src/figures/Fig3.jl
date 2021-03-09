@@ -261,8 +261,6 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     mbs = zeros(Int64,Ns,Nr)
     # Container to store dissipation
     dsp = zeros(Float64,Ns,Nr)
-    # Preallocate labels
-    lbs = Array{String}(undef,Ns)
     # Loop over parameter sets
     for i = 1:Ns
         for j = 1:Nr
@@ -296,39 +294,26 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
             # Find and save dissipation
             dsp[i,j] = dissipation(ps,ps.mics,inf_out)
         end
-        # Make labels here
-        if ens[i] == "h"
-            if syns[i] == true
-                lbs[i] = "high-true"
-            else
-                lbs[i] = "high-false"
-            end
-        elseif ens[i] == "i"
-            if syns[i] == true
-                lbs[i] = "inter-true"
-            else
-                lbs[i] = "inter-false"
-            end
-        else
-            if syns[i] == true
-                lbs[i] = "low-true"
-            else
-                lbs[i] = "low-false"
-            end
-        end
     end
+    # Setup plotting
+    pyplot()
+    theme(:wong2,dpi=200)
+    wongc = wong2_palette()
     # Find corresponding indices of reordered labels
     pos = zeros(Float64,Ns)
+    c = Array{RGBA,1}(undef,Ns)
     # Find posistions for mean and std
     for i = 1:Ns
         p = 1.0
         if syns[i] == true
-            p += 1.0
+            p += 0.5
+            # Set color
+            c[i] = wongc[1]
+        else
+            c[i] = wongc[2]
         end
-        if ens[i] == "i"
-            p += 2.0
-        elseif ens[i] == "l"
-            p += 4.0
+        if ens[i] == "l"
+            p += 1.5
         end
         pos[i] = p
     end
@@ -336,12 +321,9 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     JKs = L"JK^{-1}s^{-1}"
     # Container to store mean + sd for each case
     msd = zeros(Ns)
-    # Setup plotting
-    pyplot()
-    theme(:wong2,dpi=200)
-    wongc = wong2_palette()
     # Want to do the plotting here
-    p1 = plot(title="Ecosystem diversity",ylabel="Number of surviving strains",xlabel="Condition")
+    p1 = plot(ylabel="Number of surviving strains",xlim=(0.5,3.5),xlabel="Energy supply")
+    plot!(p1,xticks=([1.25,2.75],["high","low"]))
     # Plot means
     for i = 1:Ns
         # Calculate mean
@@ -349,48 +331,52 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
         # Calculate 99% confidence interval
         sdn = sem(svs[i,:])*2.576
         msd[i] = mn + sdn
-        scatter!(p1,[pos[i]],[mn],yerror=[sdn],label=lbs[i],color=wongc[i],ms=6,msc=wongc[i])
+        # Label empty
+        lb = ""
+        # Unless energy is high
+        if ens[i] == "h"
+            if syns[i] == true
+                lb = "Reversible"
+            else
+                lb = "M–M"
+            end
+        end
+        scatter!(p1,[pos[i]],[mn],yerror=[sdn],label=lb,color=c[i],ms=6,msc=c[i])
     end
     # Add annotation
-    px, py = annpos([1.0;6.0],msd,0.10,0.05)
+    px, py = annpos([1.0;6.0],msd,0.25,-0.025)
     annotate!(px,py,text("B",17,:black))
     savefig(p1,"Output/Fig3/Diversity.png")
-    p3 = plot(title="Entropy production",ylabel="Ecosystem entropy production rate ($(JKs))",yaxis=:log10,xlabel="Condition")
+    p3 = plot(ylabel="Ecosystem entropy production rate ($(JKs))",yaxis=:log10)
+    plot!(p3,xlim=(0.5,3.5),xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
     # Plot means
     for i = 1:Ns
         # Calculate mean
         mn = mean(dsp[i,:])
         # Calculate 99% confidence interval
         sdn = sem(dsp[i,:])*2.576
-        msd[i] = mn + sdn
-        scatter!(p3,[pos[i]],[mn],yerror=[sdn],label=lbs[i],color=wongc[i],ms=6,msc=wongc[i])
+        scatter!(p3,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
     end
-    # Calculate minimum and maximum entropies
-    maxe = convert(Float64,maximum(dsp))
-    mine = convert(Float64,minimum(dsp))
-    # Add annotation
-    px, py = annpos([1.0;6.0],[maxe; mine; msd],0.10,0.2)
-    annotate!(px,py,text("D",17,:black))
     savefig(p3,"Output/Fig3/EntropyProduction.png")
-    # Run div loss function to make extra plot
-    p4 = divloss(dRl,dRu,dsyn,den,Ni,runN,Nr)
     # Want to do the plotting here
-    p2 = plot(title="Ratio",ylabel="Survivors per substrate",xlabel="Condition")
+    p2 = plot(ylabel="Survivors per substrate",legend=false,xlim=(0.5,3.5))
+    plot!(p2,xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
     # Plot means
     for i = 1:Ns
         # Calculate mean
         mn = mean(svs[i,:]./mbs[i,:])
         # Calculate 99% confidence interval
         sdn = sem(svs[i,:]./mbs[i,:])*2.576
-        msd[i] = mn + sdn
-        scatter!(p2,[pos[i]],[mn],yerror=[sdn],label=lbs[i],color=wongc[i],ms=6,msc=wongc[i])
+        scatter!(p2,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
     end
-    # Add annotation
-    px, py = annpos([1.0;6.0],msd,0.10,0.05)
-    annotate!(px,py,text("C",17,:black))
     savefig(p2,"Output/Fig3/Ratio.png")
+    # Combine all three plots into a single one
+    pc = plot(p1,p2,p3,layout=(1,3),size=(600,400))
+    savefig(pc,"Output/Fig3/condensed.png")
+    # Run div loss function to make extra plot
+    p4 = divloss(dRl,dRu,dsyn,den,Ni,runN,Nr)
     # Now want to make a plot incorperating all four previous plots
-    pt = plot(p4,p2,p1,p3,layout=4,size=(1200,800),margin=5.0mm)
+    pt = plot(p4,pc,layout=2,size=(1200,400),margin=5.0mm)
     savefig(pt,"Output/Fig3/figure3.png")
     return(nothing)
 end

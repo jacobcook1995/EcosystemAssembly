@@ -169,7 +169,6 @@ function divloss(Rl::Int64,Ru::Int64,syn::Bool,en::String,Ni::Int64,Nr::Int64,rp
     # Find and save maximum time
     Tmax = T[end]
     # Make vector of the time points
-    # IS THIS A SENSIBLE TIME RANGE???
     Ts = [collect(range(0.0,stop=Tmax/25.0,length=Tp-1)); Tmax]
     # Container to time varying diversity and abundance data
     abT = zeros(Float64,Tp,ps.M)
@@ -261,6 +260,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     mbs = zeros(Int64,Ns,Nr)
     # Container to store dissipation
     dsp = zeros(Float64,Ns,Nr)
+    # Container to store functional diversities
+    fdv = zeros(Int64,Ns,Nr)
     # Loop over parameter sets
     for i = 1:Ns
         for j = 1:Nr
@@ -293,6 +294,21 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
             mbs[i,j] = cm
             # Find and save dissipation
             dsp[i,j] = dissipation(ps,ps.mics,inf_out)
+            # Preallocate vector to store if function is present
+            fnc = fill(false,ps.M)
+            # Loop over every surviving microbe
+            for k = 1:ps.N
+                # Find index of main reaction
+                _, ind = findmax(ps.mics[k].ϕP)
+                # Find corresponding reactant number
+                Rn = ps.reacs[ps.mics[k].Reacs[ind]].Rct
+                # Update vector to show that function Rn is present
+                if fnc[Rn] == false
+                    fnc[Rn] = true
+                end
+            end
+            # Count number of functions
+            fdv[i,j] = count(fnc)
         end
     end
     # Setup plotting
@@ -330,22 +346,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
         mn = mean(svs[i,:])
         # Calculate 99% confidence interval
         sdn = sem(svs[i,:])*2.576
-        msd[i] = mn + sdn
-        # Label empty
-        lb = ""
-        # Unless energy is high
-        if ens[i] == "h"
-            if syns[i] == true
-                lb = "Reversible"
-            else
-                lb = "M–M"
-            end
-        end
-        scatter!(p1,[pos[i]],[mn],yerror=[sdn],label=lb,color=c[i],ms=6,msc=c[i])
+        scatter!(p1,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
     end
-    # Add annotation
-    px, py = annpos([1.0;6.0],msd,0.25,-0.025)
-    annotate!(px,py,text("B",17,:black))
     savefig(p1,"Output/Fig3/Diversity.png")
     p3 = plot(ylabel="Ecosystem entropy production rate ($(JKs))",yaxis=:log10)
     plot!(p3,xlim=(0.5,3.5),xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
@@ -359,7 +361,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     end
     savefig(p3,"Output/Fig3/EntropyProduction.png")
     # Want to do the plotting here
-    p2 = plot(ylabel="Survivors per substrate",legend=false,xlim=(0.5,3.5))
+    p2 = plot(ylabel="Survivors per substrate",xlim=(0.5,3.5))
     plot!(p2,xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
     # Plot means
     for i = 1:Ns
@@ -370,13 +372,40 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
         scatter!(p2,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
     end
     savefig(p2,"Output/Fig3/Ratio.png")
+    # Want to do the plotting here
+    p4 = plot(ylabel="Number of surviving functional groups",xlim=(0.5,3.5))
+    plot!(p4,xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
+    # Plot means
+    for i = 1:Ns
+        # Calculate mean
+        mn = mean(fdv[i,:])
+        # Calculate 99% confidence interval
+        sdn = sem(fdv[i,:])*2.576
+        # Save for annotation
+        msd[i] = mn + sdn
+        # Label empty
+        lb = ""
+        # Unless energy is high
+        if ens[i] == "h"
+            if syns[i] == true
+                lb = "Reversible"
+            else
+                lb = "M–M"
+            end
+        end
+        scatter!(p4,[pos[i]],[mn],yerror=[sdn],label=lb,color=c[i],ms=6,msc=c[i])
+    end
+    # Add annotation
+    px, py = annpos([0.5;3.5],msd,0.30,-0.01)
+    annotate!(px,py,text("B",17,:black))
+    savefig(p4,"Output/Fig3/FuncDiv.png")
     # Combine all three plots into a single one
-    pc = plot(p1,p2,p3,layout=(1,3),size=(600,400))
+    pc = plot(p4,p1,p2,p3,layout=(1,4),size=(800,400))
     savefig(pc,"Output/Fig3/condensed.png")
     # Run div loss function to make extra plot
-    p4 = divloss(dRl,dRu,dsyn,den,Ni,runN,Nr)
+    pd = divloss(dRl,dRu,dsyn,den,Ni,runN,Nr)
     # Now want to make a plot incorperating all four previous plots
-    pt = plot(p4,pc,layout=2,size=(1200,400),margin=5.0mm)
+    pt = plot(pd,pc,layout=grid(1,2,widths=[0.43,0.57]),size=(1400,400),margin=5.0mm)
     savefig(pt,"Output/Fig3/figure3.png")
     return(nothing)
 end

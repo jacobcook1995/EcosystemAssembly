@@ -6,57 +6,6 @@ using StatsBase
 using Plots.PlotMeasures
 import PyPlot
 
-# function to calculate the dissipation for an assembled ecosystem
-function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64,1})
-    # Set all elements of out less than zero to zero
-    out[out.<0.0] .= 0.0
-    # Define number of strains
-    N = length(ms)
-    # check that parameter set is sensible given the output
-    if length(out) != ps.M + 3*N
-        error("parameter set doesn't match output")
-    end
-    # Set dissipation and energy generation to zero
-    dsp = 0.0
-    eng = 0.0
-    qNθ = 0.0
-    TqN = 0.0
-    # Loop over number of strains
-    for i = 1:N
-        # Isolate this strain
-        mic = ms[i]
-        # Loop over reactions of this strain
-        for j = 1:mic.R
-            # Find appropriate reaction
-            r = ps.reacs[mic.Reacs[j]]
-            # If there's no product Gibbs free energy becomes infinite. Justified to ignore
-            # this as if product hasn't built up reaction can't be happening to a sigificant degree
-            if out[N+r.Prd] != 0.0
-                # Find amount of energy that this reaction dissipates
-                Fd = -(r.ΔG0 + Rgas*ps.T*log(out[N+r.Prd]/out[N+r.Rct]) + mic.η[j]*ΔGATP)
-                # Find amount of enzyme E
-                E = Eα(out[2*N+ps.M+i],mic,j)
-                # Then find the rate that this reaction proceeds at
-                q = qs(out[N+r.Rct],out[N+r.Prd],E,j,mic,ps.T,r)
-                # Find theta value
-                θt = θ(out[N+r.Rct],out[N+r.Prd],ps.T,mic.η[j],r.ΔG0)
-                # Check if reaction actually occurs
-                if q != 0.0
-                    dsp += q*Fd*out[i]
-                    eng += q*mic.η[j]*out[i]
-                    qNθ += q*θt*out[j]
-                    TqN += q*out[j]
-                end
-            end
-        end
-    end
-    # Convert from molecule units to moles
-    dsp /= NA
-    # Rescale by total population
-    qNθ /= TqN
-    return(dsp,eng,qNθ)
-end
-
 function av_eff(pop::Array{Float64,1},conc::Array{Float64,1},ms::Array{MicrobeP,1},ps::FullParameters)
     # Define mimimum product to substrate ratio (to calculate) the efficency
     mr = 1e-2
@@ -114,9 +63,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     tab = zeros(ips,rps,L)
     # New containers, for efficencies, dissipations and energy generation rates
     efs = zeros(ips,rps,L)
-    dsp = zeros(ips,rps,L)
-    eng = zeros(ips,rps,L)
-    qNθ = zeros(ips,rps,L)
     # Set threshold for substrate being properly diversified
     tsh = 1e-7
     # Threshold meaningful/viable population
@@ -136,9 +82,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                 dv[:,:,(j-1)*le+l] = load(tfile,"dv")
                 tab[:,:,(j-1)*le+l] = load(tfile,"tab")
                 efs[:,:,(j-1)*le+l] = load(tfile,"efs")
-                dsp[:,:,(j-1)*le+l] = load(tfile,"dsp")
-                eng[:,:,(j-1)*le+l] = load(tfile,"eng")
-                qNθ[:,:,(j-1)*le+l] = load(tfile,"qNθ")
             else
                 println("Generating $(ens[j])-$(syns[l]) data")
                 for i = 1:rps
@@ -190,10 +133,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                             dv[k,i,(j-1)*le+l] = count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)])
                             tab[k,i,(j-1)*le+l] = sum(C[ind,1:Ni])
                             efs[k,i,(j-1)*le+l] = av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
-                            d1 =  dissipation(ps,ms,C[ind,:])
-                            dsp[k,i,(j-1)*le+l] = d1[1]
-                            eng[k,i,(j-1)*le+l] = d1[2]
-                            qNθ[k,i,(j-1)*le+l] = d1[3]
                         else
                             # Otherwise need to (linearly) interpolate
                             dT = (T[ind]-Ts[k])/(T[ind]-T[ind-1])
@@ -203,11 +142,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                             tab[k,i,(j-1)*le+l] = (1-dT)*sum(C[ind,1:Ni]) + dT*sum(C[ind,1:Ni])
                             efs[k,i,(j-1)*le+l] = (1-dT)*av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
                             efs[k,i,(j-1)*le+l] += dT*av_eff(C[ind-1,1:Ni],C[ind-1,(Ni+1):(Ni+ps.M)],ms,ps)
-                            d1 = dissipation(ps,ms,C[ind,:])
-                            d2 = dissipation(ps,ms,C[ind-1,:])
-                            dsp[k,i,(j-1)*le+l] = (1-dT)*d1[1] + dT*d2[1]
-                            eng[k,i,(j-1)*le+l] = (1-dT)*d1[2] + dT*d2[2]
-                            qNθ[k,i,(j-1)*le+l] = (1-dT)*d1[3] + dT*d2[3]
                         end
                     end
                 end
@@ -218,9 +152,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                     write(file,"dv",dv[:,:,(j-1)*le+l])
                     write(file,"tab",tab[:,:,(j-1)*le+l])
                     write(file,"efs",efs[:,:,(j-1)*le+l])
-                    write(file,"dsp",dsp[:,:,(j-1)*le+l])
-                    write(file,"eng",eng[:,:,(j-1)*le+l])
-                    write(file,"qNθ",qNθ[:,:,(j-1)*le+l])
                 end
             end
         end
@@ -237,15 +168,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     mefs = zeros(ips,L)
     sdefs = zeros(ips,L)
     mdsp = zeros(ips,L)
-    sddsp = zeros(ips,L)
-    meng = zeros(ips,L)
-    sdeng = zeros(ips,L)
-    mqNθ = zeros(ips,L)
-    sdqNθ = zeros(ips,L)
-    mmen = zeros(ips,L)
-    sdmen = zeros(ips,L)
-    mmdp = zeros(ips,L)
-    sdmdp = zeros(ips,L)
     # Find mean and standard errors of survivor numbers and substrate diversification
     for i = 1:ips
         for j = 1:length(ens)
@@ -260,16 +182,6 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                 sdta[i,(j-1)*le+k] = sem(tab[i,:,(j-1)*le+k])
                 mefs[i,(j-1)*le+k] = mean(efs[i,:,(j-1)*le+k])
                 sdefs[i,(j-1)*le+k] = sem(efs[i,:,(j-1)*le+k])
-                mdsp[i,(j-1)*le+k] = mean(dsp[i,:,(j-1)*le+k])
-                sddsp[i,(j-1)*le+k] = sem(dsp[i,:,(j-1)*le+k])
-                meng[i,(j-1)*le+k] = mean(eng[i,:,(j-1)*le+k])
-                sdeng[i,(j-1)*le+k] = sem(eng[i,:,(j-1)*le+k])
-                mqNθ[i,(j-1)*le+k] = mean(qNθ[i,:,(j-1)*le+k])
-                sdqNθ[i,(j-1)*le+k] = sem(qNθ[i,:,(j-1)*le+k])
-                mmen[i,(j-1)*le+k] = mean(eng[i,:,(j-1)*le+k]./tab[i,:,(j-1)*le+k])
-                sdmen[i,(j-1)*le+k] = sem(eng[i,:,(j-1)*le+k]./tab[i,:,(j-1)*le+k])
-                mmdp[i,(j-1)*le+k] = mean(dsp[i,:,(j-1)*le+k]./tab[i,:,(j-1)*le+k])
-                sdmdp[i,(j-1)*le+k] = sem(dsp[i,:,(j-1)*le+k]./tab[i,:,(j-1)*le+k])
             end
         end
     end
@@ -288,7 +200,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=200)
-    wongc = get_color_palette(wong_palette,57)
+    wongc = wong2_palette()
     # Make labels
     lb = ["low-true" "low-false" "high-true" "high-false"]
     # Plot survivors
@@ -316,51 +228,15 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     annotate!(p2,px,py,text("B",17,:black))
     savefig(p2,"Output/Fig4/TotalAbTime$(Rl)-$(Ru).png")
     # Plot graph of efficencies
-    p4 = plot(title="Average efficency with time",xlabel="Time",ylabel="Efficency of reactions")
-    plot!(p4,Ts,mefs[:,1:L],ribbon=sdefs[:,1:L],labels=lb,palette=wongc[2:5])
+    p3 = plot(title="Average efficency with time",xlabel="Time",ylabel="Efficency of reactions")
+    plot!(p3,Ts,mefs[:,1:L],ribbon=sdefs[:,1:L],labels=lb,palette=wongc[2:5])
     # Add annotation
     maxefs = vec(mefs.+sdefs)
     px, py = annpos(Ts,maxefs,0.15,0.05)
-    annotate!(p4,px,py,text("C",17,:black))
-    savefig(p4,"Output/Fig4/Efficency.png")
-    # Plot graph of efficencies
-    p5 = plot(title="Dissipation with time",xlabel="Time",ylabel="Entropy production rate")
-    for i = 1:L
-        # Find and eliminate zeros so that they can be plotted on a log plot
-        inds = (mdsp[:,i] .> 0)
-        plot!(p5,Ts[inds],mdsp[inds,i],ribbon=sddsp[inds,i],labels=lb[i],palette=wongc[2:5],yaxis=:log10)
-    end
-    savefig(p5,"Output/Fig4/Dissipation.png")
-    p6 = plot(title="Energy generation with time",xlabel="Time",ylabel="ATP per second")
-    for i = 1:L
-        # Find and eliminate zeros so that they can be plotted on a log plot
-        inds = (meng[:,i] .> 0)
-        plot!(p6,Ts[inds],meng[inds,i],ribbon=sdeng[inds,i],labels=lb[i],palette=wongc[2:5],yaxis=:log10)
-    end
-    savefig(p6,"Output/Fig4/EnergyGen.png")
-    # Test plot as I'm not sure this will work
-    p7 = plot(title="THINK OF A NAME",xlabel="Time",ylabel="Hmm")
-    plot!(p7,Ts,mqNθ[:,1:L],ribbon=sdqNθ[:,1:L],labels=lb,palette=wongc[2:5])
-    savefig(p7,"Output/Fig4/test.png")
-    p8 = plot(title="Mass specific energy generation",xlabel="Time",ylabel="ATP per cell per second")
-    for i = 1:L
-        # Find and eliminate zeros so that they can be plotted on a log plot
-        inds = (mmen[:,i] .> 0)
-        plot!(p8,Ts[inds],mmen[inds,i],ribbon=sdmen[inds,i],labels=lb[i],palette=wongc[2:5],yaxis=:log10)
-    end
-    savefig(p8,"Output/Fig4/EnergyGenPerMass.png")
-    # Finally mass specific dissipation
-    p9 = plot(title="Mass specific energy dissipation",xlabel="Time",ylabel="Entropy per cell per second")
-    for i = 1:L
-        # Find and eliminate zeros so that they can be plotted on a log plot
-        inds = (mmdp[:,i] .> 0)
-        plot!(p9,Ts[inds],mmdp[inds,i],ribbon=sdmdp[inds,i],labels=lb[i],palette=wongc[2:5],yaxis=:log10)
-    end
-    savefig(p9,"Output/Fig4/DispPerMass.png")
+    annotate!(p3,px,py,text("C",17,:black))
+    savefig(p3,"Output/Fig4/Efficency.png")
     # Plot all graphs as a single figure
-    # pt = plot(p1,p4,p2,p3,layout=(2,2),size=(1200,800),margin=15.0mm)
-    # Temporary simplification
-    pt = plot(p1,p2,layout=2,size=(1200,400),margin=15.0mm)
+    pt = plot(p1,p2,p3,layout=3,size=(1200,800),margin=15.0mm)
     savefig(pt,"Output/Fig4/figure4.png")
     return(nothing)
 end

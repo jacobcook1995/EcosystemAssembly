@@ -4,6 +4,7 @@ using Plots
 using JLD
 using StatsBase
 using Plots.PlotMeasures
+using LaTeXStrings
 import PyPlot
 
 # function to find average efficency
@@ -43,8 +44,8 @@ function av_λ(pop::Array{Float64,1},as::Array{Float64,1},ϕRs::Array{Float64,1}
         λT += pop[i]*λt
     end
     # Divide weighted growth rate by total abundance
-    λT /= sum(pop)
-    return(λT)
+    mλT = λT/sum(pop)
+    return(mλT,λT)
 end
 
 function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rps::Int64,
@@ -83,6 +84,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     # New containers, for efficencies and growth rates
     efs = zeros(ips,rps,L)
     λts = zeros(ips,rps,L)
+    Tλs = zeros(ips,rps,L)
     # Set threshold for substrate being properly diversified
     tsh = 1e-7
     # Threshold meaningful/viable population
@@ -103,6 +105,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                 tab[:,:,(j-1)*le+l] = load(tfile,"tab")
                 efs[:,:,(j-1)*le+l] = load(tfile,"efs")
                 λts[:,:,(j-1)*le+l] = load(tfile,"λts")
+                Tλs[:,:,(j-1)*le+l] = load(tfile,"Tλs")
             else
                 println("Generating $(ens[j])-$(syns[l]) data")
                 for i = 1:rps
@@ -154,7 +157,9 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                             dv[k,i,(j-1)*le+l] = count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)])
                             tab[k,i,(j-1)*le+l] = sum(C[ind,1:Ni])
                             efs[k,i,(j-1)*le+l] = av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
-                            λts[k,i,(j-1)*le+l] = av_λ(C[ind,1:Ni],C[ind,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind,(2*Ni+ps.M+1):end],ms)
+                            λ1 = av_λ(C[ind,1:Ni],C[ind,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind,(2*Ni+ps.M+1):end],ms)
+                            λts[k,i,(j-1)*le+l] = λ1[1]
+                            Tλs[k,i,(j-1)*le+l] = λ1[2]
                         else
                             # Otherwise need to (linearly) interpolate
                             dT = (T[ind]-Ts[k])/(T[ind]-T[ind-1])
@@ -164,8 +169,10 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                             tab[k,i,(j-1)*le+l] = (1-dT)*sum(C[ind,1:Ni]) + dT*sum(C[ind,1:Ni])
                             efs[k,i,(j-1)*le+l] = (1-dT)*av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
                             efs[k,i,(j-1)*le+l] += dT*av_eff(C[ind-1,1:Ni],C[ind-1,(Ni+1):(Ni+ps.M)],ms,ps)
-                            λts[k,i,(j-1)*le+l] = (1-dT)*av_λ(C[ind,1:Ni],C[ind,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind,(2*Ni+ps.M+1):end],ms)
-                            λts[k,i,(j-1)*le+l] += dT*av_λ(C[ind-1,1:Ni],C[ind-1,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind-1,(2*Ni+ps.M+1):end],ms)
+                            λ1 = av_λ(C[ind,1:Ni],C[ind,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind,(2*Ni+ps.M+1):end],ms)
+                            λ2 = av_λ(C[ind-1,1:Ni],C[ind-1,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind-1,(2*Ni+ps.M+1):end],ms)
+                            λts[k,i,(j-1)*le+l] = (1-dT)*λ1[1] + dT*λ2[1]
+                            Tλs[k,i,(j-1)*le+l] = (1-dT)*λ1[2] + dT*λ2[2]
                         end
                     end
                 end
@@ -176,7 +183,8 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                     write(file,"dv",dv[:,:,(j-1)*le+l])
                     write(file,"tab",tab[:,:,(j-1)*le+l])
                     write(file,"efs",efs[:,:,(j-1)*le+l])
-                    write(file,"λts",efs[:,:,(j-1)*le+l])
+                    write(file,"λts",λts[:,:,(j-1)*le+l])
+                    write(file,"Tλs",Tλs[:,:,(j-1)*le+l])
                 end
             end
         end
@@ -194,6 +202,8 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     sdefs = zeros(ips,L)
     mλts = zeros(ips,L)
     sdλts = zeros(ips,L)
+    mTλs = zeros(ips,L)
+    sdTλs = zeros(ips,L)
     # Find mean and standard errors of survivor numbers and substrate diversification
     for i = 1:ips
         for j = 1:length(ens)
@@ -210,6 +220,8 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
                 sdefs[i,(j-1)*le+k] = sem(efs[i,:,(j-1)*le+k])
                 mλts[i,(j-1)*le+k] = mean(λts[i,:,(j-1)*le+k])
                 sdλts[i,(j-1)*le+k] = sem(λts[i,:,(j-1)*le+k])
+                mTλs[i,(j-1)*le+k] = mean(Tλs[i,:,(j-1)*le+k])
+                sdTλs[i,(j-1)*le+k] = sem(Tλs[i,:,(j-1)*le+k])
             end
         end
     end
@@ -230,49 +242,73 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     theme(:wong2,dpi=200)
     wongc = wong2_palette()
     # Make labels
-    lb = ["low-true" "low-false" "high-true" "high-false"]
+    lb = ["low energy + reversible" "low energy + M-M" "high energy + reversible" "high energy + M-M"]
     # Plot survivors
-    p1 = plot(title="Diversity with time",xlabel="Time",ylabel="Number of surviving strains")
+    p1 = plot(title="Diversity with time",ylabel="Number of surviving strains")
     vline!(p1,vTs,linestyle=:dash,label="")
     plot!(p1,Ts,msvs[:,1:L],ribbon=sdsvs[:,1:L],labels=lb,legend=:right)
-    # Twin the xaxis and then plot substrate diversity
-    plot!(twinx(),Ts,mdv[:,1:L],ribbon=sddv[:,1:L],labels="",ylabel="Number of substrates",palette=wongc[2:5])
-    # Increase left margin
-    plot!(p1,right_margin=20.0mm)
     # Add annotation
-    px, py = annpos(Ts,[5.0,250.0],0.15,0.05)
+    px, py = annpos(Ts,[5.0,250.0],0.1,0.05)
     annotate!(p1,px,py,text("A",17,:black))
     savefig(p1,"Output/Fig4/DvTime$(Rl)-$(Ru).png")
-    # Plot total abundances
-    p2 = plot(title="Ecosystem abundance with time",xlabel="Time",ylabel="Total abundance")
-    plot!(p2,yaxis=:log10,legend=:right)
+    # plot substrate diversification
+    p2 = plot(title="Diversification with time",ylabel="Number of substrates",xlabel="Time",legend=false)
     vline!(p2,vTs,linestyle=:dash,label="")
-    for i = 1:L
-        plot!(p2,Ts,mta[:,i],ribbon=sdta[:,i],label=lb[i])
-    end
+    plot!(p2,Ts,mdv[:,1:L],ribbon=sddv[:,1:L],labels=lb)
     # Add annotation
-    maxab = vec(mta.+sdta)
-    px, py = annpos(Ts,maxab,0.15,0.2)
+    px, py = annpos(Ts,[0.0,23.0],0.1,0.05)
     annotate!(p2,px,py,text("B",17,:black))
-    savefig(p2,"Output/Fig4/TotalAbTime$(Rl)-$(Ru).png")
+    savefig(p2,"Output/Fig4/SubDvTime$(Rl)-$(Ru).png")
+    # Reduce end time for second two plots
+    Tend = 1e6
     # Plot graph of efficencies
-    p3 = plot(title="Average efficency with time",xlabel="Time",ylabel="Efficency of reactions")
-    plot!(p3,Ts,mefs[:,1:L],ribbon=sdefs[:,1:L],labels=lb,palette=wongc[2:5])
+    p3 = plot(title="Average efficency with time",xlabel="Time",ylabel="Efficency of reactions",legend=false)
+    for i = 1:L
+        # Find and eliminate points after end time
+        inds = (Ts .<= Tend)
+        plot!(p3,Ts[inds],mefs[inds,i],ribbon=sdefs[inds,i],labels=lb[i],palette=wongc[2:5])
+    end
+    # Add vertical line
+    vline!(p3,vTs,linestyle=:dash,color=:black,label="")
     # Add annotation
     maxefs = vec(mefs.+sdefs)
-    px, py = annpos(Ts,maxefs,0.15,0.05)
-    annotate!(p3,px,py,text("C",17,:black))
+    px, py = annpos([0.0,Tend],maxefs,0.1,0.1)
+    annotate!(p3,px,py,text("D",17,:black))
     savefig(p3,"Output/Fig4/Efficency.png")
+    # Make label
+    s1 = L"s^{-1}"
     # Plot graph of growth rates
-    p4 = plot(title="Growth rate with time",xlabel="Time",ylabel="Growth rate")
-    plot!(p4,Ts,mλts[:,1:L],ribbon=sdλts[:,1:L],labels=lb,palette=wongc[2:5])
+    p4 = plot(title="Growth rate with time",ylabel="Mass specific growth rate ($(s1))",legend=false)
+    # WHAT ARE THE PROPER UNITS OF GROWTH RATE HERE???
+    for i = 1:L
+        # Find and eliminate points after end time
+        inds = (Ts .<= Tend)
+        plot!(p4,Ts[inds],mλts[inds,i],ribbon=sdλts[inds,i],labels=lb[i],palette=wongc[2:5])
+    end
+    # Add vertical line
+    vline!(p4,vTs,linestyle=:dash,color=:black,label="")
     # Add annotation
     maxλts = vec(mλts.+sdλts)
-    px, py = annpos(Ts,maxλts,0.15,0.05)
-    annotate!(p4,px,py,text("D",17,:black))
+    px, py = annpos([0.0,Tend],maxλts,0.1,0.05)
+    annotate!(p4,px,py,text("C",17,:black))
     savefig(p4,"Output/Fig4/GrowthRate.png")
+    # Plot graph of growth rates
+    p5 = plot(title="Growth rate with time",ylabel="Total growth rate (cells $(s1))",legend=false,yaxis=:log10)
+    # WHAT ARE THE PROPER UNITS OF GROWTH RATE HERE???
+    for i = 1:L
+        # Find and eliminate points after end time
+        inds = (Ts .<= Tend)
+        plot!(p5,Ts[inds],mTλs[inds,i],ribbon=sdTλs[inds,i],labels=lb[i],palette=wongc[2:5])
+    end
+    # Add vertical line
+    vline!(p5,vTs,linestyle=:dash,color=:black,label="")
+    # Add annotation
+    maxTλs = vec(mTλs.+sdTλs)
+    px, py = annpos([0.0,Tend],maxTλs,0.1,0.05)
+    annotate!(p5,px,py,text("E",17,:black))
+    savefig(p5,"Output/Fig4/TotalGrowthRate.png")
     # Plot all graphs as a single figure
-    pt = plot(p1,p2,p3,p4,layout=4,size=(1200,800),margin=15.0mm)
+    pt = plot(p1,p4,p2,p3,layout=4,size=(1200,800),margin=5.0mm)
     savefig(pt,"Output/Fig4/figure4.png")
     return(nothing)
 end

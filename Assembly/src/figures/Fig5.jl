@@ -4,6 +4,7 @@ using Plots
 using JLD
 using LaTeXStrings
 using Statistics
+using Plots.PlotMeasures
 import PyPlot
 
 function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en::String)
@@ -23,6 +24,8 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
     sts2 = Array{Array{Float64,1},1}(undef,2)
     sts3 = Array{Array{Float64,1},1}(undef,2)
     sts4 = Array{Array{Float64,1},1}(undef,2)
+    # Make array of bools to check if data has already been saved
+    fll = fill(false,4,2)
     # Loop over parameter sets
     for i = 1:rps
         for j = 1:length(syns)
@@ -54,8 +57,10 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
                 # Find mean strength of each interaction
                 mean1[i,j] = mean(str1)
                 # If vector doesn't already exist create it
-                if ~isdefined(sts1,j)
+                if fll[1,j] == false
                     sts1[j] = str1
+                    # Update counter
+                    fll[1,j] = true
                 else
                     sts1[j] = cat(sts1[j],str1,dims=1)
                 end
@@ -64,8 +69,10 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
             if length(str2) >= 1
                 mean2[i,j] = mean(str2)
                 # If vector doesn't already exist create it
-                if ~isdefined(sts2,j)
+                if fll[2,j] == false
                     sts2[j] = str2
+                    # Update counter
+                    fll[2,j] = true
                 else
                     sts2[j] = cat(sts2[j],str2,dims=1)
                 end
@@ -73,8 +80,10 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
             if length(str3) >= 1
                 mean3[i,j] = mean(str3)
                 # If vector doesn't already exist create it
-                if ~isdefined(sts3,j)
+                if fll[3,j] == false
                     sts3[j] = str3
+                    # Update counter
+                    fll[3,j] = true
                 else
                     sts3[j] = cat(sts3[j],str3,dims=1)
                 end
@@ -82,54 +91,73 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
             if length(str4) >= 1
                 mean4[i,j] = mean(str4)
                 # If vector doesn't already exist create it
-                if ~isdefined(sts4,j)
+                if fll[4,j] == false
                     sts4[j] = str4
+                    # Update counter
+                    fll[4,j] = true
                 else
                     sts4[j] = cat(sts4[j],str4,dims=1)
                 end
             end
         end
     end
+    # Need to calculate proportion of interactions
+    rins1 = ins1./(ins1.+ins2.+ins3.+ins4)
+    rins2 = ins2./(ins1.+ins2.+ins3.+ins4)
+    rins3 = ins3./(ins1.+ins2.+ins3.+ins4)
+    rins4 = ins4./(ins1.+ins2.+ins3.+ins4)
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=200)
+    # Preallocate array to store plots
+    p = Array{Plots.Plot,2}(undef,2,length(syns))
     # Loop over syntrophy conditions
     for j = 1:length(syns)
         # Make plot title
         tl = ""
         if syns[j] == true
-            tl = "$(Rl)-$(Ru) reactions per strain"
+            tl = "Reversible kinetics"
         else
-            tl = "$(Rl)-$(Ru) reactions per strain (no syntrophy)"
+            tl = "Michaelis–Menten kinetics"
         end
+        # Make bins for proportions
+        pbins = range(-0.01,stop=1.01,length=52)
         # Now plot both interactions types and strengths
-        plot(title=tl,xlabel="Number of interactions",ylabel="Number of ecosystems")
-        histogram!(ins1[:,j],fillalpha=0.75,label="Competiton")
-        histogram!(ins2[:,j],fillalpha=0.75,label="Facilitation")
-        histogram!(ins3[:,j],fillalpha=0.75,label="Syntrophy")
-        histogram!(ins4[:,j],fillalpha=0.75,label="Pollution")
-        savefig("Output/Fig5/IntType$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
-        plot(title=tl,xlabel="Strength of interactions",ylabel="Number of ecosystems")
-        histogram!(log10.(mean1[:,j]),fillalpha=0.75,label="Competiton")
-        histogram!(log10.(mean2[:,j]),fillalpha=0.75,label="Facilitation")
-        histogram!(log10.(mean3[:,j]),fillalpha=0.75,label="Syntrophy")
-        histogram!(log10.(mean4[:,j]),fillalpha=0.75,label="Pollution")
-        savefig("Output/Fig5/IntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
+        p[1,j] = plot(title=tl,ylabel="Number of ecosystems")
+        # Turn off legend for reversible case
+        if syns[j] == true
+            plot!(p[1,j],legend=false,xlabel="Proportion of interactions")
+        end
+        histogram!(p[1,j],rins1[:,j],fillalpha=0.75,label="Competiton",bins=pbins)
+        histogram!(p[1,j],rins2[:,j],fillalpha=0.75,label="Facilitation",bins=pbins)
+        histogram!(p[1,j],rins3[:,j],fillalpha=0.75,label="Syntrophy",bins=pbins)
+        histogram!(p[1,j],rins4[:,j],fillalpha=0.75,label="Pollution",bins=pbins)
+        savefig(p[1,j],"Output/Fig5/IntType$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
         # Make range of ticks to label
-        rgn = collect(-14:2:-2)
+        rgn = collect(-15:3:0)
         ergn = fill("",length(rgn))
         # Find corresponding exponentials
         for i = 1:length(rgn)
             ergn[i] = L"10^{%$(rgn[i])}"
         end
-        plot(title=tl,xlabel="Interaction strength",ylabel="Number of interactions")
-        plot!(xticks = (rgn, ergn))
-        histogram!(log10.(sts1[j]),fillalpha=0.75,label="Competiton")
-        histogram!(log10.(sts2[j]),fillalpha=0.75,label="Facilitation")
-        histogram!(log10.(sts3[j]),fillalpha=0.75,label="Syntrophy")
-        histogram!(log10.(sts4[j]),fillalpha=0.75,label="Pollution")
-        savefig("Output/Fig5/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
+        # Make bins for proportions
+        sbins = range(-15.0,stop=0.0,length=52)
+        # Now plot all strengths
+        p[2,j] = plot(title=tl,ylabel="Number of interactions")
+        plot!(p[2,j],xticks=(rgn,ergn),legend=false)
+        # Add xlabel for reversible case
+        if syns[j] == true
+            plot!(p[2,j],xlabel="Interaction strength")
+        end
+        histogram!(p[2,j],log10.(sts1[j]),fillalpha=0.75,label="Competiton",bins=sbins)
+        histogram!(p[2,j],log10.(sts2[j]),fillalpha=0.75,label="Facilitation",bins=sbins)
+        histogram!(p[2,j],log10.(sts3[j]),fillalpha=0.75,label="Syntrophy",bins=sbins)
+        histogram!(p[2,j],log10.(sts4[j]),fillalpha=0.75,label="Pollution",bins=sbins)
+        savefig(p[2,j],"Output/Fig5/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
     end
+    # Combine all graphs and save
+    pt = plot(p[1,2],p[2,2],p[1,1],p[2,1],layout=4,size=(1200,800),margin=5.0mm)
+    savefig(pt,"Output/Fig5/figure5.png")
     return(nothing)
 end
 

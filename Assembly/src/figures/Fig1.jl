@@ -19,6 +19,8 @@ function plt_trdff(Rl::Int64,Ru::Int64,syn::Bool,runN::Int64,en::String,Ni::Int6
     # Read in relevant data
     ps = load(pfile,"ps")
     out = load(ofile,"out")
+    C = load(ofile,"C")
+    T = load(ofile,"T")
     # Pick first reaction of the first microbe (guarenteed to exist)
     rc = ps.reacs[ps.mics[1].Reacs[1]]
     # Find substrate and product concentrations
@@ -61,7 +63,7 @@ function plt_trdff(Rl::Int64,Ru::Int64,syn::Bool,runN::Int64,en::String,Ni::Int6
     pyplot()
     # Set a color-blind friendly palette
     theme(:wong2,dpi=200)
-    wongc = get_color_palette(wong_palette,57)
+    wongc = wong2_palette()
     plot(ηs,rs,label="Reaction rate")
     plot!(ηs,θs,label="Inhibition")
     plot!(ηs,as2,label="ATP rate",xlabel="ATP per reaction event")
@@ -75,12 +77,26 @@ function plt_trdff(Rl::Int64,Ru::Int64,syn::Bool,runN::Int64,en::String,Ni::Int6
     lbs = Array{String,2}(undef,1,2)
     lbs[1] = "High product concentration"
     lbs[2] = "Low product concentration"
-    # ALSO ADD ARROWS
     # Now calculate and plot syntrophy stuff
     plot(ηs,as3,xlabel="ATP per reaction event",ylabel="ATP production rate",labels=lbs)
     # Add arrow between the two lines
     quiver!([5.55],[3e5],quiver=([-0.135],[0.0]),color=:red)
     savefig("Output/Fig1/SynTrdOff.png")
+    # Find indicies of surviving strains
+    is = zeros(Int64,ps.N)
+    for i = 1:ps.N
+        is[i] = findfirst(x->x==out[i],C[end,:])
+    end
+    # Only want to look at the very early time window
+    Tend = 1e4
+    # Define plot
+    p1 = plot(ylabel="Population (# cells)",xlabel="Time (s)")
+    for i = is
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (T .<= Tend)
+        plot!(p1,T[inds],C[inds,i],label="")
+    end
+    savefig(p1,"Output/Fig1/EarlyDynamics.png")
     return(nothing)
 end
 

@@ -132,6 +132,16 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         histogram!(p[1,j],rins2[:,j],fillalpha=0.75,label="Facilitation",bins=pbins)
         histogram!(p[1,j],rins3[:,j],fillalpha=0.75,label="Syntrophy",bins=pbins)
         histogram!(p[1,j],rins4[:,j],fillalpha=0.75,label="Pollution",bins=pbins)
+        # Choose which letter to annotate
+        if syns[j] == false
+            # Add annotation
+            px, py = annpos([0.0,1.0],[0.0,120.0],0.15,0.05)
+            annotate!(p[1,j],px,py,text("A",17,:black))
+        else
+            # Add annotation
+            px, py = annpos([0.0,1.0],[0.0,70.0],0.15,0.05)
+            annotate!(p[1,j],px,py,text("C",17,:black))
+        end
         savefig(p[1,j],"Output/Fig5/IntType$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
         # Make range of ticks to label
         rgn = collect(-15:3:0)
@@ -153,6 +163,16 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         histogram!(p[2,j],log10.(sts2[j]),fillalpha=0.75,label="Facilitation",bins=sbins)
         histogram!(p[2,j],log10.(sts3[j]),fillalpha=0.75,label="Syntrophy",bins=sbins)
         histogram!(p[2,j],log10.(sts4[j]),fillalpha=0.75,label="Pollution",bins=sbins)
+        # Choose which letter to annotate
+        if syns[j] == false
+            # Add annotation
+            px, py = annpos([-15.0,0.0],[0.0,1400.0],0.15,0.05)
+            annotate!(p[2,j],px,py,text("B",17,:black))
+        else
+            # Add annotation
+            px, py = annpos([-15.0,0.0],[0.0,1600.0],0.15,0.05)
+            annotate!(p[2,j],px,py,text("D",17,:black))
+        end
         savefig(p[2,j],"Output/Fig5/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
     end
     # Combine all graphs and save

@@ -108,7 +108,7 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
     rins4 = ins4./(ins1.+ins2.+ins3.+ins4)
     # Setup plotting
     pyplot()
-    theme(:wong2,dpi=200)
+    theme(:wong2,dpi=300)
     # Preallocate array to store plots
     p = Array{Plots.Plot,2}(undef,2,length(syns))
     # Loop over syntrophy conditions

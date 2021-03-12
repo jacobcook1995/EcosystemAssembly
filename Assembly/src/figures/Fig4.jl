@@ -228,7 +228,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     # Set up plotting
     pyplot()
     # Set a color-blind friendly palette
-    theme(:wong2,dpi=200)
+    theme(:wong2,dpi=300)
     wongc = wong2_palette()
     # Make labels
     lb = ["low energy + reversible" "low energy + M-M" "high energy + reversible" "high energy + M-M"]

@@ -313,7 +313,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     end
     # Setup plotting
     pyplot()
-    theme(:wong2,dpi=200)
+    theme(:wong2,dpi=300)
     wongc = wong2_palette()
     # Find corresponding indices of reordered labels
     pos = zeros(Float64,Ns)
@@ -405,8 +405,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     # Run div loss function to make extra plot
     pd = divloss(dRl,dRu,dsyn,den,Ni,runN,Nr)
     # Now want to make a plot incorperating all four previous plots
-    pt = plot(pd,pc,layout=grid(1,2,widths=[0.43,0.57]),size=(1400,400),margin=5.0mm)
-    savefig(pt,"Output/Fig3/figure3.png")
+    pt = plot(pd,pc,layout=grid(1,2,widths=[0.43,0.57]),size=(1400,400),margin=5.0mm,grid=false)
+    savefig(pt,"Output/Fig3/figure3.eps")
     return(nothing)
 end
 

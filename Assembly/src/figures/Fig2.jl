@@ -169,7 +169,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     end
     # Now move onto plotting
     pyplot()
-    theme(:wong2,dpi=200)
+    theme(:wong2,dpi=300)
     wongc = wong2_palette()
     # Plot all the populations
     p1 = plot(yaxis=:log10,ylabel="Population (# cells)")
@@ -278,8 +278,8 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     end
     savefig(p4,"Output/Fig2/entp.png")
     # Now want to make a plot incorperating all four previous plots
-    pt = plot(p1,p3,p2,p4,layout=(4,1),size=(600,1600),margin=5mm)
-    savefig(pt,"Output/Fig2/figure2.png")
+    pt = plot(p1,p3,p2,p4,layout=(4,1),size=(600,1600),margin=5mm,grid=false)
+    savefig(pt,"Output/Fig2/figure2.eps")
     return(nothing)
 end
 

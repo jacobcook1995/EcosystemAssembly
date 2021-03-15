@@ -226,24 +226,32 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
         end
     end
     # Set up plotting
-    pyplot()
-    # Set a color-blind friendly palette
-    theme(:wong2,dpi=300)
-    wongc = wong2_palette()
+    pyplot(dpi=300)
+    # Making my own pallette
+    pl = Array{RGBA,1}(undef,L)
+    # Define the 4 colors I want to show
+    pl[1] = RGB(([83,51,237] / 255)...) # dark-blue
+    pl[2] = RGB(([137,196,244] / 255)...) # light-blue
+    pl[3] = RGB(([207,0,15] / 255)...) # dark-red
+    pl[4] = RGB(([241,169,160] / 255)...) # light-red
     # Make labels
     lb = ["low energy + reversible" "low energy + M-M" "high energy + reversible" "high energy + M-M"]
     # Plot survivors
-    p1 = plot(title="Diversity with time",ylabel="Number of surviving strains")
-    vline!(p1,vTs,linestyle=:dash,label="")
-    plot!(p1,Ts,msvs[:,1:L],ribbon=sdsvs[:,1:L],labels=lb,legend=:right)
+    p1 = plot(title="Strain diversity",ylabel="Number of surviving strains")
+    vline!(p1,vTs,linestyle=:dash,color=:black,label="")
+    for i = 1:L
+        plot!(p1,Ts,msvs[:,i],ribbon=sdsvs[:,i],label=lb[i],legend=:right,color=pl[i])
+    end
     # Add annotation
     px, py = annpos(Ts,[5.0,250.0],0.1,0.05)
     annotate!(p1,px,py,text("A",17,:black))
     savefig(p1,"Output/Fig4/DvTime$(Rl)-$(Ru).png")
     # plot substrate diversification
-    p2 = plot(title="Diversification with time",ylabel="Number of substrates",xlabel="Time",legend=false)
-    vline!(p2,vTs,linestyle=:dash,label="")
-    plot!(p2,Ts,mdv[:,1:L],ribbon=sddv[:,1:L],labels=lb)
+    p2 = plot(title="Substrate diversification",ylabel="Number of substrates",xlabel="Time",legend=false)
+    vline!(p2,vTs,linestyle=:dash,color=:black,label="")
+    for i = 1:L
+        plot!(p2,Ts,mdv[:,i],ribbon=sddv[:,i],label=lb[i],color=pl[i])
+    end
     # Add annotation
     px, py = annpos(Ts,[0.0,23.0],0.1,0.05)
     annotate!(p2,px,py,text("B",17,:black))
@@ -251,11 +259,9 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     # Reduce end time for second two plots
     Tend = 1e6
     # Plot graph of efficencies
-    p3 = plot(title="Average efficency with time",xlabel="Time",ylabel="Efficency of reactions",legend=false)
+    p3 = plot(title="Average efficency",xlabel="Time",ylabel="Efficency of reactions",legend=false)
     for i = 1:L
-        # Find and eliminate points after end time
-        inds = (Ts .<= Tend)
-        plot!(p3,Ts[inds],mefs[inds,i],ribbon=sdefs[inds,i],labels=lb[i],palette=wongc[2:5])
+        plot!(p3,Ts,mefs[:,i],ribbon=sdefs[:,i],label=lb[i],color=pl[i])
     end
     # Add vertical line
     vline!(p3,vTs,linestyle=:dash,color=:black,label="")
@@ -267,11 +273,9 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     # Make label
     s1 = L"s^{-1}"
     # Plot graph of growth rates
-    p4 = plot(title="Growth rate with time",ylabel="Mass specific growth rate ($(s1))",legend=false)
+    p4 = plot(title="Growth rate",ylabel="Growth rate ($(s1))",legend=false)
     for i = 1:L
-        # Find and eliminate points after end time
-        inds = (Ts .<= Tend)
-        plot!(p4,Ts[inds],mλts[inds,i],ribbon=sdλts[inds,i],labels=lb[i],palette=wongc[2:5])
+        plot!(p4,Ts,mλts[:,i],ribbon=sdλts[:,i],label=lb[i],color=pl[i])
     end
     # Add vertical line
     vline!(p4,vTs,linestyle=:dash,color=:black,label="")
@@ -281,9 +285,9 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     annotate!(p4,px,py,text("C",17,:black))
     savefig(p4,"Output/Fig4/GrowthRate.png")
     # Plot all graphs as a single figure
-    pt = plot(p1,p4,p2,p3,layout=4,size=(1200,800),margin=5.0mm)
+    pt = plot(p1,p4,p2,p3,layout=4,size=(1200,800),margin=7.5mm)
     savefig(pt,"Output/Fig4/figure4.png")
     return(nothing)
 end
 
-@time figure4(1,5,[true,false],["l","h"],250,250,2.5e-2,0.0)
+@time figure4(1,5,[true,false],["l","h"],250,250,1e-2,0.0)

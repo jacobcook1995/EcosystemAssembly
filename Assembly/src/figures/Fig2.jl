@@ -169,7 +169,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     end
     # Now move onto plotting
     pyplot()
-    theme(:wong2,dpi=300)
+    theme(:wong2,dpi=300,guidefontsize=14,tickfontsize=10)
     wongc = wong2_palette()
     # Plot all the populations
     p1 = plot(yaxis=:log10,ylabel="Population (# cells)")
@@ -221,7 +221,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # make appropriate bins
     rbins = range(-0.5,stop=mS+0.5,length=mS+2)
     # Define box for inset here
-    box = (1,bbox(0.7,0.25,0.275,0.275,:bottom,:left))
+    box = (1,bbox(0.65,0.25,0.325,0.275,:bottom,:left))
     # Find initial and final histograms
     hi = fit(Histogram,nmi,rbins,closed=:right)
     hf = fit(Histogram,nmf,rbins,closed=:right)
@@ -229,12 +229,12 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     hmaxi = maximum(hi.weights)
     hmaxf = maximum(hf.weights)
     # Scale distributions so that their peaks match, has to be done this way to preserve Int64 type
-    hf.weights = hf.weights*hmaxi
-    hi.weights = hi.weights*2*hmaxf
+    hf.weights = hf.weights*2*hmaxi
+    hi.weights = hi.weights*5*hmaxf
     # Then plot as bar charts, with inital distribution included
     bar!(p2,hi,color=:black,label="Initial",inset_subplots=box,subplot=2)
     bar!(p2[2],hf,color=:red,label="Final",xlabel="Number of substrates")
-    plot!(p2[2],guidefontsize=8,legendfontsize=8,tickfontsize=6,yaxis=false,grid=false)
+    plot!(p2[2],guidefontsize=9,legendfontsize=9,tickfontsize=7,yaxis=false,grid=false)
     savefig(p2,"Output/Fig2/concs.png")
     # Now plot proteome fraction
     p3 = plot(ylabel="Ribosome fraction")

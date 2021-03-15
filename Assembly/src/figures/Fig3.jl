@@ -326,7 +326,8 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
             # Set color
             c[i] = wongc[1]
         else
-            c[i] = wongc[2]
+            # Choose nice grey as "light" color
+            c[i] = RGB(([210, 215, 211] / 255)...)
         end
         if ens[i] == "l"
             p += 1.5
@@ -348,6 +349,12 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
         sdn = sem(svs[i,:])*2.576
         scatter!(p1,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
     end
+    # Add bracket for significance plot
+    plot!(p1,[2.5,3.0],[5.0,5.0],color=:black,label="")
+    plot!(p1,[2.5,2.5],[4.6,5.01],color=:black,label="")
+    plot!(p1,[3.0,3.0],[4.6,5.01],color=:black,label="")
+    # Then add star above the bracket
+    scatter!(p1,[2.75],[5.25],color=:black,shape=:star6,label="")
     savefig(p1,"Output/Fig3/Diversity.png")
     p3 = plot(ylabel="Ecosystem entropy production rate ($(JKs))",yaxis=:log10)
     plot!(p3,xlim=(0.5,3.5),xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
@@ -359,6 +366,12 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
         sdn = sem(dsp[i,:])*2.576
         scatter!(p3,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
     end
+    # Add bracket for significance plot
+    plot!(p3,[2.5,3.0],[6.25e-2,6.25e-2],color=:black,label="")
+    plot!(p3,[2.5,2.5],[5.4e-2,6.26e-2],color=:black,label="")
+    plot!(p3,[3.0,3.0],[5.4e-2,6.26e-2],color=:black,label="")
+    # Then add star above the bracket
+    scatter!(p3,[2.75],[6.9e-2],color=:black,shape=:star6,label="")
     savefig(p3,"Output/Fig3/EntropyProduction.png")
     # Want to do the plotting here
     p2 = plot(ylabel="Survivors per substrate",xlim=(0.5,3.5))
@@ -398,11 +411,17 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     # Add annotation
     px, py = annpos([0.5;3.5],msd,0.30,-0.01)
     annotate!(px,py,text("B",17,:black))
+    # Add bracket for significance plot
+    plot!(p4,[2.5,3.0],[4.0,4.0],color=:black,label="")
+    plot!(p4,[2.5,2.5],[3.7,4.01],color=:black,label="")
+    plot!(p4,[3.0,3.0],[3.7,4.01],color=:black,label="")
+    # Then add star above the bracket
+    scatter!(p4,[2.75],[4.2],color=:black,shape=:star6,label="")
     savefig(p4,"Output/Fig3/FuncDiv.png")
     # Combine all three plots into a single one
     pc = plot(p4,p1,p2,p3,layout=(1,4),size=(800,400))
     savefig(pc,"Output/Fig3/condensed.png")
-    # Run div loss function to make extra plot
+    # # Run div loss function to make extra plot
     pd = divloss(dRl,dRu,dsyn,den,Ni,runN,Nr)
     # Now want to make a plot incorperating all four previous plots
     pt = plot(pd,pc,layout=grid(1,2,widths=[0.43,0.57]),size=(1400,400),margin=5.0mm,grid=false)

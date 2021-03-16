@@ -3,7 +3,7 @@ using Assembly
 using Plots
 using JLD
 using LaTeXStrings
-using Statistics
+using StatsBase
 using Plots.PlotMeasures
 import PyPlot
 
@@ -101,14 +101,19 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
             end
         end
     end
-    # Need to calculate proportion of interactions
-    rins1 = ins1./(ins1.+ins2.+ins3.+ins4)
-    rins2 = ins2./(ins1.+ins2.+ins3.+ins4)
-    rins3 = ins3./(ins1.+ins2.+ins3.+ins4)
-    rins4 = ins4./(ins1.+ins2.+ins3.+ins4)
+    # Find percentage of each interactions type
+    cvsf = 100.0*(ins1)./(ins1.+ins2)
+    pvsn = 100.0*(ins2.+ins3)./(ins1.+ins2.+ins3.+ins4)
+    tvnt = 100.0*(ins3.+ins4)./(ins1.+ins2.+ins3.+ins4)
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=300)
+    # Make a color scheme
+    pl = Array{RGBA,1}(undef,3)
+    # Define the 4 colors I want to show
+    pl[1] = RGB(([254,27,182] / 255)...) # red
+    pl[2] = RGB(([182,254,27] / 255)...) # green
+    pl[3] = RGB(([25,181,254] / 255)...) # blue
     # Preallocate array to store plots
     p = Array{Plots.Plot,2}(undef,2,length(syns))
     # Loop over syntrophy conditions
@@ -121,25 +126,25 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
             tl = "Michaelis–Menten kinetics"
         end
         # Make bins for proportions
-        pbins = range(-0.01,stop=1.01,length=52)
+        pbins = range(-1.0,stop=101.0,length=52)
         # Now plot both interactions types and strengths
         p[1,j] = plot(title=tl,ylabel="Number of ecosystems")
         # Turn off legend for reversible case
         if syns[j] == true
-            plot!(p[1,j],legend=false,xlabel="Proportion of interactions")
+            plot!(p[1,j],legend=false,xlabel="Percentage of interactions")
         end
-        histogram!(p[1,j],rins1[:,j],fillalpha=0.75,label="Competiton",bins=pbins)
-        histogram!(p[1,j],rins2[:,j],fillalpha=0.75,label="Facilitation",bins=pbins)
-        histogram!(p[1,j],rins3[:,j],fillalpha=0.75,label="Syntrophy",bins=pbins)
-        histogram!(p[1,j],rins4[:,j],fillalpha=0.75,label="Pollution",bins=pbins)
+        histogram!(p[1,j],cvsf[:,j],fillalpha=0.75,label="Competative",bins=pbins,color=pl[1])
+        histogram!(p[1,j],pvsn[:,j],fillalpha=0.75,label="Positive",bins=pbins,color=pl[2])
+        histogram!(p[1,j],tvnt[:,j],fillalpha=0.75,label="Thermodynamic",bins=pbins,color=pl[3])
         # Choose which letter to annotate
         if syns[j] == false
             # Add annotation
-            px, py = annpos([0.0,1.0],[0.0,120.0],0.15,0.05)
+            # p = 82.5 and 42.5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            px, py = annpos([0.0,100.0],[0.0,84.0],0.15,0.05)
             annotate!(p[1,j],px,py,text("A",17,:black))
         else
             # Add annotation
-            px, py = annpos([0.0,1.0],[0.0,70.0],0.15,0.05)
+            px, py = annpos([0.0,100.0],[0.0,44.0],0.15,0.05)
             annotate!(p[1,j],px,py,text("C",17,:black))
         end
         savefig(p[1,j],"Output/Fig5/IntType$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
@@ -153,11 +158,11 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         # Make bins for proportions
         sbins = range(-15.0,stop=0.0,length=52)
         # Now plot all strengths
-        p[2,j] = plot(title=tl,ylabel="Number of interactions")
-        plot!(p[2,j],xticks=(rgn,ergn),legend=false)
+        p[2,j] = plot(title=tl,ylabel="Number of interactions",legend=:topleft)
+        plot!(p[2,j],xticks=(rgn,ergn))
         # Add xlabel for reversible case
         if syns[j] == true
-            plot!(p[2,j],xlabel="Interaction strength")
+            plot!(p[2,j],legend=false,xlabel="Interaction strength")
         end
         histogram!(p[2,j],log10.(sts1[j]),fillalpha=0.75,label="Competiton",bins=sbins)
         histogram!(p[2,j],log10.(sts2[j]),fillalpha=0.75,label="Facilitation",bins=sbins)
@@ -173,6 +178,20 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
             px, py = annpos([-15.0,0.0],[0.0,1600.0],0.15,0.05)
             annotate!(p[2,j],px,py,text("D",17,:black))
         end
+        # Fit pollution histogram
+        hp = fit(Histogram,log10.(sts4[j]),sbins,closed=:right)
+        # Find maximum height of this pollution histogram
+        hmaxp = maximum(hp.weights)
+        # Find index of this maximum
+        mind = findfirst(x->x==hmaxp,hp.weights)
+        # Find first index after this that's less than half the value
+        dind = findfirst(x->x<=0.5*hmaxp,hp.weights[(mind+1):end])
+        # Extract bins from histogram
+        rn = collect(sbins)
+        # Next need to find x posistion of this half maximum point
+        xpos = (rn[mind+dind]+rn[mind+dind-1])/2
+        # Put in a vertical line here
+        vline!(p[2,j],[xpos],color=:red,label="")
         savefig(p[2,j],"Output/Fig5/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
     end
     # Combine all graphs and save

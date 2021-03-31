@@ -233,8 +233,61 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
     end
     return(nothing)
 end
-# NEED TO FIX LABELS!!!!!
+
+# function to plot strain diversity against substrate diversity
+function SvvsDv(Nr::Int64,Ni::Int64,Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},
+                ens::Array{String,1})
+    # Find number of parameter sets
+    Ns = length(Rls)
+    # Container to store number of survivors
+    svs = zeros(Int64,Ns,Nr)
+    # Container to store metabolite diversity
+    mbs = zeros(Int64,Ns,Nr)
+    # Loop over parameter sets
+    for i = 1:length(Rls)
+        for j = 1:Nr
+            # Read in relevant files
+            pfile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)$(ens[i])/RedParasReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
+            if ~isfile(pfile)
+                error("parameter set $(i) run $(j) is missing a parameter file")
+            end
+            ofile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)$(ens[i])/RedOutputReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
+            if ~isfile(ofile)
+                error("parameter set $(i) run $(j) is missing an output file")
+            end
+            # Only want final parameter set
+            ps = load(pfile,"ps")
+            inf_out = load(ofile,"inf_out")
+            # Save number of survivors
+            svs[i,j] = ps.N
+            # Loop over metabolites to find those with non-zero concentrations
+            cm = 0 # Set up counter
+            for k = 2:ps.M
+                if inf_out[ps.N+k] > 0.0
+                    # Increment counter
+                    cm += 1
+                end
+            end
+            # Save results to vector
+            mbs[i,j] = cm
+        end
+    end
+    # Setup plotting
+    pyplot()
+    theme(:wong2,dpi=200)
+    wongc = wong2_palette()
+    # Make scatter plot of substrate diversification against strain diversity
+    plot(title="Survivors per substrate",ylabel="Number of survivors",xlabel="Number of substrates")
+    for i = 1:Ns
+        scatter!(mbs[i,:],svs[i,:],color=wongc[1],label="")
+    end
+    # Plot maximum line
+    plot!(1:24,1:24,color=:red,label="")
+    savefig("Output/SI/SubstrateDiversity.png")
+    return(nothing)
+end
 
 # Run both high and low as want both plots for SI
 @time SI_ints(1,5,[true,false],250,250,"h")
 @time SI_ints(1,5,[true,false],250,250,"l")
+@time SvvsDv(250,250,[1,1,1,1],[5,5,5,5],[false,true,false,true],["l","l","h","h"])

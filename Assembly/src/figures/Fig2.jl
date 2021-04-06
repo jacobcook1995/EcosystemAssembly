@@ -271,14 +271,16 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     px, py = annpos([0.0; Tend],ep[inds])
     annotate!(px,py,text("D",17,:black))
     vline!(p4,[Tms[3]],color=:red,style=:dash,label="")
+    savefig(p4,"Output/Fig2/delete.png")
     for i = 1:ps.M
-        if mtr[i] == true
+        if mtr[i] == true && ~isnan(exT[i])
+            println(exT[i])
             plot!(p4,[exT[i];exT[i]],[-0.01;0.01],color=wongc[i],style=:solid,label="")
         end
     end
     savefig(p4,"Output/Fig2/entp.png")
     # Now want to make a plot incorperating all four previous plots
-    pt = plot(p1,p3,p2,p4,layout=(4,1),size=(600,1600),margin=5mm,grid=false)
+    pt = plot(p1,p3,p2,p4,layout=(4,1),size=(900,1600),margin=5mm,grid=false)
     savefig(pt,"Output/Fig2/figure2.eps")
     return(nothing)
 end

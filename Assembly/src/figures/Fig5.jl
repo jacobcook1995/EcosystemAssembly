@@ -128,7 +128,7 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         # Make bins for proportions
         pbins = range(-1.0,stop=101.0,length=52)
         # Now plot both interactions types and strengths
-        p[1,j] = plot(title=tl,ylabel="Number of ecosystems")
+        p[1,j] = plot(title=tl,ylabel="Number of ecosystems",legend=:top)
         # Turn off legend for reversible case
         if syns[j] == true
             plot!(p[1,j],legend=false,xlabel="Percentage of interactions")
@@ -140,11 +140,11 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         if syns[j] == false
             # Add annotation
             # p = 82.5 and 42.5!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            px, py = annpos([0.0,100.0],[0.0,84.0],0.15,0.05)
+            px, py = annpos([0.0,100.0],[0.0,63.0],0.15,0.05)
             annotate!(p[1,j],px,py,text("A",17,:black))
         else
             # Add annotation
-            px, py = annpos([0.0,100.0],[0.0,44.0],0.15,0.05)
+            px, py = annpos([0.0,100.0],[0.0,42.0],0.15,0.05)
             annotate!(p[1,j],px,py,text("C",17,:black))
         end
         savefig(p[1,j],"Output/Fig5/IntType$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
@@ -171,11 +171,11 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         # Choose which letter to annotate
         if syns[j] == false
             # Add annotation
-            px, py = annpos([-15.0,0.0],[0.0,1400.0],0.15,0.05)
+            px, py = annpos([-15.0,0.0],[0.0,280.0],0.15,0.05)
             annotate!(p[2,j],px,py,text("B",17,:black))
         else
             # Add annotation
-            px, py = annpos([-15.0,0.0],[0.0,1600.0],0.15,0.05)
+            px, py = annpos([-15.0,0.0],[0.0,350.0],0.15,0.05)
             annotate!(p[2,j],px,py,text("D",17,:black))
         end
         # Fit pollution histogram
@@ -200,4 +200,4 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
     return(nothing)
 end
 
-@time figure5(1,5,[true,false],250,250,"i")
+@time figure5(1,5,[true,false],250,250,"l")

@@ -139,27 +139,13 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         histogram!(p[1,j],tvnt[:,j],fillalpha=0.75,label="Thermodynamic",bins=pbins,color=pl[3])
         # Choose which letter to annotate
         if syns[j] == false
-            # Then check energy supply
-            if en == "h"
-                # Add annotation
-                px, py = annpos([0.0,100.0],[0.0,135.0],0.15,0.05)
-                annotate!(p[1,j],px,py,text("A",17,:black))
-            else
-                # Add annotation
-                px, py = annpos([0.0,100.0],[0.0,63.0],0.15,0.05)
-                annotate!(p[1,j],px,py,text("A",17,:black))
-            end
+            # Add annotation
+            px, py = annpos([0.0,100.0],[0.0,135.0],0.15,0.05)
+            annotate!(p[1,j],px,py,text("A",17,:black))
         else
-            # Then check energy supply
-            if en == "h"
-                # Add annotation
-                px, py = annpos([0.0,100.0],[0.0,67.5],0.15,0.05)
-                annotate!(p[1,j],px,py,text("C",17,:black))
-            else
-                # Add annotation
-                px, py = annpos([0.0,100.0],[0.0,42.0],0.15,0.05)
-                annotate!(p[1,j],px,py,text("C",17,:black))
-            end
+            # Add annotation
+            px, py = annpos([0.0,100.0],[0.0,67.5],0.15,0.05)
+            annotate!(p[1,j],px,py,text("C",17,:black))
         end
         savefig(p[1,j],"Output/SI/IntType$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
         # Make range of ticks to label
@@ -184,28 +170,13 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         histogram!(p[2,j],log10.(sts4[j]),fillalpha=0.75,label="Pollution",bins=sbins)
         # Choose which letter to annotate
         if syns[j] == false
-            # Then check energy supply
-            if en == "h"
-                # Add annotation
-                px, py = annpos([-15.0,0.0],[0.0,4300.0],0.15,0.05)
-                annotate!(p[2,j],px,py,text("B",17,:black))
-            else
-                # Add annotation
-                px, py = annpos([-15.0,0.0],[0.0,280.0],0.15,0.05)
-                annotate!(p[2,j],px,py,text("B",17,:black))
-            end
+            # Add annotation
+            px, py = annpos([-15.0,0.0],[0.0,4300.0],0.15,0.05)
+            annotate!(p[2,j],px,py,text("B",17,:black))
         else
-            # Then check energy supply
-            if en == "h"
-                # Add annotation
-                px, py = annpos([-15.0,0.0],[0.0,4100.0],0.15,0.05)
-                annotate!(p[2,j],px,py,text("D",17,:black))
-            else
-                # Add annotation
-                px, py = annpos([-15.0,0.0],[0.0,350.0],0.15,0.05)
-                annotate!(p[2,j],px,py,text("D",17,:black))
-            end
-
+            # Add annotation
+            px, py = annpos([-15.0,0.0],[0.0,4100.0],0.15,0.05)
+            annotate!(p[2,j],px,py,text("D",17,:black))
         end
         # Fit pollution histogram
         hp = fit(Histogram,log10.(sts4[j]),sbins,closed=:right)
@@ -225,12 +196,8 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
     end
     # Combine all graphs and save
     pt = plot(p[1,2],p[2,2],p[1,1],p[2,1],layout=4,size=(1200,800),margin=5.0mm)
-    # Save as a different name based on energy level
-    if en == "h"
-        savefig(pt,"Output/SI/HighInts.png")
-    elseif en == "l"
-        savefig(pt,"Output/SI/LowInts.png")
-    end
+    # Save as high energy supply case
+    savefig(pt,"Output/SI/HighInts.png")
     return(nothing)
 end
 
@@ -289,5 +256,4 @@ end
 
 # Run both high and low as want both plots for SI
 @time SI_ints(1,5,[true,false],250,250,"h")
-@time SI_ints(1,5,[true,false],250,250,"l")
 @time SvvsDv(250,250,[1,1,1,1],[5,5,5,5],[false,true,false,true],["l","l","h","h"])

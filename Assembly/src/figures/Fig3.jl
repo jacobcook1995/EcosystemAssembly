@@ -229,7 +229,7 @@ function divloss(Rl::Int64,Ru::Int64,syn::Bool,en::String,Ni::Int64,Nr::Int64,rp
     pyplot(dpi=200)
     p = groupedbar(abT,bar_position=:stack,label="",palette=sch)
     plot!(p,xticks=(1:Tp,xs),ylabel="Relative abundance",xlabel="Time (s)")
-    plot!(p,title="Diversity with time")
+    plot!(p,title="Diversity with time",guidefontsize=12,legendfontsize=8,tickfontsize=9)
     # Add annotation
     px, py = annpos([0.25; convert(Float64,Tp)],[1.0;0.0],0.10,0.05)
     annotate!(px,py,text("A",17,:black))
@@ -240,7 +240,7 @@ function divloss(Rl::Int64,Ru::Int64,syn::Bool,en::String,Ni::Int64,Nr::Int64,rp
     # Plot histogram into the subplot
     histogram!(p,Si,color=:black,bins=rbins,label="Initial",inset_subplots=box,subplot=2)
     histogram!(p[2],Sf,color=:red,bins=rbins,label="Final",xlabel=L"^{2}D")
-    plot!(p[2],guidefontsize=8,legendfontsize=8,tickfontsize=6,yaxis=false,grid=false)
+    plot!(p[2],guidefontsize=9,legendfontsize=8,tickfontsize=7,yaxis=false,grid=false,legend=:top)
     savefig(p,"Output/Fig3/abT.png")
     return(p)
 end
@@ -356,7 +356,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     # Then add star above the bracket
     scatter!(p1,[2.75],[5.25],color=:black,shape=:star6,label="")
     savefig(p1,"Output/Fig3/Diversity.png")
-    p3 = plot(ylabel="Ecosystem entropy production rate ($(JKs))",yaxis=:log10)
+    p3 = plot(ylabel="Entropy production rate ($(JKs))",yaxis=:log10)
     plot!(p3,xlim=(0.5,3.5),xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
     # Plot means
     for i = 1:Ns
@@ -387,7 +387,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     savefig(p2,"Output/Fig3/Ratio.png")
     # Want to do the plotting here
     p4 = plot(ylabel="Number of surviving functional groups",xlim=(0.5,3.5))
-    plot!(p4,xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
+    plot!(p4,xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply",legend=:right)
     # Plot means
     for i = 1:Ns
         # Calculate mean
@@ -409,7 +409,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
         scatter!(p4,[pos[i]],[mn],yerror=[sdn],label=lb,color=c[i],ms=6,msc=c[i])
     end
     # Add annotation
-    px, py = annpos([0.5;3.5],msd,0.30,-0.01)
+    px, py = annpos([0.5;3.5],msd,0.4,-0.01)
     annotate!(px,py,text("B",17,:black))
     # Add bracket for significance plot
     plot!(p4,[2.5,3.0],[4.0,4.0],color=:black,label="")
@@ -419,7 +419,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     scatter!(p4,[2.75],[4.2],color=:black,shape=:star6,label="")
     savefig(p4,"Output/Fig3/FuncDiv.png")
     # Combine all three plots into a single one
-    pc = plot(p4,p1,p2,p3,layout=(1,4),size=(800,400))
+    pc = plot(p4,p1,p2,p3,layout=(1,4),size=(800,400),guidefontsize=12,legendfontsize=8,tickfontsize=9)
     savefig(pc,"Output/Fig3/condensed.png")
     # # Run div loss function to make extra plot
     pd = divloss(dRl,dRu,dsyn,den,Ni,runN,Nr)

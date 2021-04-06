@@ -78,7 +78,8 @@ function plt_trdff(Rl::Int64,Ru::Int64,syn::Bool,runN::Int64,en::String,Ni::Int6
     lbs[1] = "High product concentration"
     lbs[2] = "Low product concentration"
     # Now calculate and plot syntrophy stuff
-    plot(ηs,as3,xlabel="ATP per reaction event",ylabel="ATP production rate",labels=lbs)
+    plot(ηs,as3,xlabel="ATP per reaction event",ylabel="ATP production rate",labels=lbs,legend=:topleft)
+    plot!(legendfontsize=12,guidefontsize=14,tickfontsize=10)
     # Add arrow between the two lines
     quiver!([5.55],[3e5],quiver=([-0.135],[0.0]),color=:red)
     savefig("Output/Fig1/SynTrdOff.png")

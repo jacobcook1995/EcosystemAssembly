@@ -189,11 +189,11 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
     # Different because log10 scale used
-    annotate!(px,py,text("A",17,:black),δx=0.10,δy=0.125)
+    annotate!(px,py,text("A",17,:black))
     vline!(p1,[Tms[3]],color=:red,style=:dash,label="")
     savefig(p1,"Output/Fig2/pops.png")
     # Now plot concentrations
-    p2 = plot(ylabel="Concentration (moles)")
+    p2 = plot(ylabel="Metabolite concentration (moles)")
     # Store max and min C values
     maxC = zeros(length(is))
     minC = zeros(length(is))
@@ -213,7 +213,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
         minC[c] = minimum(C[inds,i])
     end
     # Add annotation
-    px, py = annpos([0.0; Tend],[maxC; minC])
+    px, py = annpos([0.0; Tend],[maxC; minC],0.10,0.05)
     annotate!(px,py,text("C",17,:black))
     vline!(p2,[Tms[3]],color=:red,style=:dash,label="")
     # Find maximum number of substrates (convert to integer)
@@ -271,7 +271,6 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     px, py = annpos([0.0; Tend],ep[inds])
     annotate!(px,py,text("D",17,:black))
     vline!(p4,[Tms[3]],color=:red,style=:dash,label="")
-    savefig(p4,"Output/Fig2/delete.png")
     for i = 1:ps.M
         if mtr[i] == true && ~isnan(exT[i])
             println(exT[i])

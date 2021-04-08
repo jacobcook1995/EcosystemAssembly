@@ -167,8 +167,8 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         end
         histogram!(p[2,j],log10.(sts1[j]),fillalpha=0.75,label="Competiton",bins=sbins)
         histogram!(p[2,j],log10.(sts2[j]),fillalpha=0.75,label="Facilitation",bins=sbins)
-        histogram!(p[2,j],log10.(sts3[j]),fillalpha=0.75,label="Syntrophy",bins=sbins)
         histogram!(p[2,j],log10.(sts4[j]),fillalpha=0.75,label="Pollution",bins=sbins)
+        histogram!(p[2,j],log10.(sts3[j]),fillalpha=0.75,label="Syntrophy",bins=sbins)
         # Choose which letter to annotate
         if syns[j] == false
             # Add annotation
@@ -352,6 +352,6 @@ function growth_laws()
 end
 
 # Run both high interactions, survivors vs diversity, and growth law plots
-# @time SI_ints(1,5,[true,false],250,250,"h")
-# @time SvvsDv(250,250,[1,1,1,1],[5,5,5,5],[false,true,false,true],["l","l","h","h"])
+@time SI_ints(1,5,[true,false],250,250,"h")
+@time SvvsDv(250,250,[1,1,1,1],[5,5,5,5],[false,true,false,true],["l","l","h","h"])
 @time growth_laws()

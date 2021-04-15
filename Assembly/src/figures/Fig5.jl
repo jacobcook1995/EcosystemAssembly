@@ -193,8 +193,8 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         # Put in a vertical line here
         vline!(p[2,j],[xpos],color=:red,label="")
         savefig(p[2,j],"Output/Fig5/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
-        # Putting this in as a test for now
-        p[3,j] = plot(grid=false,showaxis=false,xlim=(-0.325,1.325),ylim=(-0.1,1.0))
+        # Move onto plotting the simplex
+        p[3,j] = plot(grid=false,showaxis=false,xlim=(-0.325,1.325),ylim=(-0.1,1.0),title=tl)
         # Plot the triangle over this
         plot!(p[3,j],[0.0;0.5],[0.0;0.8660],color=:black,label=false)
         plot!(p[3,j],[0.0;1.0],[0.0;0.0],color=:black,label=false)
@@ -212,57 +212,7 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         # Find x and y coordinates for each point
         x = 0.5*(2 .*b.+c)./(a.+b.+c)
         y = (sqrt(3)/2)*(c)./(a.+b.+c)
-        scatter!(p[3,j],x,y,label="Single ecosystem")
-        cmb = [x y]
-        # Find unique rows
-        ui = unique(cmb,dims=1)
-        # Preallocate vector to store unique rows
-        uind = zeros(Int64,size(ui,1))
-        # Loop over all unique rows
-        for i = 1:size(ui,1)
-            # Loop over full vector
-            for m = 1:size(cmb,1)
-                # Once unique element has been found
-                if cmb[m,:] == ui[i,:]
-                    uind[i] = m
-                end
-            end
-        end
-        # preallocate vector of duplicate indicies
-        dups = zeros(size(cmb,1)-size(ui,1),2)
-        # Set up counter
-        cnt = 0
-        # Loop to find and store duplicate indicies
-        for i = 1:size(cmb,1)
-            if i ∉ uind
-                cnt += 1 # Increment counter
-                # Store duplicated row
-                dups[cnt,1:2] = cmb[i,:]
-            end
-        end
-        # Find unique duplicates
-        udups = unique(dups,dims=1)
-        cs = zeros(size(udups,1))
-        # And then loop over
-        for i = 1:size(udups,1)
-            # loop over all duplicates
-            for k = 1:size(dups,1)
-                # Counting when this duplicate comes up
-                if udups[i,:] == dups[k,:]
-                    cs[i] += 1
-                end
-            end
-        end
-        # Loop over counts
-        for i = 1:size(cmb,1)
-            # Check if that number of counts appears
-            if i ∈ cs
-                # Find all instantises of it
-                cinds = findall(x->x==i,cs)
-                # Plot extra scatter point
-                scatter!(p[3,j],[udups[cinds,1]],[udups[cinds,2]],label="$(i+1) ecosystems")
-            end
-        end
+        scatter!(p[3,j],x,y,label="")
         # Choose which letter to annotate
         if syns[j] == false
             # Add annotation

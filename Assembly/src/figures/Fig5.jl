@@ -115,7 +115,7 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
     pl[2] = RGB(([182,254,27] / 255)...) # green
     pl[3] = RGB(([25,181,254] / 255)...) # blue
     # Preallocate array to store plots
-    p = Array{Plots.Plot,2}(undef,2,length(syns))
+    p = Array{Plots.Plot,2}(undef,3,length(syns))
     # Loop over syntrophy conditions
     for j = 1:length(syns)
         # Make plot title
@@ -193,9 +193,89 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         # Put in a vertical line here
         vline!(p[2,j],[xpos],color=:red,label="")
         savefig(p[2,j],"Output/Fig5/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
+        # Putting this in as a test for now
+        p[3,j] = plot(grid=false,showaxis=false,xlim=(-0.325,1.325),ylim=(-0.1,1.0))
+        # Plot the triangle over this
+        plot!(p[3,j],[0.0;0.5],[0.0;0.8660],color=:black,label=false)
+        plot!(p[3,j],[0.0;1.0],[0.0;0.0],color=:black,label=false)
+        plot!(p[3,j],[1.0;0.5],[0.0;0.8660],color=:black,label=false)
+        # Bottom left competition
+        annotate!(p[3,j],0.0,-0.04,text("Competition",12,:black))
+        # Bottom right thermodynamic
+        annotate!(p[3,j],1.0,-0.04,text("Facilitation",12,:black))
+        # Top facilitation
+        annotate!(p[3,j],0.5,0.9,text("Thermodynamic",12,:black))
+        # Group by interaction type
+        a = ins1[:,j] # Competiton
+        b = ins2[:,j] # Facilitation
+        c = ins3[:,j] .+ ins4[:,j] # Thermodynamic
+        # Find x and y coordinates for each point
+        x = 0.5*(2 .*b.+c)./(a.+b.+c)
+        y = (sqrt(3)/2)*(c)./(a.+b.+c)
+        scatter!(p[3,j],x,y,label="Single ecosystem")
+        cmb = [x y]
+        # Find unique rows
+        ui = unique(cmb,dims=1)
+        # Preallocate vector to store unique rows
+        uind = zeros(Int64,size(ui,1))
+        # Loop over all unique rows
+        for i = 1:size(ui,1)
+            # Loop over full vector
+            for m = 1:size(cmb,1)
+                # Once unique element has been found
+                if cmb[m,:] == ui[i,:]
+                    uind[i] = m
+                end
+            end
+        end
+        # preallocate vector of duplicate indicies
+        dups = zeros(size(cmb,1)-size(ui,1),2)
+        # Set up counter
+        cnt = 0
+        # Loop to find and store duplicate indicies
+        for i = 1:size(cmb,1)
+            if i ∉ uind
+                cnt += 1 # Increment counter
+                # Store duplicated row
+                dups[cnt,1:2] = cmb[i,:]
+            end
+        end
+        # Find unique duplicates
+        udups = unique(dups,dims=1)
+        cs = zeros(size(udups,1))
+        # And then loop over
+        for i = 1:size(udups,1)
+            # loop over all duplicates
+            for k = 1:size(dups,1)
+                # Counting when this duplicate comes up
+                if udups[i,:] == dups[k,:]
+                    cs[i] += 1
+                end
+            end
+        end
+        # Loop over counts
+        for i = 1:size(cmb,1)
+            # Check if that number of counts appears
+            if i ∈ cs
+                # Find all instantises of it
+                cinds = findall(x->x==i,cs)
+                # Plot extra scatter point
+                scatter!(p[3,j],[udups[cinds,1]],[udups[cinds,2]],label="$(i+1) ecosystems")
+            end
+        end
+        # Choose which letter to annotate
+        if syns[j] == false
+            # Add annotation
+            annotate!(p[3,j],-0.15,1.0,text("A",17,:black))
+        else
+            # Add annotation
+            annotate!(p[3,j],-0.15,1.0,text("C",17,:black))
+        end
+        # Then save the figure
+        savefig(p[3,j],"Output/Fig5/Simplex$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
     end
     # Combine all graphs and save
-    pt = plot(p[1,2],p[2,2],p[1,1],p[2,1],layout=4,size=(1200,800),margin=5.0mm)
+    pt = plot(p[3,2],p[2,2],p[3,1],p[2,1],layout=4,size=(1200,800),margin=5.0mm)
     savefig(pt,"Output/Fig5/figure5.png")
     return(nothing)
 end

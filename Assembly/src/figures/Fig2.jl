@@ -167,6 +167,8 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
             exT[i] = NaN
         end
     end
+    # Set line width (plots defaults to 1)
+    wdt = 2
     # Now move onto plotting
     pyplot()
     theme(:wong2,dpi=300,guidefontsize=14,tickfontsize=10)
@@ -181,7 +183,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
         c += 1
         # Find and eliminate zeros so that they can be plotted on a log plot
         inds = (C[:,i] .> 0) .& (T .<= Tend)
-        plot!(p1,T[inds],C[inds,i],label="")
+        plot!(p1,T[inds],C[inds,i],lw=wdt,label="")
         # Store max and min C values in range
         maxC[c] = maximum(C[inds,i])
         minC[c] = minimum(C[inds,i])
@@ -190,7 +192,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     px, py = annpos([0.0; Tend],[maxC; minC])
     # Different because log10 scale used
     annotate!(px,py,text("A",17,:black))
-    vline!(p1,[Tms[3]],color=:red,style=:dash,label="")
+    vline!(p1,[Tms[3]],color=:red,style=:dash,lw=wdt,label="")
     savefig(p1,"Output/Fig2/pops.png")
     # Now plot concentrations
     p2 = plot(ylabel="Metabolite concentration (moles)")
@@ -204,9 +206,9 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
         inds = (T .<= Tend)
         # Can't switch theme but can switch pallete to avoid repeated colors
         if (i-Ns) >= 20
-            plot!(p2,T[inds],C[inds,i],label="",palette=:darktest)
+            plot!(p2,T[inds],C[inds,i],lw=wdt,label="",palette=:darktest)
         else
-            plot!(p2,T[inds],C[inds,i],label="")
+            plot!(p2,T[inds],C[inds,i],lw=wdt,label="")
         end
         # Store max and min C values in range
         maxC[c] = maximum(C[inds,i])
@@ -215,7 +217,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC],0.10,0.05)
     annotate!(px,py,text("C",17,:black))
-    vline!(p2,[Tms[3]],color=:red,style=:dash,label="")
+    vline!(p2,[Tms[3]],color=:red,style=:dash,lw=wdt,label="")
     # Find maximum number of substrates (convert to integer)
     mS = convert(Int64,maximum(nmf))
     # make appropriate bins
@@ -230,11 +232,11 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     hmaxf = maximum(hf.weights)
     # Scale distributions so that their peaks match, has to be done this way to preserve Int64 type
     hf.weights = hf.weights*2*hmaxi
-    hi.weights = hi.weights*5*hmaxf
+    hi.weights = hi.weights*7*hmaxf
     # Then plot as bar charts, with inital distribution included
     bar!(p2,hi,color=:black,label="Initial",inset_subplots=box,subplot=2)
     bar!(p2[2],hf,color=:red,label="Final",xlabel="Number of substrates")
-    plot!(p2[2],guidefontsize=9,legendfontsize=9,tickfontsize=7,yaxis=false,grid=false)
+    plot!(p2[2],guidefontsize=11,legendfontsize=11,tickfontsize=7,yaxis=false,grid=false)
     savefig(p2,"Output/Fig2/concs.png")
     # Now plot proteome fraction
     p3 = plot(ylabel="Ribosome fraction")
@@ -246,7 +248,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
         c += 1
         # Find and eliminate points after end time, remove points where strain is dead
         inds = (C[:,i-2*Ns-ps.M] .> 0) .& (T .<= Tend)
-        plot!(p3,T[inds],C[inds,i],label="")
+        plot!(p3,T[inds],C[inds,i],lw=wdt,label="")
         # Store max and min C values in range
         maxC[c] = maximum(C[inds,i])
         minC[c] = minimum(C[inds,i])
@@ -254,7 +256,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
     annotate!(px,py,text("B",17,:black))
-    vline!(p3,[Tms[3]],color=:red,style=:dash,label="")
+    vline!(p3,[Tms[3]],color=:red,style=:dash,lw=wdt,label="")
     savefig(p3,"Output/Fig2/fracs.png")
     # container to store entropy production
     ep = zeros(length(T))
@@ -266,15 +268,15 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     p4 = plot(xlabel="Time (s)",ylabel="Entropy production (J/K per s)")
     # Find and eliminate points after end time
     inds = (T .<= Tend)
-    plot!(p4,T[inds],ep[inds],label="",ylim=(-0.01,Inf))
+    plot!(p4,T[inds],ep[inds],lw=wdt,label="",ylim=(-0.01,Inf))
     # Add annotation
     px, py = annpos([0.0; Tend],ep[inds])
     annotate!(px,py,text("D",17,:black))
-    vline!(p4,[Tms[3]],color=:red,style=:dash,label="")
+    vline!(p4,[Tms[3]],color=:red,style=:dash,lw=wdt,label="")
     for i = 1:ps.M
         if mtr[i] == true && ~isnan(exT[i])
             println(exT[i])
-            plot!(p4,[exT[i];exT[i]],[-0.01;0.01],color=wongc[i],style=:solid,label="")
+            plot!(p4,[exT[i];exT[i]],[-0.01;0.01],color=wongc[i],style=:solid,lw=wdt,label="")
         end
     end
     savefig(p4,"Output/Fig2/entp.png")

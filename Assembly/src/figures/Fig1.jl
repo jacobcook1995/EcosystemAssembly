@@ -2,6 +2,7 @@
 using Assembly
 using Plots
 using JLD
+using LaTeXStrings
 import PyPlot
 
 # Function to make plots to show the shape of the thermodynamic tradeoff
@@ -77,11 +78,13 @@ function plt_trdff(Rl::Int64,Ru::Int64,syn::Bool,runN::Int64,en::String,Ni::Int6
     lbs = Array{String,2}(undef,1,2)
     lbs[1] = "High product concentration"
     lbs[2] = "Low product concentration"
+    # make a units label
+    uns = L"10^{5}\;s^{-1}"
     # Now calculate and plot syntrophy stuff
-    plot(ηs,as3,xlabel="ATP per reaction event",ylabel="ATP production rate",labels=lbs,legend=:topleft)
-    plot!(legendfontsize=12,guidefontsize=14,tickfontsize=10)
+    plot(ηs,as3/1e5,xlabel="ATP per reaction event",ylabel="ATP production rate ($(uns))",labels=lbs,lw=2.5)
+    plot!(legendfontsize=12,guidefontsize=14,tickfontsize=10,legend=:topleft)
     # Add arrow between the two lines
-    quiver!([5.55],[3e5],quiver=([-0.135],[0.0]),color=:red)
+    quiver!([5.56],[3e5/1e5],quiver=([-0.145],[0.0]),color=:red,lw=2.5)
     savefig("Output/Fig1/SynTrdOff.png")
     # Find indicies of surviving strains
     is = zeros(Int64,ps.N)

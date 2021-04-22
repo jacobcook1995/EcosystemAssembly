@@ -240,7 +240,7 @@ function divloss(Rl::Int64,Ru::Int64,syn::Bool,en::String,Ni::Int64,Nr::Int64,rp
     # Plot histogram into the subplot
     histogram!(p,Si,color=:black,bins=rbins,label="Initial",inset_subplots=box,subplot=2)
     histogram!(p[2],Sf,color=:red,bins=rbins,label="Final",xlabel=L"^{2}D")
-    plot!(p[2],guidefontsize=9,legendfontsize=8,tickfontsize=7,yaxis=false,grid=false,legend=:top)
+    plot!(p[2],guidefontsize=11,legendfontsize=8,tickfontsize=7,yaxis=false,grid=false,legend=:top)
     savefig(p,"Output/Fig3/abT.png")
     return(p)
 end
@@ -327,7 +327,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
             c[i] = wongc[1]
         else
             # Choose nice grey as "light" color
-            c[i] = RGB(([210, 215, 211] / 255)...)
+            c[i] = RGB(([170, 170, 170] / 255)...)
         end
         if ens[i] == "l"
             p += 1.5

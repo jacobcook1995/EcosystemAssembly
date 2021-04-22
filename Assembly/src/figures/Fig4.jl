@@ -225,6 +225,8 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
             vTs[(i-1)*le+j] = Ts[indT]
         end
     end
+    # Set line width (plots defaults to 1)
+    wdt = 1.5
     # Set up plotting
     pyplot(dpi=300)
     # Making my own pallette
@@ -240,7 +242,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     p1 = plot(title="Strain diversity",ylabel="Number of surviving strains")
     vline!(p1,vTs,linestyle=:dash,color=:black,label="")
     for i = 1:L
-        plot!(p1,Ts,msvs[:,i],ribbon=sdsvs[:,i],label=lb[i],legend=:right,color=pl[i])
+        plot!(p1,Ts,msvs[:,i],ribbon=sdsvs[:,i],label=lb[i],legend=:right,color=pl[i],lw=wdt)
     end
     # Add annotation
     px, py = annpos(Ts,[5.0,250.0],0.1,0.05)
@@ -250,7 +252,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     p2 = plot(title="Substrate diversification",ylabel="Number of substrates",xlabel="Time",legend=false)
     vline!(p2,vTs,linestyle=:dash,color=:black,label="")
     for i = 1:L
-        plot!(p2,Ts,mdv[:,i],ribbon=sddv[:,i],label=lb[i],color=pl[i])
+        plot!(p2,Ts,mdv[:,i],ribbon=sddv[:,i],label=lb[i],color=pl[i],lw=wdt)
     end
     # Add annotation
     px, py = annpos(Ts,[0.0,23.0],0.1,0.05)
@@ -261,7 +263,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     # Plot graph of efficencies
     p3 = plot(title="Average efficency",xlabel="Time",ylabel="Efficency of reactions",legend=false)
     for i = 1:L
-        plot!(p3,Ts,mefs[:,i],ribbon=sdefs[:,i],label=lb[i],color=pl[i])
+        plot!(p3,Ts,mefs[:,i],ribbon=sdefs[:,i],label=lb[i],color=pl[i],lw=wdt)
     end
     # Add vertical line
     vline!(p3,vTs,linestyle=:dash,color=:black,label="")
@@ -275,7 +277,7 @@ function figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1},rp
     # Plot graph of growth rates
     p4 = plot(title="Growth rate",ylabel="Growth rate ($(s1))",legend=false)
     for i = 1:L
-        plot!(p4,Ts,mλts[:,i],ribbon=sdλts[:,i],label=lb[i],color=pl[i])
+        plot!(p4,Ts,mλts[:,i],ribbon=sdλts[:,i],label=lb[i],color=pl[i],lw=wdt)
     end
     # Add vertical line
     vline!(p4,vTs,linestyle=:dash,color=:black,label="")

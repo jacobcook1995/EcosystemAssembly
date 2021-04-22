@@ -110,14 +110,8 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=300)
-    # Make a color scheme
-    pl = Array{RGBA,1}(undef,3)
-    # Define the 4 colors I want to show
-    pl[1] = RGB(([254,27,182] / 255)...) # red
-    pl[2] = RGB(([182,254,27] / 255)...) # green
-    pl[3] = RGB(([25,181,254] / 255)...) # blue
     # Preallocate array to store plots
-    p = Array{Plots.Plot,2}(undef,3,length(syns))
+    p = Array{Plots.Plot,2}(undef,2,length(syns))
     # Loop over syntrophy conditions
     for j = 1:length(syns)
         # Make plot title
@@ -127,28 +121,6 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         else
             tl = "Michaelis–Menten kinetics"
         end
-        # Make bins for proportions
-        pbins = range(-1.0,stop=101.0,length=52)
-        # Now plot both interactions types and strengths
-        p[1,j] = plot(title=tl,ylabel="Number of ecosystems")
-        # Turn off legend for reversible case
-        if syns[j] == true
-            plot!(p[1,j],legend=false,xlabel="Percentage of interactions")
-        end
-        histogram!(p[1,j],cvsf[:,j],fillalpha=0.75,label="Competative",bins=pbins,color=pl[1])
-        histogram!(p[1,j],pvsn[:,j],fillalpha=0.75,label="Positive",bins=pbins,color=pl[2])
-        histogram!(p[1,j],tvnt[:,j],fillalpha=0.75,label="Thermodynamic",bins=pbins,color=pl[3])
-        # Choose which letter to annotate
-        if syns[j] == false
-            # Add annotation
-            px, py = annpos([0.0,100.0],[0.0,135.0],0.15,0.05)
-            annotate!(p[1,j],px,py,text("A",17,:black))
-        else
-            # Add annotation
-            px, py = annpos([0.0,100.0],[0.0,67.5],0.15,0.05)
-            annotate!(p[1,j],px,py,text("C",17,:black))
-        end
-        savefig(p[1,j],"Output/SI/IntType$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
         # Make range of ticks to label
         rgn = collect(-15:3:0)
         ergn = fill("",length(rgn))
@@ -159,25 +131,25 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         # Make bins for proportions
         sbins = range(-15.0,stop=0.0,length=52)
         # Now plot all strengths
-        p[2,j] = plot(title=tl,ylabel="Number of interactions",legend=:topleft)
-        plot!(p[2,j],xticks=(rgn,ergn))
+        p[1,j] = plot(title=tl,ylabel="Number of interactions",legend=:topleft)
+        plot!(p[1,j],xticks=(rgn,ergn))
         # Add xlabel for reversible case
         if syns[j] == true
-            plot!(p[2,j],legend=false,xlabel="Interaction strength")
+            plot!(p[1,j],legend=false,xlabel="Interaction strength")
         end
-        histogram!(p[2,j],log10.(sts1[j]),fillalpha=0.75,label="Competiton",bins=sbins)
-        histogram!(p[2,j],log10.(sts2[j]),fillalpha=0.75,label="Facilitation",bins=sbins)
-        histogram!(p[2,j],log10.(sts4[j]),fillalpha=0.75,label="Pollution",bins=sbins)
-        histogram!(p[2,j],log10.(sts3[j]),fillalpha=0.75,label="Syntrophy",bins=sbins)
+        histogram!(p[1,j],log10.(sts1[j]),fillalpha=0.75,label="Competiton",bins=sbins)
+        histogram!(p[1,j],log10.(sts2[j]),fillalpha=0.75,label="Facilitation",bins=sbins)
+        histogram!(p[1,j],log10.(sts4[j]),fillalpha=0.75,label="Pollution",bins=sbins)
+        histogram!(p[1,j],log10.(sts3[j]),fillalpha=0.75,label="Syntrophy",bins=sbins)
         # Choose which letter to annotate
         if syns[j] == false
             # Add annotation
             px, py = annpos([-15.0,0.0],[0.0,4300.0],0.15,0.05)
-            annotate!(p[2,j],px,py,text("B",17,:black))
+            annotate!(p[1,j],px,py,text("A",17,:black))
         else
             # Add annotation
             px, py = annpos([-15.0,0.0],[0.0,4100.0],0.15,0.05)
-            annotate!(p[2,j],px,py,text("D",17,:black))
+            annotate!(p[1,j],px,py,text("C",17,:black))
         end
         # Fit pollution histogram
         hp = fit(Histogram,log10.(sts4[j]),sbins,closed=:right)
@@ -192,20 +164,24 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         # Next need to find x posistion of this half maximum point
         xpos = (rn[mind+dind]+rn[mind+dind-1])/2
         # Put in a vertical line here
-        vline!(p[2,j],[xpos],color=:red,label="")
-        savefig(p[2,j],"Output/SI/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
+        vline!(p[1,j],[xpos],color=:red,label="")
+        savefig(p[1,j],"Output/SI/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
         # Move onto plotting the simplex
-        p[3,j] = plot(grid=false,showaxis=false,xlim=(-0.325,1.325),ylim=(-0.1,1.0),title=tl)
+        p[2,j] = plot(grid=false,showaxis=false,xlim=(-0.325,1.325),ylim=(-0.1,1.0))
         # Plot the triangle over this
-        plot!(p[3,j],[0.0;0.5],[0.0;0.8660],color=:black,label=false)
-        plot!(p[3,j],[0.0;1.0],[0.0;0.0],color=:black,label=false)
-        plot!(p[3,j],[1.0;0.5],[0.0;0.8660],color=:black,label=false)
+        plot!(p[2,j],[0.0;0.5],[0.0;0.8660],color=:black,label=false)
+        plot!(p[2,j],[0.0;1.0],[0.0;0.0],color=:black,label=false)
+        plot!(p[2,j],[1.0;0.5],[0.0;0.8660],color=:black,label=false)
         # Bottom left competition
-        annotate!(p[3,j],0.0,-0.04,text("Competition",12,:black))
+        annotate!(p[2,j],0.0,-0.04,text("Competition",12,:black))
         # Bottom right thermodynamic
-        annotate!(p[3,j],1.0,-0.04,text("Facilitation",12,:black))
+        annotate!(p[2,j],1.0,-0.04,text("Facilitation",12,:black))
         # Top facilitation
-        annotate!(p[3,j],0.5,0.9,text("Thermodynamic",12,:black))
+        annotate!(p[2,j],0.5,0.9,text("Thermodynamic",12,:black))
+        # Add xlabel for reversible case
+        if syns[j] == true
+            annotate!(p[2,j],0.5,-0.19,text("Proportion of interactions",11,:black))
+        end
         # Group by interaction type
         a = ins1[:,j] # Competiton
         b = ins2[:,j] # Facilitation
@@ -213,20 +189,20 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         # Find x and y coordinates for each point
         x = 0.5*(2 .*b.+c)./(a.+b.+c)
         y = (sqrt(3)/2)*(c)./(a.+b.+c)
-        scatter!(p[3,j],x,y,label="")
+        scatter!(p[2,j],x,y,label="")
         # Choose which letter to annotate
         if syns[j] == false
             # Add annotation
-            annotate!(p[3,j],-0.15,1.0,text("A",17,:black))
+            annotate!(p[2,j],-0.15,1.0,text("B",17,:black))
         else
             # Add annotation
-            annotate!(p[3,j],-0.15,1.0,text("C",17,:black))
+            annotate!(p[2,j],-0.15,1.0,text("D",17,:black))
         end
         # Then save the figure
-        savefig(p[3,j],"Output/SI/Simplex$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
+        savefig(p[2,j],"Output/SI/Simplex$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
     end
     # Combine all graphs and save
-    pt = plot(p[3,2],p[2,2],p[3,1],p[2,1],layout=4,size=(1200,800),margin=5.0mm)
+    pt = plot(p[1,2],p[2,2],p[1,1],p[2,1],layout=4,size=(1200,800),margin=5.0mm)
     # Save as high energy supply case
     savefig(pt,"Output/SI/HighInts.png")
     return(nothing)

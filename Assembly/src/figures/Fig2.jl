@@ -3,6 +3,8 @@ using Assembly
 using Plots
 using JLD
 using StatsBase
+using KernelDensity
+using StatsPlots
 using Plots.PlotMeasures
 import PyPlot
 
@@ -171,7 +173,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     wdt = 2
     # Now move onto plotting
     pyplot()
-    theme(:wong2,dpi=300,guidefontsize=14,tickfontsize=10)
+    theme(:wong2,dpi=300,guidefontsize=16,tickfontsize=14)
     wongc = wong2_palette()
     # Plot all the populations
     p1 = plot(yaxis=:log10,ylabel="Population (# cells)")
@@ -191,7 +193,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
     # Different because log10 scale used
-    annotate!(px,py,text("A",17,:black))
+    annotate!(px,py,text("A",20,:black))
     vline!(p1,[Tms[3]],color=:red,style=:dash,lw=wdt,label="")
     savefig(p1,"Output/Fig2/pops.png")
     # Now plot concentrations
@@ -216,27 +218,19 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     end
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC],0.10,0.05)
-    annotate!(px,py,text("C",17,:black))
+    annotate!(px,py,text("C",20,:black))
     vline!(p2,[Tms[3]],color=:red,style=:dash,lw=wdt,label="")
-    # Find maximum number of substrates (convert to integer)
-    mS = convert(Int64,maximum(nmf))
-    # make appropriate bins
-    rbins = range(-0.5,stop=mS+0.5,length=mS+2)
     # Define box for inset here
     box = (1,bbox(0.65,0.25,0.325,0.275,:bottom,:left))
-    # Find initial and final histograms
-    hi = fit(Histogram,nmi,rbins,closed=:right)
-    hf = fit(Histogram,nmf,rbins,closed=:right)
-    # Find height of peaks of both distribution
-    hmaxi = maximum(hi.weights)
-    hmaxf = maximum(hf.weights)
-    # Scale distributions so that their peaks match, has to be done this way to preserve Int64 type
-    hf.weights = hf.weights*2*hmaxi
-    hi.weights = hi.weights*7*hmaxf
-    # Then plot as bar charts, with inital distribution included
-    bar!(p2,hi,color=:black,label="Initial",inset_subplots=box,subplot=2)
-    bar!(p2[2],hf,color=:red,label="Final",xlabel="Number of substrates")
-    plot!(p2[2],guidefontsize=11,legendfontsize=11,tickfontsize=7,yaxis=false,grid=false)
+    # Find kernel densities directly
+    dei = kde(nmi,boundary=(0,ps.M-1))
+    def = kde(nmf,boundary=(0,ps.M-1))
+    # Increase final density
+    def.density = 4*def.density
+    # Plot as density plots
+    plot!(p2,dei,color=:black,label="Initial",inset_subplots=box,subplot=2)
+    plot!(p2[2],def,color=:red,label="Final",xlabel="Number of substrates")
+    plot!(p2[2],guidefontsize=12,legendfontsize=12,tickfontsize=9,yaxis=false,grid=false)
     savefig(p2,"Output/Fig2/concs.png")
     # Now plot proteome fraction
     p3 = plot(ylabel="Ribosome fraction")
@@ -255,7 +249,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     end
     # Add annotation
     px, py = annpos([0.0; Tend],[maxC; minC])
-    annotate!(px,py,text("B",17,:black))
+    annotate!(px,py,text("B",20,:black))
     vline!(p3,[Tms[3]],color=:red,style=:dash,lw=wdt,label="")
     savefig(p3,"Output/Fig2/fracs.png")
     # container to store entropy production
@@ -271,7 +265,7 @@ function figure2(Rl::Int64,Ru::Int64,syn::Bool,Nr::Int64,Ns::Int64,en::String,Tf
     plot!(p4,T[inds],ep[inds],lw=wdt,label="",ylim=(-0.01,Inf))
     # Add annotation
     px, py = annpos([0.0; Tend],ep[inds])
-    annotate!(px,py,text("D",17,:black))
+    annotate!(px,py,text("D",20,:black))
     vline!(p4,[Tms[3]],color=:red,style=:dash,lw=wdt,label="")
     for i = 1:ps.M
         if mtr[i] == true && ~isnan(exT[i])

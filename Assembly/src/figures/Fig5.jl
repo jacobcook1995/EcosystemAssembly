@@ -130,7 +130,7 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         sbins = range(-15.0,stop=0.0,length=52)
         # Now plot all strengths
         p[1,j] = plot(title=tl,ylabel="Number of interactions",legend=:topleft)
-        plot!(p[1,j],xticks=(rgn,ergn))
+        plot!(p[1,j],xticks=(rgn,ergn),legendfontsize=10,tickfontsize=10,guidefontsize=12)
         # Add xlabel for reversible case
         if syns[j] == true
             plot!(p[1,j],legend=false,xlabel="Interaction strength")
@@ -166,6 +166,7 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         savefig(p[1,j],"Output/Fig5/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
         # Move onto plotting the simplex
         p[2,j] = plot(grid=false,showaxis=false,xlim=(-0.325,1.325),ylim=(-0.1,1.0),title="")
+        plot!(p[2,j],legendfontsize=10,tickfontsize=10,guidefontsize=12)
         # Plot the triangle over this
         plot!(p[2,j],[0.0;0.5],[0.0;0.8660],color=:black,label=false)
         plot!(p[2,j],[0.0;1.0],[0.0;0.0],color=:black,label=false)
@@ -178,7 +179,7 @@ function figure5(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
         annotate!(p[2,j],0.5,0.9,text("Thermodynamic",12,:black))
         # Add xlabel for reversible case
         if syns[j] == true
-            annotate!(p[2,j],0.5,-0.19,text("Proportion of interactions",11,:black))
+            annotate!(p[2,j],0.5,-0.21,text("Proportion of interactions",12,:black))
         end
         # Group by interaction type
         a = ins1[:,j] # Competiton

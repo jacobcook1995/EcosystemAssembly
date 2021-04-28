@@ -332,12 +332,12 @@ function growth_laws()
     # plot both lines on the graph
     λ1s = [0.0;λ1]
     λ2s = [0.0;λ2]
-    plot!(p1,λ1s,pr1[1]*λ1s.+pr1[2],label="",color=1)
-    plot!(p1,λ2s,pr2[1]*λ2s.+pr2[2],label="",color=2)
+    plot!(p1,λ1s,pr1[1]*λ1s.+pr1[2],label="",color=:blue)
+    plot!(p1,λ2s,pr2[1]*λ2s.+pr2[2],label="",color=:red)
     # Add arrows indicating direction of change
     l = 1e-4 # Way too large
-    quiver!(p1,[λ1[end-2]],[ϕ1[end-2]+0.03],quiver=([-l],[-pr1[1]*l]),color=1)
-    quiver!(p1,[λ2[6]],[ϕ2[6]-0.03],quiver=([l],[pr2[1]*l]),color=2)
+    quiver!(p1,[λ1[end-2]],[ϕ1[end-2]+0.03],quiver=([-l],[-pr1[1]*l]),color=:blue)
+    quiver!(p1,[λ2[6]],[ϕ2[6]-0.03],quiver=([l],[pr2[1]*l]),color=:red)
     # Position is where the annotation centres are
     pos1x = λ1[end-2] - l/2
     pos1y = ϕ1[end-2] + 0.05 - pr1[1]*l/2
@@ -350,8 +350,8 @@ function growth_laws()
     annotate!(p1,pos1x,pos1y,text("Translational inhibition",8,color=:blue,rotation=r1))
     annotate!(p1,pos2x,pos2y,text("Nutrient quality",8,color=:red,rotation=r2))
     # Plot final values
-    scatter!(p1,λ1,ϕ1,label="",color=5,markersize=5)
-    scatter!(p1,λ2,ϕ2,label="",color=6,markersize=5)
+    scatter!(p1,λ1,ϕ1,label="",color=:lightblue,markersize=5)
+    scatter!(p1,λ2,ϕ2,label="",color=:orange,markersize=5)
     # Finally save the graph
     savefig(p1,"Output/SI/GrowthLaws.png")
     return(nothing)

@@ -8,6 +8,7 @@ using Statistics
 using LaTeXStrings
 using ColorSchemes
 using Plots.PlotMeasures
+using KernelDensity
 import PyPlot
 
 # function to calculate the dissipation for an assembled ecosystem
@@ -229,18 +230,24 @@ function divloss(Rl::Int64,Ru::Int64,syn::Bool,en::String,Ni::Int64,Nr::Int64,rp
     pyplot(dpi=200)
     p = groupedbar(abT,bar_position=:stack,label="",palette=sch)
     plot!(p,xticks=(1:Tp,xs),ylabel="Relative abundance",xlabel="Time (s)")
-    plot!(p,title="Diversity with time",guidefontsize=12,legendfontsize=8,tickfontsize=9)
+    plot!(p,title="Diversity with time",guidefontsize=13,legendfontsize=8,tickfontsize=11)
     # Add annotation
-    px, py = annpos([0.25; convert(Float64,Tp)],[1.0;0.0],0.10,0.05)
+    px, py = annpos([0.25; convert(Float64,Tp)],[1.0;0.0],0.125,0.05)
     annotate!(px,py,text("A",17,:black))
+    # Make shape to plot beneath where the inset is going to go
+    sh = Shape(5.63.+[0,2.85,2.85,0],0.575.+[0,0,0.135,0.135])
+    # Then plot semi-transparently
+    plot!(p,sh,color=:white,lc=:white,linewidth=0,opacity=.35,label="")
     # Define box for subplot
     box = (1,bbox(0.63,0.7,0.31,0.25,:bottom,:left))
-    # make appropriate bins
-    rbins = range(-0.5,stop=ps.M+0.5,length=ps.M+2)
+    # Find kernel densities directly
+    dei = kde(Si,boundary=(0,ps.M))
+    def = kde(Sf,boundary=(0,ps.M))
     # Plot histogram into the subplot
-    histogram!(p,Si,color=:black,bins=rbins,label="Initial",inset_subplots=box,subplot=2)
-    histogram!(p[2],Sf,color=:red,bins=rbins,label="Final",xlabel=L"^{2}D")
-    plot!(p[2],guidefontsize=11,legendfontsize=8,tickfontsize=7,yaxis=false,grid=false,legend=:top)
+    plot!(p,dei,color=:black,label="Initial",inset_subplots=box,subplot=2)
+    plot!(p[2],def,color=:red,label="Final",xlabel=L"^{2}D")
+    # 8 and 7 before
+    plot!(p[2],guidefontsize=11,legendfontsize=9,tickfontsize=9,yaxis=false,grid=false,legend=:top)
     savefig(p,"Output/Fig3/abT.png")
     return(p)
 end
@@ -409,7 +416,7 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
         scatter!(p4,[pos[i]],[mn],yerror=[sdn],label=lb,color=c[i],ms=6,msc=c[i])
     end
     # Add annotation
-    px, py = annpos([0.5;3.5],msd,0.4,-0.01)
+    px, py = annpos([0.5;3.5],msd,0.5,-0.01)
     annotate!(px,py,text("B",17,:black))
     # Add bracket for significance plot
     plot!(p4,[2.5,3.0],[4.0,4.0],color=:black,label="")
@@ -419,13 +426,13 @@ function figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens
     scatter!(p4,[2.75],[4.2],color=:black,shape=:star6,label="")
     savefig(p4,"Output/Fig3/FuncDiv.png")
     # Combine all three plots into a single one
-    pc = plot(p4,p1,p2,p3,layout=(1,4),size=(800,400),guidefontsize=12,legendfontsize=8,tickfontsize=9)
+    pc = plot(p4,p1,p2,p3,layout=(1,4),size=(800,400),guidefontsize=13,legendfontsize=8,tickfontsize=11)
     savefig(pc,"Output/Fig3/condensed.png")
     # # Run div loss function to make extra plot
     pd = divloss(dRl,dRu,dsyn,den,Ni,runN,Nr)
     # Now want to make a plot incorperating all four previous plots
     pt = plot(pd,pc,layout=grid(1,2,widths=[0.43,0.57]),size=(1400,400),margin=5.0mm,grid=false)
-    savefig(pt,"Output/Fig3/figure3.eps")
+    savefig(pt,"Output/Fig3/figure3.png")
     return(nothing)
 end
 

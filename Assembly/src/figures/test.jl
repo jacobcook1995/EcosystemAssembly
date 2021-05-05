@@ -2,6 +2,7 @@
 using Assembly
 using Plots
 using JLD
+using LsqFit
 import PyPlot
 
 # function to calculate the dissipation for an assembled ecosystem
@@ -172,13 +173,45 @@ function ent_sp_cnt(Rl::Int64,Ru::Int64,syn::Bool,Ns::Int64,en::String,rps::Int6
         # And also save final number of substrates
         nSs[i] = count(x->x>0.0,inf_out[(ps.N+1):(ps.N+ps.M-1)])
     end
+    # Find indices of NaNs
+    nans = isnan.(pcs)
+    # Need to reduce data here to only include the relevant points
+    xdataT = pcs[.!nans]
+    ydataT = nSs[.!nans]
+    # Now calculate Pearson correlation coefficient
+    xbarT = sum(xdataT)/length(xdataT)
+    ybarT = sum(ydataT)/length(ydataT)
+    a = 0
+    b = 0
+    c = 0
+    for i = 1:length(xdataT)
+        a += (xdataT[i] - xbarT)*(ydataT[i] - ybarT)
+        b += (xdataT[i] - xbarT)^2
+        c += (ydataT[i] - ybarT)^2
+    end
+    r = a/sqrt(b*c)
+    println("Correlation between peaks and substrates: $(r)")
+    # Set model to fit the line to
+    @. model(x,p) = p[1] + p[2]*x
+    p0 = [0.0,1.0] # Initial values
+    # Fit model
+    fitT = curve_fit(model,xdataT,ydataT,p0)
+    # Extract values
+    yintT = coef(fitT)[1]
+    slopT = coef(fitT)[2]
+    println("Intercept = $(yintT)")
+    println("Slope = $(slopT)")
     # Now move onto plotting
     pyplot()
     theme(:wong2,dpi=300,guidefontsize=16,tickfontsize=14)
     # Set labels
-    p4 = plot(xlabel="Number of peaks",ylabel="Number of substrates")
+    p4 = plot(xlabel="Number of peaks",ylabel="Number of substrates",ylim=(0,25),xlim=(0,25))
     # Find and eliminate points after end time
     scatter!(p4,pcs,nSs,label="")
+    # Set range of x values to plot for
+    xran = 0.0:1.0:25.0
+    # and then plot best fit line
+    plot!(p4,xran,model(xran,[yintT,slopT]),label="")
     savefig(p4,"Output/Corentp.png")
     return(nothing)
 end

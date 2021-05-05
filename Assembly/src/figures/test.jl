@@ -46,8 +46,11 @@ function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64
 end
 
 # Function to count the number of spikes in the entropy production trace
-function ent_sp_cnt(Rl::Int64,Ru::Int64,syn::Bool,Ns::Int64,en::String,Tf::Float64,rps::Int64)
+function ent_sp_cnt(Rl::Int64,Ru::Int64,syn::Bool,Ns::Int64,en::String,rps::Int64)
     println("Compiled!")
+    # Preallocate vectors to store number of peaks and number of substrates
+    pcs = zeros(rps)
+    nSs = zeros(rps)
     # Loop over all repeats to find substrate diversification
     for i = 1:rps
         # Read in specific files needed for the dynamics
@@ -59,6 +62,10 @@ function ent_sp_cnt(Rl::Int64,Ru::Int64,syn::Bool,Ns::Int64,en::String,Tf::Float
         if ~isfile(ofile)
             error("run $(Nr) is missing an output file")
         end
+        ofile2 = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ns).jld"
+        if ~isfile(ofile)
+            error("run $(Nr) is missing a 2nd output file")
+        end
         efile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ns).jld"
         if ~isfile(efile)
             error("run $(Nr) is missing an extinct file")
@@ -68,6 +75,7 @@ function ent_sp_cnt(Rl::Int64,Ru::Int64,syn::Bool,Ns::Int64,en::String,Tf::Float
         C = load(ofile,"C")
         T = load(ofile,"T")
         out = load(ofile,"out")
+        inf_out = load(ofile2,"inf_out")
         ded = load(efile,"ded")
         # Make new vector of microbes
         ms = Array{MicrobeP,1}(undef,Ns)
@@ -89,8 +97,6 @@ function ent_sp_cnt(Rl::Int64,Ru::Int64,syn::Bool,Ns::Int64,en::String,Tf::Float
         end
         # Find final time
         Tmax = T[end]
-        # Find time to plot too
-        Tend = Tmax*Tf
         # container to store entropy production
         ep = zeros(length(T))
         # Calculate entropy production at each step
@@ -154,25 +160,27 @@ function ent_sp_cnt(Rl::Int64,Ru::Int64,syn::Bool,Ns::Int64,en::String,Tf::Float
             # Finally add 'peak' to the offset, regardless of if it's a true peak or not
             off += pind
         end
-        println("Run $(i)")
-        println(pc)
-        # Now move onto plotting
-        pyplot()
-        theme(:wong2,dpi=300,guidefontsize=16,tickfontsize=14)
-        # Set labels
-        p4 = plot(xlabel="Time (s)",ylabel="Entropy production (J/K per s)")
-        # Find and eliminate points after end time
-        inds = (T .<= Tend)
-        plot!(p4,T[inds],ep[inds],label="",ylim=(-0.01,Inf))
-        for j = 1:length(pinds)
-            if T[pinds[j]] <= Tend
-                vline!(p4,[T[pinds[j]]],color=:red,linestyle=:dot,label="")
-            end
+        # Check number of peaks is reasonable (can be wrong due to noisy trajectories)
+        if pc < 100
+            # Save number if reasonable
+            pcs[i] = pc
+
+        else
+            # Otherwise set as a NaN
+            pcs[i] = NaN
         end
-        savefig(p4,"Output/entp$(i).png")
+        # And also save final number of substrates
+        nSs[i] = count(x->x>0.0,inf_out[(ps.N+1):(ps.N+ps.M-1)])
     end
+    # Now move onto plotting
+    pyplot()
+    theme(:wong2,dpi=300,guidefontsize=16,tickfontsize=14)
+    # Set labels
+    p4 = plot(xlabel="Number of peaks",ylabel="Number of substrates")
+    # Find and eliminate points after end time
+    scatter!(p4,pcs,nSs,label="")
+    savefig(p4,"Output/Corentp.png")
     return(nothing)
 end
 
-@time ent_sp_cnt(1,5,true,250,"i",1.0,250)
-# @time ent_sp_cnt(1,5,true,250,"i",0.025,250)
+@time ent_sp_cnt(1,5,true,250,"i",250)

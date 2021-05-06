@@ -177,7 +177,7 @@ function ent_sp_cnt(Rl::Int64,Ru::Int64,syn::Bool,Ns::Int64,en::String,rps::Int6
     nans = isnan.(pcs)
     # Need to reduce data here to only include the relevant points
     xdataT = pcs[.!nans]
-    ydataT = nSs[.!nans]
+    ydataT = nSs[.!nans] .- 1
     # Now calculate Pearson correlation coefficient
     xbarT = sum(xdataT)/length(xdataT)
     ybarT = sum(ydataT)/length(ydataT)
@@ -205,7 +205,7 @@ function ent_sp_cnt(Rl::Int64,Ru::Int64,syn::Bool,Ns::Int64,en::String,rps::Int6
     pyplot()
     theme(:wong2,dpi=300,guidefontsize=16,tickfontsize=14)
     # Set labels
-    p4 = plot(xlabel="Number of peaks",ylabel="Number of substrates",ylim=(0,25),xlim=(0,25))
+    p4 = plot(xlabel="Number of entropy production peaks",ylabel="Number of new metabolites",ylim=(0,25),xlim=(0,25))
     # Find and eliminate points after end time
     scatter!(p4,pcs,nSs,label="")
     # Set range of x values to plot for

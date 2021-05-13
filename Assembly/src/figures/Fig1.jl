@@ -82,9 +82,9 @@ function plt_trdff(Rl::Int64,Ru::Int64,syn::Bool,runN::Int64,en::String,Ni::Int6
     uns = L"10^{5}\;s^{-1}"
     # Now calculate and plot syntrophy stuff
     plot(ηs,as3/1e5,xlabel="ATP per reaction event",ylabel="ATP production rate ($(uns))",labels=lbs,lw=2.5)
-    plot!(legendfontsize=14,guidefontsize=16,tickfontsize=10,legend=:bottomleft,xlims=(3,Inf))
+    plot!(legendfontsize=14,guidefontsize=16,tickfontsize=10,legend=:bottomleft,xlims=(4.0,6.0))
     # Add arrow between the two lines
-    quiver!([5.56],[3e5/1e5],quiver=([-0.145],[0.0]),color=:red,lw=2.5)
+    quiver!([5.56],[3e5/1e5],quiver=([-0.145],[0.0]),color=:red,lw=2.5,arrow=1.25)
     savefig("Output/Fig1/SynTrdOff.png")
     # Find indicies of surviving strains
     is = zeros(Int64,ps.N)

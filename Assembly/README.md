@@ -1,5 +1,7 @@
 # Assembly Package
 Made a package to contain code used for modelling microbial ecosystem assembly with the inclusion of end product inhibition.
+## Summary of the scripts in this repository
+It is important to note that many of this scripts are partly and/or fully redundant and are being retained for long term storage.
 The structure of the module is provided in Assembly.jl.
 I have made a script called MyPlots.jl to store functions to assist plotting.\
 The simulate folder contains scripts that run simulations and return results.
@@ -27,3 +29,7 @@ The script my_vis.py consists of code using these functions to visualise network
 At present all images are being plotted into an Output folder.
 All input data is stored in Data.
 Parameter sets are saved to the Paras folder.\
+## Procedure for generating the data for the paper
+The plots used in the manuscript were generated using the scripts in the folder figures.
+All simulations are carried out using the form_comm.jl file in the analysis file.
+This file generates a parameter set using the make_full.jl and fullParameters.jl scripts (in the parameters folder).

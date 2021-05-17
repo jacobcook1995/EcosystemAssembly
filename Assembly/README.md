@@ -7,7 +7,8 @@ Simulations are then run via the full.jl script from the simulate folder.
 The generated parameter sets and the output data is then saved in the Paras and Output folders, respectively.
 The script removal.jl (analysis folder) is then used to find if simulated communities have reached steady-state, and if they have not simulates the dynamics until they have reached steady state.
 This script makes use of function from the script analytic.jl (simulate folder).
-The plots used in the manuscript were generated using the scripts in the folder figures.
+The interaction strengths (for the final steady state communities) are then found using the interactions.jl script (analysis folder), these are also saved to the Output folder.
+The plots are then generated using the scripts in the folder figures.
 ## Full summary of the scripts in this repository
 It is important to note that many of this scripts are partly and/or fully redundant and are being retained for long term storage.\
 The structure of the module is provided in Assembly.jl.

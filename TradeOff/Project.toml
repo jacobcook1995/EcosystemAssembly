@@ -1,0 +1,4 @@
+name = "TradeOff"
+uuid = "b9684059-d1d8-46a7-9d72-63aa9668c0cb"
+authors = ["Jacob Cook <jc2017@ic.ac.uk>"]
+version = "0.1.0"

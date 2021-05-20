@@ -1,53 +1,34 @@
 # A script to assemble and save communities
 using TradeOff
 using JLD
+using Glob
 
 # WILL PROBABLY NEED TO CHANGE SIGNIFICANTLY WHEN I CHANGE THE ASSEMBLY PROCEDURE
 
 # Function to assemble specfic communities
 function assemble()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 5
+    if length(ARGS) < 1
         error("Insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
-    Rl = 0
-    Ru = 0
-    N = 0
     rps = 0
-    syn = false
     # Check that all arguments can be converted to integers
     try
-        Rl = parse(Int64,ARGS[1])
-        Ru = parse(Int64,ARGS[2])
-        N = parse(Int64,ARGS[3])
-        rps = parse(Int64,ARGS[4])
-        syn = parse(Bool,ARGS[5])
+        rps = parse(Int64,ARGS[1])
     catch e
-            error("need to provide 4 integers and a bool")
+            error("need to provide 1 integer")
     end
     # Starting run assumed to be 1
     Rs = 1
     # Check if run to start from has been provided
-    if length(ARGS) > 5
+    if length(ARGS) > 1
         # Check this argument is an integer
         try
-            Rs = parse(Int64,ARGS[6])
+            Rs = parse(Int64,ARGS[2])
         catch e
             error("intial run number must be integer")
         end
-    end
-    # Check that simulation type is valid
-    if Rl < 1
-        error("lower bound on the number of reactions must be greater than 1")
-    end
-    # Check that simulation type is valid
-    if Ru < Rl
-        error("upper bound on the number of reactions can't be smaller than the lower")
-    end
-    # Check that number of strains is greater than 0
-    if N < 1
-        error("number of strains should be greater than zero")
     end
     # Check that number of strains is greater than 0
     if rps < 1
@@ -56,41 +37,63 @@ function assemble()
     if Rs > rps
         error("starting run can't be higher than final run")
     end
-    println("Reaction range = $(Rl)-$(Ru)")
-    println("Syntrophy on = $(syn)")
+    # Now read in hard coded simulation parameters
+    Np, Rls, Rus, Nt, M = sim_paras()
     # Now start actual script
     println("Compiled and input read in!")
     flush(stdout)
-    # Assume that half saturation occurs at a quarter κ/δ
-    KS = (1/4)*5.5e-3
-    # Arbitary number that seems to give decent survival
-    kc = 10.0
-    # The reversibility factor remains the same as previously
-    kr = 10.0
-    # Assume microbes have 3 reactions each
-    # Case of 8 metabolites
-    M = 25
-    # Use formula to find how many reactions this implies
+    # Use formula to find how many reactions number of metabolites implies
     O = 2*M - 3
+    # Preallocate container for filenames
+    pls = fill("",Np)
+    # Loop over number of required pools
+    for i = 1:Np
+        # Find all pools satisfying the condition
+        flnms = glob("Pools/ID=*N=$(Nt)M=$(M)Reacs$(Rls[i])-$(Rus[i]).jld")
+        # Loop over valid filenames
+        for j = 1:length(flnms)
+            # Save first that hasn't already been used
+            if flnms[j] ∉ pls
+                pls[i] = flnms[j]
+            end
+        end
+    end
+    # Save the reaction set for the first file as a point of comparison
+    rs = load(pls[1],"reacs")
+    # Check that all pools match this
+    for i = 2:Np
+        rst = load(pls[i],"reacs")
+        if rst ≠ rs
+            error("pool $i uses different reaction set")
+        end
+    end
+    # NEED TO COMPLETELY RETHINK THE SOMETHING DYNAMICS HERE
+    # FUNDAMENTALLY NEED TO FIGURE OUT HOW CALLBACKS WORK BEFORE I CAN PROCEED HERE
     # Set time long enough for dynamics to equilbrate
     Tmax = 1e8
+    # THESE PROBABLY CAN GO BUT I NEED TO FIGURE OUT WHAT TO REPLACE THEM WITH
     # Initial ribosome fraction is taken from my ATP fits
     ϕR0 = 0.128
     # Fairly arbitary inital conditions
-    pop = ones(N)
-    conc = zeros(M)
-    as = 1e5*ones(N)
-    ϕs = ϕR0*ones(N)
+    pop = 1.0
+    conc = 0.0
+    as = 1e5
+    ϕs = ϕR0
     # Now loop over the number of repeats
     for i = Rs:rps
         # Print that the new run has been started
         println("Run $i started!")
         flush(stdout)
         # Make parameter set
-        ps = initialise(N,M,O,Rl,Ru,kc,KS,kr,syn)
+        ps = initialise(M,O)
+        # Check that reaction set is identical
+        if ps.reacs ≠ rs
+            error("simulation reaction set does not match pool reaction set")
+        end
+        return(nothing)
         # Before running the parameter sets should be saved so that if they crash
         # they can be rerun and hopefully track down where they went wrong
-        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(N).jld","w") do file
+        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file
             write(file,"ps",ps)
         end
         # Find starting time
@@ -133,15 +136,15 @@ function assemble()
             end
         end
         # Save extinct strains
-        jldopen("Output/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(N).jld","w") do file
+        jldopen("Output/ExtinctReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file
             write(file,"ded",ded)
         end
         # the reduced parameter sets
-        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(N).jld","w") do file
+        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file
             write(file,"ps",ps)
         end
         # and the full output
-        jldopen("Output/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(N).jld","w") do file
+        jldopen("Output/OutputReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file
             # Save final output
             write(file,"out",out)
             # # Save time data and dynamics data
@@ -153,6 +156,17 @@ function assemble()
         flush(stdout)
     end
     return(nothing)
+end
+
+# Hard code simulation parameters into this function
+function sim_paras()
+    # Set the hardcoded variables here
+    Np = 1
+    Rls = [1]
+    Rus = [5]
+    Nt = 1000
+    M = 25
+    return(Np,Rls,Rus,Nt,M)
 end
 
 @time assemble()

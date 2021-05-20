@@ -27,6 +27,47 @@ function fix_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
     return(RP,ΔG)
 end
 
+# function that chooses uniformly mixed values for η
+function choose_η_mix(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64,syn::Bool)
+    # Preallocate memory to store η's
+    η = zeros(length(Reacs))
+    # Set a constant lower bound
+    ηl = 1/3
+    # Placeholder value
+    mratio = 0
+    # Choose actual value based on whether we want syntrophy on or not
+    if syn == true
+        # Set minimum equilibrium product to substrate ratio
+        mratio = 1e-2
+    else
+        mratio = 1e5
+    end
+    # Loop over all reactions
+    for i = 1:length(η)
+        # Identify which reaction we are considering
+        I = Reacs[i]
+        # Find corresponding Gibbs free energy change
+        dG = reacs[I].ΔG0
+        # And then use to determine an upper bound on η
+        ηh = -(dG + Rgas*T*log(mratio))/(ΔGATP)
+        η[i] = (ηh-ηl)*rand() + ηl
+    end
+    return(η)
+end
+
+# function to take in average kinetic parameters and return randomised vectors of them
+function kin_rand(kc::Float64,KS::Float64,kr::Float64,R::Int64)
+    # Make probability distribution
+    d = Normal()
+    # Generate array of random numbers
+    rs = rand(d,R,3)
+    # Then use to generate randomly varibles that have same probability to be half as double average
+    kcs = kc*(2.0.^rs[:,1])
+    KSs = KS*(2.0.^rs[:,2])
+    krs = kr*(2.0.^rs[:,3])
+    return(kcs,KSs,krs)
+end
+
 # HUGE AMOUNT OF STUFF HARDCODED IN HERE AT THE MOMENT, THIS WILL HAVE TO CHANGE
 # Function to generate a new pool
 function new_pool(Nt::Int64,M::Int64,Rl::Int64,Ru::Int64)

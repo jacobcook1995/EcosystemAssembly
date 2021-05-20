@@ -133,43 +133,36 @@ function make_Microbe(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float6
 end
 
 """
-    TOParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},
-    reacs::Vector{Reaction},mics::Vector{Microbe})
+    TOParameters(M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},
+    reacs::Vector{Reaction})
 Type containing the parameters for a simuation.
 # Arguments
-- `N::Int64`: Number of Consumers
 - `M::Int64`: Number of Resources
 - `O::Int64`: Number of Reactions
 - `T::Float64`: Temperature of system
 - `κ::Vector{Float64}`: Vector of external resource supply rates
 - `δ::Vector{Float64}`: Vector of resource decay rates
 - `reacs::Vector{Reaction}`: Vector of reactions
-- `mics::Vector{Microbe}`: Vector of microbial strains
 """
 struct TOParameters
-    N::Int64;
     M::Int64;
     O::Int64;
     T::Float64;
     κ::Vector{Float64}
     δ::Vector{Float64}
     reacs::Vector{Reaction}
-    mics::Vector{Microbe}
 end
 
 """
-    make_TOParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},
-    reacs::Vector{Reaction},mics::Vector{Microbe})
+    make_TOParameters(M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},reacs::Vector{Reaction})
 Helper function used internally. Takes values for parameters and returns a `TOParameters`object.
 Also does checks internally to make sure the values are correct.
 """
-function make_TOParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},
-                                reacs::Vector{Reaction},mics::Vector{Microbe})
+function make_TOParameters(M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::Vector{Float64},reacs::Vector{Reaction})
     # Use asserts to ensure that arrays are correct sizes
     @assert length(κ) == M "Vector of external resource supplies (κ) is the wrong length"
     @assert length(δ) == M "Vector of decay rates (δ) is the wrong length"
     @assert length(reacs) == O "Vector of reactions is the wrong length"
-    @assert length(mics) == N "Vector of microbes is the wrong length"
 
     # Use asserts to avoid unphysical values
     @assert all(δ .>= 0) "One or more decay rates in δ are negative"
@@ -184,13 +177,10 @@ function make_TOParameters(N::Int64,M::Int64,O::Int64,T::Float64,κ::Vector{Floa
         @assert all(((reacs.↦:Rct)[i] .!= (reacs.↦:Rct)[1:end .!= i]) .| ((reacs.↦:Prd)[i] .!= (reacs.↦:Prd)[1:end .!= i])) "Reaction $i is repeated"
     end
 
-    # Check that the reactions given in the vector of microbes exist in the vector of reactions
-    for i = 1:N
-        @assert all((mics.↦:Reacs)[i] .<= O) "Microbe $i assigned to reaction that doesn't exist"
-    end
-    return(TOParameters(N,M,O,T,κ,δ,reacs,mics))
+    return(TOParameters(M,O,T,κ,δ,reacs))
 end
 
+# DEPENDING HOW I DO CALL BACKS THIS MAY OR MAY NOT BE RELEVANT STILL
 """
     extinction(ps::TOParameters,ext::BitArray{1})
 Helper function used internally. Recreate a TOParameters with extinct strains removed.

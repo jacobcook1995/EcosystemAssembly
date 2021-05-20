@@ -79,25 +79,28 @@ function assemble()
     conc = 0.0
     as = 1e5
     ϕs = ϕR0
+    # Make parameter set
+    ps = initialise(M,O)
+    # Check that reaction set is identical to sets the pool was generated with
+    if ps.reacs ≠ rs
+        error("simulation reaction set does not match pool reaction set")
+    end
+    # Check if directory exists and if not make it
+    if ~isdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Species")
+        mkdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Species")
+    end
+    # Save this parameter set
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras.jld","w") do file
+        write(file,"ps",ps)
+    end
     # Now loop over the number of repeats
     for i = Rs:rps
         # Print that the new run has been started
         println("Run $i started!")
         flush(stdout)
-        # Make parameter set
-        ps = initialise(M,O)
-        # Check that reaction set is identical
-        if ps.reacs ≠ rs
-            error("simulation reaction set does not match pool reaction set")
-        end
-        return(nothing)
-        # Before running the parameter sets should be saved so that if they crash
-        # they can be rerun and hopefully track down where they went wrong
-        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file
-            write(file,"ps",ps)
-        end
         # Find starting time
         ti = time()
+        return(nothing)
         # Then run the simulation
         C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
         # And then print time elapsed
@@ -138,10 +141,6 @@ function assemble()
         # Save extinct strains
         jldopen("Output/ExtinctReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file
             write(file,"ded",ded)
-        end
-        # the reduced parameter sets
-        jldopen("Paras/ParasReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file
-            write(file,"ps",ps)
         end
         # and the full output
         jldopen("Output/OutputReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file

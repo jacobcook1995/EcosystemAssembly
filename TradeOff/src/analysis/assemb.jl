@@ -104,7 +104,7 @@ function assemble()
         # Establish which microbes are extinct
         ext = (C[end,1:N] .== 0.0)
         # Preallocate vector to store extinct microbes
-        ded = Array{MicrobeP,1}(undef,sum(ext))
+        ded = Array{Microbe,1}(undef,sum(ext))
         # Loop over and store microbes in the vector
         k = 0
         for j = 1:length(ext)

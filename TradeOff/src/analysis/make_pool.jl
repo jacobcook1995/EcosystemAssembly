@@ -1,0 +1,3 @@
+using TradeOff
+# EXTEND THIS SCRIPT TO HAVE PROPER ERROR CHECKING ETC
+@time new_pool(1000,25,1,5)

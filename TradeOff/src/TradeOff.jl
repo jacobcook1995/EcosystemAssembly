@@ -5,9 +5,12 @@ include("parameters/paras.jl") # Parameters for complete model
 
 using Distributions
 using DifferentialEquations
+using JLD
+using Random
 
 # Include scripts that contain other functions
 include("parameters/make_paras.jl") # Function to make parameters for full model
+include("parameters/gen_pool.jl") # Function to generate species pools
 include("simulate/sim.jl") # Include simulation code for full model
 
 # export global constants

@@ -55,31 +55,6 @@ function choose_η_mix(reacs::Array{Reaction,1},Reacs::Array{Int64,1},T::Float64
     return(η)
 end
 
-# function to generate fix set of reaction for our model. Each metabolite can be broken
-# down into metabolites 1 or 2 steps down. The steps between metabolites are fixed.
-function fix_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
-    @assert O == 2*M - 3 "Miscalulated the number of reactions expected"
-    # preallocate output
-    RP = zeros(Int64,O,2)
-    ΔG = zeros(O)
-    # find ΔG for a single step
-    dG = -μrange/(M-1)
-    # loop over all reactions
-    for i = 1:O
-        # find odd numbers
-        if i % 2 != 0
-            RP[i,1] = ceil(i/2)
-            RP[i,2] = ceil(i/2) + 1
-            ΔG[i] = dG
-        else
-            RP[i,1] = ceil(i/2)
-            RP[i,2] = ceil(i/2) + 2
-            ΔG[i] = 2*dG
-        end
-    end
-    return(RP,ΔG)
-end
-
 # function to take in average kinetic parameters and return randomised vectors of them
 function kin_rand(kc::Float64,KS::Float64,kr::Float64,R::Int64)
     # Make probability distribution
@@ -93,6 +68,7 @@ function kin_rand(kc::Float64,KS::Float64,kr::Float64,R::Int64)
     return(kcs,KSs,krs)
 end
 
+# THIS HAS TO CHANGE TO DRAWING PARAMETERS FROM THE POOLS
 # function to generate parameter set for the model with inhibition
 function initialise(N::Int64,M::Int64,O::Int64,Rl::Int64,Ru::Int64,kc::Float64,KS::Float64,kr::Float64,syn::Bool)
     # Assume that temperature T is constant at 20°C

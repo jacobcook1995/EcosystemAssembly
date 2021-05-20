@@ -65,6 +65,8 @@ Type containing the parameters for a particular microbial strain, this now inclu
 - `kr::Vector{Float64}`: reversibility factors
 - `n::Vector{Int64}`: Array of number of amino acids per protein type, [r,p,h]
 - `ϕP::Vector{Float64}`: Vector of metabolic fractions
+- `ID::Int64`: Identifer of microbe in the pool
+- `PID::String`: Identifier of the pool
 """
 struct Microbe
     MC::Int64;
@@ -84,19 +86,21 @@ struct Microbe
     kr::Vector{Float64}
     n::Vector{Int64}
     ϕP::Vector{Float64}
+    ID::Int64
+    PID::String
 end
 
 """
     make_Microbe(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,ϕH::Float64,KΩ::Float64,
     fd::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},
-    kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64})
+    kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
 Helper function used internally. Takes values for parameters and returns a `Microbe` object.
 Also does checks internally to make sure the values are correct.
 """
 function make_Microbe(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,
                         ϕH::Float64,KΩ::Float64,fd::Float64,R::Int64,Reacs::Vector{Int64},
                         η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},kr::Vector{Float64},
-                        n::Vector{Int64},ϕP::Vector{Float64})
+                        n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
     # Check that physical parameters have been provided
     @assert R > 0 "Number of reactions must be postive"
     @assert MC > 0 "Cell mass must be positive"
@@ -125,7 +129,7 @@ function make_Microbe(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float6
     @assert all(n .> 0) "All proteins must have positive mass"
     @assert all(ϕP .>= 0.0) "All metabolic fractions must be non-negative"
     @assert sum(ϕP) ≈ 1.0 "Metabolic fractions should sum to 1"
-    return(Microbe(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kc,KS,kr,n,ϕP))
+    return(Microbe(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kc,KS,kr,n,ϕP,ID,PID))
 end
 
 """

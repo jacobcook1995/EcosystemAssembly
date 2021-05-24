@@ -175,8 +175,10 @@ function full_simulate(ps::TOParameters,Tmax::Float64,pop::Float64,conc::Float64
         r = rand(1:length(mpl))
         ms[i] = mpl[r]
     end
+    # Set a value for the maximum number of strains that can be simultaed
+    max_N = 300
     # Preallocate memory
-    rate = zeros(length(ms),ps.O)
+    rate = Array{Float64,2}(undef,max_N,ps.O)
     # Now substitute preallocated memory in
     dyns!(dx,x,ms,t) = full_dynamics!(dx,x,ms,ps,rate,t)
     # Find time span for this step

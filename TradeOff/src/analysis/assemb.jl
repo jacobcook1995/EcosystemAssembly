@@ -71,7 +71,6 @@ function assemble()
     # FUNDAMENTALLY NEED TO FIGURE OUT HOW CALLBACKS WORK BEFORE I CAN PROCEED HERE
     # Set time long enough for dynamics to equilbrate
     Tmax = 1e8
-    # THESE PROBABLY CAN GO BUT I NEED TO FIGURE OUT WHAT TO REPLACE THEM WITH
     # Initial ribosome fraction is taken from ATP fits I did a while ago
     ϕR0 = 0.128
     # Fairly arbitary inital conditions
@@ -83,6 +82,8 @@ function assemble()
     Ni = 10
     # Mean immigration time assumed to be 1*10^5 seconds
     mT = 1e5
+    # Small number of immigration events for inital testing
+    ims = 5
     # Make parameter set
     ps = initialise(M,O)
     # Check that reaction set is identical to sets the pool was generated with
@@ -107,7 +108,7 @@ function assemble()
         # Find starting time
         ti = time()
         # Then run the simulation
-        C, T = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT)
+        C, T = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims)
         # And then print time elapsed
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")

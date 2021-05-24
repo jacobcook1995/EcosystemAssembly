@@ -6,9 +6,9 @@
  # Overloadable version of getfields
  ↦(s, f) = getfield(s, f)
 
-export Reaction, make_Reaction
+export Reaction, make_Reaction, Microbe, make_Microbe
 
-export Microbe, make_Microbe, TOParameters, make_TOParameters, extinction
+export TOParameters, make_TOParameters, MicData, make_MicData
 
 # PRECISE PARAMETERS USED IS GOING TO HAVE TO CHANGE
 
@@ -180,31 +180,33 @@ function make_TOParameters(M::Int64,O::Int64,T::Float64,κ::Vector{Float64},δ::
     return(TOParameters(M,O,T,κ,δ,reacs))
 end
 
-# DEPENDING HOW I DO CALL BACKS THIS MAY OR MAY NOT BE RELEVANT STILL
 """
-    extinction(ps::TOParameters,ext::BitArray{1})
-Helper function used internally. Recreate a TOParameters with extinct strains removed.
+    MicData(MID::Int64,PID::String,ImT::Float64,ExT::Float64)
+Type containing the parameters for a simuation.
+# Arguments
+- `MID::Int64`: Microbe ID
+- `PID::String`: Pool ID
+- `ImT::Float64`: Time of immigration
+- `ExT::Float64`: Time of extinction
 """
-function extinction(ps::TOParameters,ext::BitArray{1})
-    # The majority of the parameter set is unaffected by the extinctions
-    M = ps.M
-    O = ps.O
-    T = ps.T
-    κ = ps.κ
-    δ = ps.δ
-    reacs = ps.reacs
-    # Remove extinct strains from the count
-    N = ps.N - sum(ext)
-    # Preallocate array of new microbes
-    mics = Array{Microbe,1}(undef,N)
-    # Now loop over microbes to retain the surviving strains
-    k = 0
-    for i = 1:length(ext)
-        # Check if not marked as extinct
-        if ext[i] != 1
-            k += 1
-            mics[k] = ps.mics[i]
-        end
-    end
-    return(make_TOParameters(N,M,O,T,κ,δ,reacs,mics))
+struct MicData
+    MID::Int64;
+    PID::String;
+    ImT::Float64;
+    ExT::Float64;
+end
+
+"""
+    make_MicData(MID::Int64,PID::String,ImT::Float64,ExT::Float64)
+Helper function used internally. Takes values for parameters and returns a `MicData`object.
+Also does checks internally to make sure the values are correct.
+"""
+function make_MicData(MID::Int64,PID::String,ImT::Float64,ExT::Float64)
+    # Use asserts to ensure that arrays are correct sizes
+    @assert MID > 0 "microbe IDs must be positive"
+    @assert ImT >= 0.0 "negative immigration times are not allowed"
+    @assert isnan(ExT) || ExT >= ImT "strain cannot go extinct before it arrives"
+    @assert length(PID) == 8 "pool ID is supposed to be an 8 character string"
+
+    return(MicData(MID,PID,ImT,ExT))
 end

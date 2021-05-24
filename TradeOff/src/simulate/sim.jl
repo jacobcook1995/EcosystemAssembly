@@ -98,7 +98,7 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Micro
     # Now want to use the rate matrix in the consumer dynamics
     for i = 1:length(ms)
         # Check if strain is effectively extinct
-        if x[i] <= 1e-10
+        if x[i] <= 1e-5
             # If so x should be set to zero and should not change from that
             dx[i] = 0.0
             x[i] = 0.0
@@ -165,7 +165,11 @@ end
 # ps is parameter set, Tmax is the time to integrate to, pop, conc, as and Ï•s are the intial conditions
 # mpl is a pool of microbes
 function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï•s::Float64,
-                        mpl::Array{Microbe,1},Ni::Int64,mT::Float64)
+                        mpl::Array{Microbe,1},Ni::Int64,mT::Float64,ims::Int64)
+    # Preallocate immigration times
+    its = zeros(ims)
+    # Make container to store microbial data
+    micd = Array{MicData}(undef,Ni)
     # Set a value for the maximum number of strains that can be simultaed
     max_N = 300
     # Preallocate memory
@@ -192,6 +196,10 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
             full = true
         end
     end
+    # Store generated microbes as MicData
+    for i = 1:Ni
+        micd[i] = make_MicData(ms[i].ID,ms[i].PID,0.0,NaN)
+    end
     #Â Make initial values
     pops = pop*ones(length(ms))
     concs = conc*ones(ps.M)
@@ -202,11 +210,21 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
     td = Exponential(mT)
     # Choose a random time for the initial step
     ti = rand(td)
+    # Save this as the first immigration time
+    its[1] = ti
     # Define intial step
     tspan = (0,ti)
-    # Then setup and solve the problem
+    # Then setup and solve the inital problem
     prob = ODEProblem(dyns!,x0,tspan,ms)
     # Still generates problems, not sure if I have to change a solver option or what
     sol = DifferentialEquations.solve(prob)
-    return(sol',sol.t)
+    # Find indices of surviving strains
+    inds = sol'[end,1:Ni] .> 1e-5
+    # WORK OUT WHAT DATA I NEED TO STORE!
+    # Need population dynamics for all strains
+    # Along with immigration time points
+    # Structure storing microbe ID's, immigration times, extinction times
+    println(micd)
+    println(its)
+    return(micd,its)
 end

@@ -72,13 +72,15 @@ function assemble()
     # Set time long enough for dynamics to equilbrate
     Tmax = 1e8
     # THESE PROBABLY CAN GO BUT I NEED TO FIGURE OUT WHAT TO REPLACE THEM WITH
-    # Initial ribosome fraction is taken from my ATP fits
+    # Initial ribosome fraction is taken from ATP fits I did a while ago
     ϕR0 = 0.128
     # Fairly arbitary inital conditions
-    pop = 1.0
+    pop = 1000.0
     conc = 0.0
     as = 1e5
     ϕs = ϕR0
+    # Starting with 10 strains for now
+    Ni = 10
     # Make parameter set
     ps = initialise(M,O)
     # Check that reaction set is identical to sets the pool was generated with
@@ -103,7 +105,7 @@ function assemble()
         # Find starting time
         ti = time()
         # Then run the simulation
-        C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs,mpl)
+        C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs,mpl,Ni)
         # And then print time elapsed
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")

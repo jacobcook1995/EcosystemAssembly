@@ -166,29 +166,41 @@ end
 # ps is parameter set, Tmax is the time to integrate to, pop, conc, as and ϕs are the intial conditions
 # mpl is a pool of microbes
 function full_simulate(ps::TOParameters,Tmax::Float64,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,
-                        mpl::Array{Microbe,1})
-    # THIS PROCEDURE IS NECESSARY FOR TESTING, NEEDS TO BE CHANGED LATER, PARTICUALRLY TO AVOID DUPLICATES
-    # Preallocate inital vector of microbes
-    ms = Array{Microbe,1}(undef,10)
-    # Randomly choose them from the pool
-    for i = 1:length(ms)
-        r = rand(1:length(mpl))
-        ms[i] = mpl[r]
-    end
+                        mpl::Array{Microbe,1},Ni::Int64)
     # Set a value for the maximum number of strains that can be simultaed
     max_N = 300
     # Preallocate memory
     rate = Array{Float64,2}(undef,max_N,ps.O)
     # Now substitute preallocated memory in
     dyns!(dx,x,ms,t) = full_dynamics!(dx,x,ms,ps,rate,t)
-    # Find time span for this step
-    tspan = (0,Tmax)
-    # Make
+    # Preallocate inital vector of microbes
+    ms = Array{Microbe,1}(undef,Ni)
+    # Bool to store if full vector of microbes has been found
+    full = false
+    i = 1
+    # Randomly choose them from the pool
+    while full == false
+        r = rand(1:length(mpl))
+        # Check that strain hasn't already been added
+        if mpl[r] ∉ ms[1:i-1]
+            # And if not add it
+            ms[i] = mpl[r]
+            # Increment counter
+            i += 1
+        end
+        # End while loop when all the microbes have been filled
+        if i == length(ms) + 1
+            full = true
+        end
+    end
+    # Make initial values
     pops = pop*ones(length(ms))
     concs = conc*ones(ps.M)
     ass = as*ones(length(ms))
     ϕss = ϕs*ones(length(ms))
     x0 = [pops;concs;ass;ϕss]
+    # Find time span for this step
+    tspan = (0,Tmax)
     # Then setup and solve the problem
     prob = ODEProblem(dyns!,x0,tspan,ms)
     # Still generates problems, not sure if I have to change a solver option or what

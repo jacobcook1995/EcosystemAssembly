@@ -161,12 +161,11 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Micro
     return(dx)
 end
 
-# NEED TO ADAPT THIS TO USE CALLBACKS + NEED TO ADAPT THIS TO PROPERLY USE NEW ps FUNCTION
 # Simulation code to run one instatnce of the simulation with a user defined starting condition
 # ps is parameter set, Tmax is the time to integrate to, pop, conc, as and ϕs are the intial conditions
 # mpl is a pool of microbes
-function full_simulate(ps::TOParameters,Tmax::Float64,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,
-                        mpl::Array{Microbe,1},Ni::Int64)
+function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,
+                        mpl::Array{Microbe,1},Ni::Int64,mT::Float64)
     # Set a value for the maximum number of strains that can be simultaed
     max_N = 300
     # Preallocate memory
@@ -199,8 +198,12 @@ function full_simulate(ps::TOParameters,Tmax::Float64,pop::Float64,conc::Float64
     ass = as*ones(length(ms))
     ϕss = ϕs*ones(length(ms))
     x0 = [pops;concs;ass;ϕss]
-    # Find time span for this step
-    tspan = (0,Tmax)
+    # Make distribution to sample random immigration times from
+    td = Exponential(mT)
+    # Choose a random time for the initial step
+    ti = rand(td)
+    # Define intial step
+    tspan = (0,ti)
     # Then setup and solve the problem
     prob = ODEProblem(dyns!,x0,tspan,ms)
     # Still generates problems, not sure if I have to change a solver option or what

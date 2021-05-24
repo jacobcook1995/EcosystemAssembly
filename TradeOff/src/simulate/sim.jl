@@ -76,75 +76,75 @@ function ϕ_R(a::Float64,ps::Microbe)
 end
 
 # function to implement the consumer resource dynamics
-function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::TOParameters,rate::Array{Float64,2},t::Float64)
+function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Microbe,1},ps::TOParameters,
+                        rate::Array{Float64,2},t::Float64)
     # loop over the reactions to find reaction rate for each reaction for each strain
     for j = 1:ps.O
         # Find substrate and product for this reaction
-        for i = 1:ps.N
+        for i = 1:length(ms)
             # Check if microbe i performs reaction j
-            if j ∈ ps.mics[i].Reacs
+            if j ∈ ms[i].Reacs
                 # Find index of this reaction in microbe
-                k = findfirst(x->x==j,ps.mics[i].Reacs)
+                k = findfirst(x->x==j,ms[i].Reacs)
                 # Find amount of enzyme E
-                E = Eα(x[2*ps.N+ps.M+i],ps.mics[i],k)
+                E = Eα(x[2*length(ms)+ps.M+i],ms[i],k)
                 # Then finally calculate reaction rate
-                rate[i,j] = qs(x[ps.N+ps.reacs[j].Rct],x[ps.N+ps.reacs[j].Prd],E,k,ps.mics[i],ps.T,ps.reacs[ps.mics[i].Reacs[k]])
+                rate[i,j] = qs(x[length(ms)+ps.reacs[j].Rct],x[length(ms)+ps.reacs[j].Prd],E,k,ms[i],ps.T,ps.reacs[ms[i].Reacs[k]])
             else
                 rate[i,j] = 0.0
             end
         end
     end
     # Now want to use the rate matrix in the consumer dynamics
-    for i = 1:ps.N
+    for i = 1:length(ms)
         # Check if strain is effectively extinct
         if x[i] <= 1e-10
             # If so x should be set to zero and should not change from that
             dx[i] = 0.0
             x[i] = 0.0
             # In this case the energy concentration should also be fixed to zero
-            dx[ps.N+ps.M+i] = 0.0
-            x[ps.N+ps.M+i] = 0.0
+            dx[length(ms)+ps.M+i] = 0.0
+            x[length(ms)+ps.M+i] = 0.0
             # Corresponding proteome fraction also shouldn't shift
-            dx[2*ps.N+ps.M+i] = 0.0
+            dx[2*length(ms)+ps.M+i] = 0.0
         else
             # find growth rate for strains that aren't extinct
-            λ = λs(x[ps.N+ps.M+i],x[2*ps.N+ps.M+i],ps.mics[i])
+            λ = λs(x[length(ms)+ps.M+i],x[2*length(ms)+ps.M+i],ms[i])
             # (growth rate - death rate)*population
-            dx[i] = (λ - ps.mics[i].d)*x[i]
+            dx[i] = (λ - ms[i].d)*x[i]
             # Now find optimal ribosome fraction
-            ϕR = ϕ_R(x[ps.N+ps.M+i],ps.mics[i])
+            ϕR = ϕ_R(x[length(ms)+ps.M+i],ms[i])
             # This introduces a time delay
-            τ = ps.mics[i].fd/λ
+            τ = ms[i].fd/λ
             # Then update actual ribosome fraction
-            dx[2*ps.N+ps.M+i] = (ϕR - x[2*ps.N+ps.M+i])/τ
+            dx[2*length(ms)+ps.M+i] = (ϕR - x[2*length(ms)+ps.M+i])/τ
             # Energy intake is zero
             J = 0
             # Loop over all reactions to find energy gained by them
-            for j = 1:ps.mics[i].R
-                J += ps.mics[i].η[j]*rate[i,ps.mics[i].Reacs[j]]
+            for j = 1:ms[i].R
+                J += ms[i].η[j]*rate[i,ms[i].Reacs[j]]
             end
             # Add energy intake and substract translation and dilution from the energy concentration
-            dx[ps.N+ps.M+i] = J - (ps.mics[i].MC*ps.mics[i].ρ + x[ps.N+ps.M+i])*λ
+            dx[length(ms)+ps.M+i] = J - (ms[i].MC*ms[i].ρ + x[length(ms)+ps.M+i])*λ
         end
     end
     # Do basic resource dynamics
-    for i = ps.N+1:ps.N+ps.M
+    for i = length(ms)+1:length(ms)+ps.M
         # fist add external supply of resource and decay
-        dx[i] = ps.κ[i-ps.N] - ps.δ[i-ps.N]*x[i]
+        dx[i] = ps.κ[i-length(ms)] - ps.δ[i-length(ms)]*x[i]
     end
-    # Fine to here
     # Then loop over microbes
-    for i = 1:ps.N
+    for i = 1:length(ms)
         # Loop over reactions for specific microbe
-        for j = 1:ps.mics[i].R
+        for j = 1:ms[i].R
             # Increase the product
-            dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Prd] += rate[i,ps.mics[i].Reacs[j]]*x[i]/NA
+            dx[length(ms)+ps.reacs[ms[i].Reacs[j]].Prd] += rate[i,ms[i].Reacs[j]]*x[i]/NA
             # and decrease the reactant
-            dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Rct] -= rate[i,ps.mics[i].Reacs[j]]*x[i]/NA
+            dx[length(ms)+ps.reacs[ms[i].Reacs[j]].Rct] -= rate[i,ms[i].Reacs[j]]*x[i]/NA
         end
     end
     # Final step to correct for any concentrations that have dropped below threshold (1e-15)
-    for i = ps.N+1:ps.N+ps.M
+    for i = length(ms)+1:length(ms)+ps.M
         # If the rate of change is above a threshold (1e-20) they are not altered
         if x[i] < 1e-15 && dx[i] <= 1e-20
             x[i] = 0.0
@@ -152,7 +152,7 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::TOParameter
         end
     end
     # Any ATP numbers that have gone below 0.33 should be removed
-    for i = (ps.N+ps.M+1):(2*ps.N+ps.M)
+    for i = (length(ms)+ps.M+1):(2*length(ms)+ps.M)
         if x[i] < 0.33
             x[i] = 0.0
             dx[i] = 0.0
@@ -161,175 +161,35 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::TOParameter
     return(dx)
 end
 
+# NEED TO ADAPT THIS TO USE CALLBACKS + NEED TO ADAPT THIS TO PROPERLY USE NEW ps FUNCTION
 # Simulation code to run one instatnce of the simulation with a user defined starting condition
 # ps is parameter set, Tmax is the time to integrate to, pop, conc, as and ϕs are the intial conditions
-function full_simulate(ps::TOParameters,Tmax::Float64,pop::Array{Float64,1},conc::Array{Float64,1},
-                        as::Array{Float64,1},ϕs::Array{Float64,1})
-    @assert length(pop) == ps.N "From parameter set expected $(ps.N) strains"
-    @assert length(conc) == ps.M "From parameter set expected $(ps.M) metabolites"
-    @assert length(as) == length(pop) "Every strain must have an energy concentration"
-    @assert length(ϕs) == length(pop) "Every strain must have a ribosome fraction"
+# mpl is a pool of microbes
+function full_simulate(ps::TOParameters,Tmax::Float64,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,
+                        mpl::Array{Microbe,1})
+    # THIS PROCEDURE IS NECESSARY FOR TESTING, NEEDS TO BE CHANGED LATER, PARTICUALRLY TO AVOID DUPLICATES
+    # Preallocate inital vector of microbes
+    ms = Array{Microbe,1}(undef,10)
+    # Randomly choose them from the pool
+    for i = 1:length(ms)
+        r = rand(1:length(mpl))
+        ms[i] = mpl[r]
+    end
     # Preallocate memory
-    rate = zeros(ps.N,ps.O)
+    rate = zeros(length(ms),ps.O)
     # Now substitute preallocated memory in
-    dyns!(dx,x,ps,t) = full_dynamics!(dx,x,ps,rate,t)
+    dyns!(dx,x,ms,t) = full_dynamics!(dx,x,ms,ps,rate,t)
     # Find time span for this step
     tspan = (0,Tmax)
-    x0 = [pop;conc;as;ϕs]
+    # Make
+    pops = pop*ones(length(ms))
+    concs = conc*ones(ps.M)
+    ass = as*ones(length(ms))
+    ϕss = ϕs*ones(length(ms))
+    x0 = [pops;concs;ass;ϕss]
     # Then setup and solve the problem
-    prob = ODEProblem(dyns!,x0,tspan,ps)
+    prob = ODEProblem(dyns!,x0,tspan,ms)
     # Still generates problems, not sure if I have to change a solver option or what
     sol = DifferentialEquations.solve(prob)
-    return(sol',sol.t)
-end
-
-# Same as the above but with a specific strain given a massively increased death rate
-# This should help us investigate syntrophic pairs
-function full_simulate_syn(ps::TOParameters,Tmax::Float64,pop::Array{Float64,1},conc::Array{Float64,1},
-                        as::Array{Float64,1},ϕs::Array{Float64,1},inds::Array{Int64,1})
-    @assert length(pop) == ps.N "From parameter set expected $(ps.N) strains"
-    @assert length(conc) == ps.M "From parameter set expected $(ps.M) metabolites"
-    @assert length(as) == length(pop) "Every strain must have an energy concentration"
-    @assert length(ϕs) == length(pop) "Every strain must have a ribosome fraction"
-    # Preallocate memory
-    rate = zeros(ps.N,ps.O)
-    # Extract old death rate
-    d = ps.mics[1].d
-    # Increase by a factor of 10
-    nd = 25.0*d
-    # Preallocate new microbes
-    nmics = Array{Microbe,1}(undef,length(ps.mics))
-    # Loop over old microbes
-    for i = 1:length(ps.mics)
-        # Check if any change needs to be made to the microbes
-        if i ∉ inds
-            nmics[i] = ps.mics[i]
-        else
-            # Extract old microbe
-            m = ps.mics[i]
-            # Make new microbe
-            nmics[i] = make_Microbe(m.MC,m.γm,m.ρ,m.Kγ,m.Pb,nd,m.ϕH,m.KΩ,m.fd,m.R,m.Reacs,m.η,m.kc,m.KS,m.kr,m.n,m.ϕP)
-        end
-    end
-    # Use to make a new parameter set
-    ps2 = make_TOParameters(ps.N,ps.M,ps.O,ps.T,ps.κ,ps.δ,ps.reacs,nmics)
-    # Now substitute preallocated memory in
-    dyns!(dx,x,ps2,t) = full_dynamics!(dx,x,ps2,rate,t)
-    # Find time span for this step
-    tspan = (0,Tmax)
-    x0 = [pop;conc;as;ϕs]
-    # Then setup and solve the problem
-    prob = ODEProblem(dyns!,x0,tspan,ps2)
-    # Still generates problems, not sure if I have to change a solver option or what
-    sol = DifferentialEquations.solve(prob)
-    return(sol',sol.t)
-end
-
-# Same dynamics function that can be altered to do detailed testing
-function test_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::TOParameters,rate::Array{Float64,2},t::Float64)
-    # loop over the reactions to find reaction rate for each reaction for each strain
-    for j = 1:ps.O
-        # Find substrate and product for this reaction
-        for i = 1:ps.N
-            # Check if microbe i performs reaction j
-            if j ∈ ps.mics[i].Reacs
-                # Find index of this reaction in microbe
-                k = findfirst(x->x==j,ps.mics[i].Reacs)
-                # Find amount of enzyme E
-                E = Eα(x[2*ps.N+ps.M+i],ps.mics[i],k)
-                # Then finally calculate reaction rate
-                rate[i,j] = qs(x[ps.N+ps.reacs[j].Rct],x[ps.N+ps.reacs[j].Prd],E,k,ps.mics[i],ps.T,ps.reacs[ps.mics[i].Reacs[k]])
-            else
-                rate[i,j] = 0.0
-            end
-        end
-    end
-    # Now want to use the rate matrix in the consumer dynamics
-    for i = 1:ps.N
-        # Check if strain is effectively extinct
-        if x[i] <= 1e-10
-            # If so x should be set to zero and should not change from that
-            dx[i] = 0.0
-            x[i] = 0.0
-            # In this case the energy concentration should also be fixed to zero
-            dx[ps.N+ps.M+i] = 0.0
-            x[ps.N+ps.M+i] = 0.0
-            # Corresponding proteome fraction also shouldn't shift
-            dx[2*ps.N+ps.M+i] = 0.0
-        else
-            # find growth rate for strains that aren't extinct
-            λ = λs(x[ps.N+ps.M+i],x[2*ps.N+ps.M+i],ps.mics[i])
-            # (growth rate - death rate)*population
-            dx[i] = (λ - ps.mics[i].d)*x[i]
-            # Now find optimal ribosome fraction
-            ϕR = ϕ_R(x[ps.N+ps.M+i],ps.mics[i])
-            # This introduces a time delay
-            τ = ps.mics[i].fd/λ
-            # Then update actual ribosome fraction
-            dx[2*ps.N+ps.M+i] = (ϕR - x[2*ps.N+ps.M+i])/τ
-            # Energy intake is zero
-            J = 0
-            # Loop over all reactions to find energy gained by them
-            for j = 1:ps.mics[i].R
-                J += ps.mics[i].η[j]*rate[i,ps.mics[i].Reacs[j]]
-            end
-            # Add energy intake and substract translation and dilution from the energy concentration
-            dx[ps.N+ps.M+i] = J - (ps.mics[i].MC*ps.mics[i].ρ + x[ps.N+ps.M+i])*λ
-        end
-    end
-    # Do basic resource dynamics
-    for i = ps.N+1:ps.N+ps.M
-        # fist add external supply of resource and decay
-        dx[i] = ps.κ[i-ps.N] - ps.δ[i-ps.N]*x[i]
-    end
-    # Fine to here
-    # Then loop over microbes
-    for i = 1:ps.N
-        # Loop over reactions for specific microbe
-        for j = 1:ps.mics[i].R
-            # Increase the product
-            dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Prd] += rate[i,ps.mics[i].Reacs[j]]*x[i]/NA
-            # and decrease the reactant
-            dx[ps.N+ps.reacs[ps.mics[i].Reacs[j]].Rct] -= rate[i,ps.mics[i].Reacs[j]]*x[i]/NA
-        end
-    end
-    # Final step to correct for any concentrations that have dropped below threshold (1e-15)
-    for i = ps.N+1:ps.N+ps.M
-        # If the rate of change is above a threshold (1e-20) they are not altered
-        if x[i] < 1e-15 && dx[i] <= 1e-20
-            x[i] = 0.0
-            dx[i] = 0.0
-        end
-    end
-    # Any ATP numbers that have gone below 0.33 should be removed
-    for i = (ps.N+ps.M+1):(2*ps.N+ps.M)
-        if x[i] < 0.33
-            x[i] = 0.0
-            dx[i] = 0.0
-        end
-    end
-    return(dx)
-end
-
-# Same function as above but for detailed testing
-function test_full_simulate(ps::TOParameters,Tmax::Float64,pop::Array{Float64,1},conc::Array{Float64,1},
-                        as::Array{Float64,1},ϕs::Array{Float64,1})
-    @assert length(pop) == ps.N "From parameter set expected $(ps.N) strains"
-    @assert length(conc) == ps.M "From parameter set expected $(ps.M) metabolites"
-    @assert length(as) == length(pop) "Every strain must have an energy concentration"
-    @assert length(ϕs) == length(pop) "Every strain must have a ribosome fraction"
-    # Preallocate memory
-    rate = zeros(ps.N,ps.O)
-    # Now substitute preallocated memory in
-    dyns!(dx,x,ps,t) = test_dynamics!(dx,x,ps,rate,t)
-    # Find time span for this step
-    tspan = (0,Tmax)
-    x0 = [pop;conc;as;ϕs]
-    # Then setup and solve the problem
-    println("Test simulation started.")
-    prob = ODEProblem(dyns!,x0,tspan,ps)
-    sol = DifferentialEquations.solve(prob)
-    println(sol.destats) # Also useful
-    println(sol.retcode) # Useful
     return(sol',sol.t)
 end

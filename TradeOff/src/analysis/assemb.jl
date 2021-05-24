@@ -93,6 +93,8 @@ function assemble()
     jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras.jld","w") do file
         write(file,"ps",ps)
     end
+    # ONLY LOADING ONE POOL AT THE MOMENT, THIS PROBABLY HAS TO CHANGE
+    mpl = load(pls[1],"mics")
     # Now loop over the number of repeats
     for i = Rs:rps
         # Print that the new run has been started
@@ -100,13 +102,14 @@ function assemble()
         flush(stdout)
         # Find starting time
         ti = time()
-        return(nothing)
         # Then run the simulation
-        C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+        C, T = full_simulate(ps,Tmax,pop,conc,as,ϕs,mpl)
         # And then print time elapsed
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")
         flush(stdout)
+        return(nothing)
+        # THIS STUFF IS PROBABLY REDUNDANT NOW, BUT NEED SOMETHING TO REPLACE IT WITH
         # Establish which microbes are extinct
         ext = (C[end,1:N] .== 0.0)
         # Preallocate vector to store extinct microbes

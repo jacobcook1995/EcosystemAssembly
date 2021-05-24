@@ -108,7 +108,7 @@ function assemble()
         # Find starting time
         ti = time()
         # Then run the simulation
-        C, T = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims)
+        C, T, micd, its = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims)
         # And then print time elapsed
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")

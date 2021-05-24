@@ -3,8 +3,6 @@ export full_simulate, θ, θ_smooth, qs, test_full_simulate
 
 export test_dynamics!, full_simulate_syn
 
-# AT SOME POINT SOME OF THESE FUNCTIONS WILL NEED TO BE REWRITTEN
-
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
     # Catch perverse cases that sometimes arise
@@ -163,7 +161,7 @@ end
 
 # Simulation code to run one instatnce of the simulation with a user defined starting condition
 # ps is parameter set, Tmax is the time to integrate to, pop, conc, as and ϕs are the intial conditions
-# mpl is a pool of microbes
+# mpl is a pool of microbes, mT is mean immigration time, ims is the number of immigrations
 function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,
                         mpl::Array{Microbe,1},Ni::Int64,mT::Float64,ims::Int64)
     # Preallocate immigration times
@@ -218,13 +216,24 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
     prob = ODEProblem(dyns!,x0,tspan,ms)
     # Still generates problems, not sure if I have to change a solver option or what
     sol = DifferentialEquations.solve(prob)
+    # Make contaniers to store dynamics
+    T = sol.t
+    C = sol'
     # Find indices of surviving strains
     inds = sol'[end,1:Ni] .> 1e-5
-    # WORK OUT WHAT DATA I NEED TO STORE!
-    # Need population dynamics for all strains
-    # Along with immigration time points
-    # Structure storing microbe ID's, immigration times, extinction times
-    println(micd)
-    println(its)
-    return(micd,its)
+    # Make vector to store indices to delete
+    dls = []
+    # Find any extinctions
+    for i = 1:Ni
+        if inds[i] == false
+            # Mark extinction time in the microbe data
+            micd[i] = make_MicData(micd[i].MID,micd[i].PID,micd[i].ImT,its[1])
+            # Mark species for deletion
+            dls = cat(dls,i,dims=1)
+        end
+    end
+    # Delete extinct species
+    ms = deleteat!(ms,dls)
+    # NEXT NEED TO MAKE LOOP FOR THE REPEATED IMMIGRATIONS
+    return(C,T,micd,its)
 end

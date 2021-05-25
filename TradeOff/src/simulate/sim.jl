@@ -162,8 +162,9 @@ end
 # Simulation code to run one instatnce of the simulation with a user defined starting condition
 # ps is parameter set, Tmax is the time to integrate to, pop, conc, as and ϕs are the intial conditions
 # mpl is a pool of microbes, mT is mean immigration time, ims is the number of immigrations
+# λIm controls rate of additonal immigratants
 function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,
-                        mpl::Array{Microbe,1},Ni::Int64,mT::Float64,ims::Int64)
+                        mpl::Array{Microbe,1},Ni::Int64,mT::Float64,ims::Int64,λIm::Float64)
     # Preallocate immigration times
     its = zeros(ims)
     # Make container to store microbial data
@@ -206,6 +207,8 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
     x0 = [pops;concs;ass;ϕss]
     # Make distribution to sample random immigration times from
     td = Exponential(mT)
+    # Make distribution to sample random number of invading species from
+    sd = Poisson(λIm)
     # Choose a random time for the initial step
     ti = rand(td)
     # Save this as the first immigration time
@@ -216,7 +219,7 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
     prob = ODEProblem(dyns!,x0,tspan,ms)
     # Still generates problems, not sure if I have to change a solver option or what
     sol = DifferentialEquations.solve(prob)
-    # Make contaniers to store dynamics
+    # Make containers to store dynamics
     T = sol.t
     C = sol'
     # Find indices of surviving strains
@@ -234,6 +237,54 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
     end
     # Delete extinct species
     ms = deleteat!(ms,dls)
-    # NEXT NEED TO MAKE LOOP FOR THE REPEATED IMMIGRATIONS
+    # Now loop over for every immigration attempt
+    for i = 1:ims
+        # Find how many immigrents there are
+        nI = 1 + rand(sd)
+        # Make new vector to store microbes
+        mst = Array{Microbe,1}(undef,nI)
+        # Make container to store microbial data
+        micdt = Array{MicData}(undef,nI)
+        # Set up while loop to check microbes
+        j = 1
+        full = false
+        # Randomly choose them from the pool
+        while full == false
+            r = rand(1:length(mpl))
+            # Check that strain hasn't already been added
+            if mpl[r] ∉ ms && mpl[r] ∉ mst[1:j-1]
+                # And if not add it
+                mst[j] = mpl[r]
+                # Increment counter
+                j += 1
+            end
+            # End while loop when all the microbes have been filled
+            if j == length(mst) + 1
+                full = true
+            end
+        end
+        # Add microbes to the existing vector
+        ms = cat(ms,mst,dims=1)
+        # Find new MicData values
+        for j = 1:nI
+            micdt[j] = make_MicData(mst[j].ID,mst[j].PID,its[i],NaN)
+        end
+        # Add this new data to the old
+        micd = cat(micd,micdt,dims=1)
+        # Find time to next immigration, if not at the last step
+        if i != ims
+            # Choose a random time for next immigration
+            ti = rand(td)
+            # Save this as the immigration time
+            its[i+1] = ti + its[i]
+            # Then use this and previous immigration time to define the time step
+            tspan = (its[i],its[i+1])
+        else
+            # At last step just integrate for five times the average time, so that dynamics settle
+            tf = 5*mT + its[i]
+            # Use previous immigration time to define the time span
+            tspan = (its[i],tf)
+        end
+    end
     return(C,T,micd,its)
 end

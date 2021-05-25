@@ -84,6 +84,8 @@ function assemble()
     mT = 1e5
     # Small number of immigration events for inital testing
     ims = 5
+    # Rate of additional immigrants
+    λIm = 0.5
     # Make parameter set
     ps = initialise(M,O)
     # Check that reaction set is identical to sets the pool was generated with
@@ -108,7 +110,7 @@ function assemble()
         # Find starting time
         ti = time()
         # Then run the simulation
-        C, T, micd, its = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims)
+        C, T, micd, its = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims,λIm)
         # And then print time elapsed
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")

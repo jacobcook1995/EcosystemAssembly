@@ -199,6 +199,8 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ﾏ
     for i = 1:Ni
         micd[i] = make_MicData(ms[i].ID,ms[i].PID,0.0,NaN)
     end
+    # Initial number of surviving strains is equal to 1
+    Ns = Ni
     #ﾂMake initial values
     pops = pop*ones(length(ms))
     concs = conc*ones(ps.M)
@@ -217,7 +219,6 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ﾏ
     tspan = (0,ti)
     # Then setup and solve the inital problem
     prob = ODEProblem(dyns!,x0,tspan,ms)
-    # Still generates problems, not sure if I have to change a solver option or what
     sol = DifferentialEquations.solve(prob)
     # Make containers to store dynamics
     T = sol.t
@@ -233,13 +234,19 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ﾏ
             micd[i] = make_MicData(micd[i].MID,micd[i].PID,micd[i].ImT,its[1])
             # Mark species for deletion
             dls = cat(dls,i,dims=1)
+            # Set extinct species values as NaN in the output data
+            C[end,i] = NaN
+            C[end,ps.M+Ni+i] = NaN
+            C[end,ps.M+2*Ni+i] = NaN
+            # Reduce number of surviving strains counter by 1
+            Ns -= 1
         end
     end
     # Delete extinct species
     ms = deleteat!(ms,dls)
     # Now loop over for every immigration attempt
     for i = 1:ims
-        # Find how many immigrents there are
+        # Find how many immigrants there are
         nI = 1 + rand(sd)
         # Make new vector to store microbes
         mst = Array{Microbe,1}(undef,nI)
@@ -285,6 +292,29 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ﾏ
             # Use previous immigration time to define the time span
             tspan = (its[i],tf)
         end
+        # Find all indices of still relevant initial conditions in C
+        in_cons = findall(!isnan,C[end,:])
+        # Then find initial conditions directly from C
+        pops_old = C[end,in_cons[1:Ns]]
+        concs = C[end,in_cons[(Ns+1):(Ns+ps.M)]]
+        as_old = C[end,in_cons[(Ns+ps.M+1):(2*Ns+ps.M)]]
+        ﾏ不_old = C[end,in_cons[(2*Ns+ps.M+1):(3*Ns+ps.M)]]
+        #ﾂMake new vectors incoperating old and new microbes
+        pops = cat(pops_old,pop*ones(length(mst)),dims=1)
+        ass = cat(as_old,as*ones(length(mst)),dims=1)
+        ﾏ不s = cat(ﾏ不_old,ﾏ不*ones(length(mst)),dims=1)
+        # Collect all of this together in a vector of initial conditions
+        x0 = [pops;concs;ass;ﾏ不s]
+        # Now setup and solve the problem with the new strains
+        prob = ODEProblem(dyns!,x0,tspan,ms)
+        sol = DifferentialEquations.solve(prob)
+        # Store new dynamics in a temporary form
+        Tt = sol.t
+        Ct = sol'
+        # Add to full vector of times
+        T = cat(T,Tt[2:end],dims=1)
+        # End it here
+        error()
     end
     return(C,T,micd,its)
 end

@@ -308,13 +308,60 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
         # Now setup and solve the problem with the new strains
         prob = ODEProblem(dyns!,x0,tspan,ms)
         sol = DifferentialEquations.solve(prob)
+        # Update the number of survivors, as new strains have been added
+        Ns += nI
         # Store new dynamics in a temporary form
         Tt = sol.t
         Ct = sol'
         # Add to full vector of times
         T = cat(T,Tt[2:end],dims=1)
-        # End it here
-        error()
+        # Save prior C as Cp, seems to automatically make a deep copy
+        Cp = C
+        # Find total number of microbes
+        Nt = length(micd)
+        # Minimise memory allocation by making new C once
+        C = zeros(length(T),3*Nt+ps.M)
+        # Find length of old time data
+        Tl = size(Cp,1)
+        # Setup counter
+        cnt = 0
+        # Loop over total number of microbes
+        for j = 1:Nt
+            # Check if this row has old data
+            if j <= Nt - nI
+                # If so save old data
+                C[1:Tl,j] = Cp[1:Tl,j]
+                C[1:Tl,Nt+ps.M+j] = Cp[1:Tl,(Nt-nI)+ps.M+j]
+                C[1:Tl,2*Nt+ps.M+j] = Cp[1:Tl,2*(Nt-nI)+ps.M+j]
+            else
+                # Otherwise save all previous points as NaNs
+                C[1:(Tl-1),j] .= NaN
+                C[1:(Tl-1),Nt+ps.M+j] .= NaN
+                C[1:(Tl-1),2*Nt+ps.M+j] .= NaN
+                # New immigrant so just save intial values
+                C[Tl,j] = pop
+                C[Tl,Nt+ps.M+j] = as
+                C[Tl,2*Nt+ps.M+j] = Ï•s
+            end
+            # If strain isn't in new simulation set as NaN throughout
+            if isnan(C[Tl,j])
+                C[(Tl+1):end,j] .= NaN
+                C[(Tl+1):end,Nt+ps.M+j] .= NaN
+                C[(Tl+1):end,2*Nt+ps.M+j] .= NaN
+            # Otherwise add the new data
+            else
+                # Increment counter
+                cnt += 1
+                C[(Tl+1):end,j] = Ct[2:end,cnt]
+                C[(Tl+1):end,Nt+ps.M+j] = Ct[2:end,Ns+ps.M+cnt]
+                C[(Tl+1):end,2*Nt+ps.M+j] = Ct[2:end,2*Nt+ps.M+cnt]
+            end
+        end
+        # Finally save the concentrations
+        C[1:Tl,(Nt+1):(Nt+ps.M)] = Cp[:,(Nt-nI+1):(Nt-nI+ps.M)]
+        # THESE NUMBERS ARE WRONG ARN'T THEY
+        C[(Tl+1):end,(Nt+1):(Nt+ps.M)] = Ct[2:end,(Ns+1):(Ns+ps.M)]
+        # THEN NEED TO DO EXTINCTIONS
     end
     return(C,T,micd,its)
 end

@@ -354,14 +354,43 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
                 cnt += 1
                 C[(Tl+1):end,j] = Ct[2:end,cnt]
                 C[(Tl+1):end,Nt+ps.M+j] = Ct[2:end,Ns+ps.M+cnt]
-                C[(Tl+1):end,2*Nt+ps.M+j] = Ct[2:end,2*Nt+ps.M+cnt]
+                C[(Tl+1):end,2*Nt+ps.M+j] = Ct[2:end,2*Ns+ps.M+cnt]
             end
         end
         # Finally save the concentrations
         C[1:Tl,(Nt+1):(Nt+ps.M)] = Cp[:,(Nt-nI+1):(Nt-nI+ps.M)]
-        # THESE NUMBERS ARE WRONG ARN'T THEY
         C[(Tl+1):end,(Nt+1):(Nt+ps.M)] = Ct[2:end,(Ns+1):(Ns+ps.M)]
-        # THEN NEED TO DO EXTINCTIONS
+        # Now find indices of recently extinct strains
+        inds = (C[end,1:Nt] .< 1e-5)
+        # Make vector to store indices to delete
+        dls = []
+        # Find any extinctions
+        for j = 1:Nt
+            if inds[j] == true
+                # Mark extinction time in the microbe data
+                micd[j] = make_MicData(micd[j].MID,micd[j].PID,micd[j].ImT,tspan[2])
+                # Find indices of species with ID's matching the one being made extinct
+                sinds = findall(x->x==micd[j].MID,ms.↦:ID)
+                # Check if there's multiple
+                if length(sinds) > 1
+                    # If there is compare pool ids
+                    pind = findfirst(x->x==micd[j].PID,ms[sinds].↦:PID)
+                    sind = sinds[pind]
+                else
+                    sind = sinds[1]
+                end
+                # Mark species for deletion
+                dls = cat(dls,sind,dims=1)
+                # Set extinct species values as NaN in the output data
+                C[end,j] = NaN
+                C[end,ps.M+Nt+j] = NaN
+                C[end,ps.M+2*Nt+j] = NaN
+                # Reduce number of surviving strains counter by 1
+                Ns -= 1
+            end
+        end
+        # Delete extinct species
+        ms = deleteat!(ms,dls)
     end
     return(C,T,micd,its)
 end

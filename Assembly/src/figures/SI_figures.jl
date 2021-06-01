@@ -205,7 +205,7 @@ function SI_ints(Rl::Int64,Ru::Int64,syns::Array{Bool,1},rps::Int64,Ni::Int64,en
     # Combine all graphs and save
     pt = plot(p[1,2],p[2,2],p[1,1],p[2,1],layout=4,size=(1200,800),margin=5.0mm)
     # Save as high energy supply case
-    savefig(pt,"Output/SI/HighInts.png")
+    savefig(pt,"Output/SI/HighInts.pdf")
     return(nothing)
 end
 
@@ -258,7 +258,7 @@ function SvvsDv(Nr::Int64,Ni::Int64,Rls::Array{Int64,1},Rus::Array{Int64,1},syns
     end
     # Plot maximum line
     plot!(1:24,1:24,color=:red,label="")
-    savefig("Output/SI/SubstrateDiversity.png")
+    savefig("Output/SI/SubstrateDiversity.pdf")
     return(nothing)
 end
 

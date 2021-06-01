@@ -67,10 +67,6 @@ function assemble()
             error("pool $i uses different reaction set")
         end
     end
-    # NEED TO COMPLETELY RETHINK THE SOMETHING DYNAMICS HERE
-    # FUNDAMENTALLY NEED TO FIGURE OUT HOW CALLBACKS WORK BEFORE I CAN PROCEED HERE
-    # Set time long enough for dynamics to equilbrate
-    Tmax = 1e8
     # Initial ribosome fraction is taken from ATP fits I did a while ago
     ϕR0 = 0.128
     # Fairly arbitary inital conditions
@@ -83,7 +79,7 @@ function assemble()
     # Mean immigration time assumed to be 1*10^5 seconds
     mT = 1e5
     # Small number of immigration events for inital testing
-    ims = 5
+    ims = 50
     # Rate of additional immigrants
     λIm = 0.5
     # Make parameter set
@@ -114,51 +110,15 @@ function assemble()
         # And then print time elapsed
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")
-        flush(stdout)
-        return(nothing)
-        # THIS STUFF IS PROBABLY REDUNDANT NOW, BUT NEED SOMETHING TO REPLACE IT WITH
-        # Establish which microbes are extinct
-        ext = (C[end,1:N] .== 0.0)
-        # Preallocate vector to store extinct microbes
-        ded = Array{Microbe,1}(undef,sum(ext))
-        # Loop over and store microbes in the vector
-        k = 0
-        for j = 1:length(ext)
-            if ext[j] == 1
-                k += 1
-                ded[k] = ps.mics[j]
-            end
-        end
-        # Remove extinct strains from parameter set
-        ps = extinction(ps,ext)
-        # Preallocate final concentrations (etc) for output
-        out = Array{Float64,1}(undef,3*ps.N+M)
-        # Store final metabolite concentrations
-        out[ps.N+1:ps.N+M] = C[end,N+1:N+M]
-        # Now sub in data for not extinct microbes
-        k = 0
-        for j = 1:length(ext)
-            if ext[j] != 1
-                k += 1
-                # Population
-                out[k] = C[end,j]
-                # Energy
-                out[M+ps.N+k] = C[end,M+N+j]
-                # Fraction
-                out[M+2*ps.N+k] = C[end,M+2*N+j]
-            end
-        end
-        # Save extinct strains
-        jldopen("Output/ExtinctReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file
-            write(file,"ded",ded)
-        end
-        # and the full output
-        jldopen("Output/OutputReacs$(Rl)-$(Ru)Run$(i)Ns$(N).jld","w") do file
-            # Save final output
-            write(file,"out",out)
-            # # Save time data and dynamics data
+        # Now just save the relevant data
+        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Run$(i)Data.jld","w") do file
+            # Save full set of microbe data
+            write(file,"micd",micd)
+            # Save extinction times
+            write(file,"its",its)
+            # Save time data and dynamics data
             write(file,"T",T)
-            write(file,"C",C[1:end,1:end])
+            write(file,"C",C)
         end
         # Print to show that run has been successfully completed
         println("Run $i completed and saved!")

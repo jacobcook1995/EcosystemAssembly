@@ -109,7 +109,7 @@ function assemble()
         C, T, micd, its = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims,λIm)
         # And then print time elapsed
         tf = time()
-        println("Time elapsed on run $i: $(tf-ti) s")
+        println("Time elapsed on run $i: $(tf-ti) s") 
         # Now just save the relevant data
         jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Run$(i)Data.jld","w") do file
             # Save full set of microbe data

@@ -3,8 +3,6 @@ using TradeOff
 using JLD
 using Glob
 
-# WILL PROBABLY NEED TO CHANGE SIGNIFICANTLY WHEN I CHANGE THE ASSEMBLY PROCEDURE
-
 # Function to assemble specfic communities
 function assemble()
     # Check that sufficent arguments have been provided
@@ -79,7 +77,7 @@ function assemble()
     # Mean immigration time assumed to be 1*10^5 seconds
     mT = 1e5
     # Small number of immigration events for inital testing
-    ims = 50
+    ims = 2500
     # Rate of additional immigrants
     λIm = 0.5
     # Make parameter set
@@ -93,7 +91,7 @@ function assemble()
         mkdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Species")
     end
     # Save this parameter set
-    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras.jld","w") do file
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld","w") do file
         write(file,"ps",ps)
     end
     # ONLY LOADING ONE POOL AT THE MOMENT, THIS PROBABLY HAS TO CHANGE
@@ -109,9 +107,9 @@ function assemble()
         C, T, micd, its = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims,λIm)
         # And then print time elapsed
         tf = time()
-        println("Time elapsed on run $i: $(tf-ti) s") 
+        println("Time elapsed on run $i: $(tf-ti) s")
         # Now just save the relevant data
-        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Run$(i)Data.jld","w") do file
+        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Run$(i)Data$(ims)Ims.jld","w") do file
             # Save full set of microbe data
             write(file,"micd",micd)
             # Save extinction times

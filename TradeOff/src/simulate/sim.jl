@@ -246,8 +246,9 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
     ms = deleteat!(ms,dls)
     # Now loop over for every immigration attempt
     for i = 1:ims
-        if i % 250 == 0
-            println("Immigrating attempt $i initiated")
+        if i % 50 == 0
+            println("Immigration attempt $i initiated")
+            flush(stdout)
         end
         # Find how many immigrants there are
         nI = 1 + rand(sd)

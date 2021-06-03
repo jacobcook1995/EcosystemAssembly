@@ -77,7 +77,7 @@ function assemble()
     # Mean immigration time assumed to be 1*10^5 seconds
     mT = 1e5
     # Small number of immigration events for inital testing
-    ims = 2500
+    ims = 250
     # Rate of additional immigrants
     λIm = 0.5
     # Make parameter set

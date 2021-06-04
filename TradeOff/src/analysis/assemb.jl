@@ -104,7 +104,7 @@ function assemble()
         # Find starting time
         ti = time()
         # Then run the simulation
-        C, T, micd, its = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims,λIm)
+        traj, T, micd, its = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims,λIm)
         # And then print time elapsed
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")
@@ -116,7 +116,7 @@ function assemble()
             write(file,"its",its)
             # Save time data and dynamics data
             write(file,"T",T)
-            write(file,"C",C)
+            write(file,"traj",traj)
         end
         # Print to show that run has been successfully completed
         println("Run $i completed and saved!")

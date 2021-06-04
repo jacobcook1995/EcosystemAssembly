@@ -169,6 +169,8 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
     its = zeros(ims)
     # Make container to store microbial data
     micd = Array{MicData}(undef,Ni)
+    # Make container to store trajectory data
+    traj = Array{Array{Float64,2}}(undef,ims+1)
     # Set a value for the maximum number of strains that can be simultaed
     max_N = 300
     # Preallocate memory
@@ -223,6 +225,8 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
     # Make containers to store dynamics
     T = sol.t
     C = sol'
+    # Save this C for output
+    traj[1] = C[:,:]
     # Find indices of surviving strains
     inds = sol'[end,1:Ni] .> 1e-5
     # Make vector to store indices to delete
@@ -316,69 +320,31 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
         Ns += nI
         # Store new dynamics in a temporary form
         Tt = sol.t
-        Ct = sol'
+        C = sol'
+        # Save new dynamics for output
+        traj[i+1] = C
         # Add to full vector of times
         T = cat(T,Tt[2:end],dims=1)
-        # Save prior C as Cp, seems to automatically make a deep copy
-        Cp = C
-        # Find total number of microbes
-        Nt = length(micd)
-        # Minimise memory allocation by making new C once
-        C = zeros(length(T),3*Nt+ps.M)
-        # Find length of old time data
-        Tl = size(Cp,1)
-        # Setup counter
-        cnt = 0
-        # Loop over total number of microbes
-        for j = 1:Nt
-            # Check if this row has old data
-            if j <= Nt - nI
-                # If so save old data
-                C[1:Tl,j] = Cp[1:Tl,j]
-                C[1:Tl,Nt+ps.M+j] = Cp[1:Tl,(Nt-nI)+ps.M+j]
-                C[1:Tl,2*Nt+ps.M+j] = Cp[1:Tl,2*(Nt-nI)+ps.M+j]
-            else
-                # Otherwise save all previous points as NaNs
-                C[1:(Tl-1),j] .= NaN
-                C[1:(Tl-1),Nt+ps.M+j] .= NaN
-                C[1:(Tl-1),2*Nt+ps.M+j] .= NaN
-                # New immigrant so just save intial values
-                C[Tl,j] = pop
-                C[Tl,Nt+ps.M+j] = as
-                C[Tl,2*Nt+ps.M+j] = Ï•s
-            end
-            # If strain isn't in new simulation set as NaN throughout
-            if isnan(C[Tl,j])
-                C[(Tl+1):end,j] .= NaN
-                C[(Tl+1):end,Nt+ps.M+j] .= NaN
-                C[(Tl+1):end,2*Nt+ps.M+j] .= NaN
-            # Otherwise add the new data
-            else
-                # Increment counter
-                cnt += 1
-                C[(Tl+1):end,j] = Ct[2:end,cnt]
-                C[(Tl+1):end,Nt+ps.M+j] = Ct[2:end,Ns+ps.M+cnt]
-                C[(Tl+1):end,2*Nt+ps.M+j] = Ct[2:end,2*Ns+ps.M+cnt]
-            end
-        end
-        # Finally save the concentrations
-        C[1:Tl,(Nt+1):(Nt+ps.M)] = Cp[:,(Nt-nI+1):(Nt-nI+ps.M)]
-        C[(Tl+1):end,(Nt+1):(Nt+ps.M)] = Ct[2:end,(Ns+1):(Ns+ps.M)]
         # Now find indices of recently extinct strains
-        inds = (C[end,1:Nt] .< 1e-5)
+        inds = (C[end,1:Ns] .< 1e-5)
         # Make vector to store indices to delete
         dls = []
+        # Find indices of all strains that still survive in micd
+        svs = findall(isnan,(micd.â†¦:ExT))
         # Find any extinctions
-        for j = 1:Nt
+        for j = 1:Ns
             if inds[j] == true
+                # Find index of the newly extinct strain
+                ex = svs[j]
+                # The essiential problem is converting j into the true index
                 # Mark extinction time in the microbe data
-                micd[j] = make_MicData(micd[j].MID,micd[j].PID,micd[j].ImT,tspan[2])
+                micd[ex] = make_MicData(micd[ex].MID,micd[ex].PID,micd[ex].ImT,tspan[2])
                 # Find indices of species with ID's matching the one being made extinct
-                sinds = findall(x->x==micd[j].MID,ms.â†¦:ID)
+                sinds = findall(x->x==micd[ex].MID,ms.â†¦:ID)
                 # Check if there's multiple
                 if length(sinds) > 1
                     # If there is compare pool ids
-                    pind = findfirst(x->x==micd[j].PID,ms[sinds].â†¦:PID)
+                    pind = findfirst(x->x==micd[ex].PID,ms[sinds].â†¦:PID)
                     sind = sinds[pind]
                 else
                     sind = sinds[1]
@@ -387,14 +353,14 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
                 dls = cat(dls,sind,dims=1)
                 # Set extinct species values as NaN in the output data
                 C[end,j] = NaN
-                C[end,ps.M+Nt+j] = NaN
-                C[end,ps.M+2*Nt+j] = NaN
-                # Reduce number of surviving strains counter by 1
-                Ns -= 1
+                C[end,ps.M+Ns+j] = NaN
+                C[end,ps.M+2*Ns+j] = NaN
             end
         end
+        # Reduce number of surviving strains by the number of extinctions
+        Ns -= sum(inds)
         # Delete extinct species
         ms = deleteat!(ms,dls)
     end
-    return(C,T,micd,its)
+    return(traj,T,micd,its)
 end

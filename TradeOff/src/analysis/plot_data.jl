@@ -59,7 +59,6 @@ function merge_data(ps::TOParameters,traj::Array{Array{Float64,2},1},T::Array{Fl
     inds = (((micd.↦:ExT) .== T[end]) .| isnan.(micd.↦:ExT))
     # Save number of survivors
     Ns = sum(inds)
-    println(Ns)
     # Extract final relevant trajectory
     tt = traj[ims+1]
     # setup counter

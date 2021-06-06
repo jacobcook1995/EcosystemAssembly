@@ -254,6 +254,7 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
             println("Immigration attempt $i initiated")
             flush(stdout)
         end
+        time_start = time()
         # Find how many immigrants there are
         nI = 1 + rand(sd)
         # Make new vector to store microbes
@@ -316,6 +317,10 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
         # Now setup and solve the problem with the new strains
         prob = ODEProblem(dyns!,x0,tspan,ms)
         sol = DifferentialEquations.solve(prob)
+        # FIND SECOND TIME
+        time_end = time()
+        # Then print out timing data
+        println("Time to start and run simulation $(i): $(time_end-time_start) s")
         # Update the number of survivors, as new strains have been added
         Ns += nI
         # Store new dynamics in a temporary form

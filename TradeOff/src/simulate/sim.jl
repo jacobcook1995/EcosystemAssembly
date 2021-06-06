@@ -314,6 +314,7 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ﾏ
         ﾏ不s = cat(ﾏ不_old,ﾏ不*ones(length(mst)),dims=1)
         # Collect all of this together in a vector of initial conditions
         x0 = [pops;concs;ass;ﾏ不s]
+        println("Number of strains = $(Ns+nI), min starting C value = $(minimum(concs))")
         # Now setup and solve the problem with the new strains
         prob = ODEProblem(dyns!,x0,tspan,ms)
         sol = DifferentialEquations.solve(prob)

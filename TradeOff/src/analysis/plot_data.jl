@@ -100,6 +100,7 @@ function plot_traj()
     catch e
             error("need to provide 2 integers")
     end
+    println("Compiled")
     # Extract other simulation parameters from the function
     Np, Rls, Rus, Nt, M = sim_paras()
     # Read in appropriate files
@@ -117,8 +118,10 @@ function plot_traj()
     T = load(ofile,"T")
     micd = load(ofile,"micd")
     its = load(ofile,"its")
+    println("Data read in")
     # Find C from a function
     C = merge_data(ps,traj,T,micd,its)
+    println("Data merged")
     # Find total number of strains
     totN = length(micd)
     pyplot(dpi=200)

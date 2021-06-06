@@ -308,13 +308,18 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ﾏ
         concs = C[end,in_cons[(Ns+1):(Ns+ps.M)]]
         as_old = C[end,in_cons[(Ns+ps.M+1):(2*Ns+ps.M)]]
         ﾏ不_old = C[end,in_cons[(2*Ns+ps.M+1):(3*Ns+ps.M)]]
+        # Find indices of negative concentrations and overwrite
+        nCids = findall(x->x<0.0,concs)
+        # Then set all these to zero
+        concs[nCids] .= 0.0
         #ﾂMake new vectors incoperating old and new microbes
         pops = cat(pops_old,pop*ones(length(mst)),dims=1)
         ass = cat(as_old,as*ones(length(mst)),dims=1)
         ﾏ不s = cat(ﾏ不_old,ﾏ不*ones(length(mst)),dims=1)
         # Collect all of this together in a vector of initial conditions
         x0 = [pops;concs;ass;ﾏ不s]
-        println("Number of strains = $(Ns+nI), min starting C value = $(minimum(concs))")
+        # ANOTHER CHECKING STEP
+        println("Number of strains = $(Ns+nI), min pop = $(minimum(pops)), min a = $(minimum(ass)), min phiR = $(minimum(ﾏ不s))")
         flush(stdout)
         # Now setup and solve the problem with the new strains
         prob = ODEProblem(dyns!,x0,tspan,ms)

@@ -315,6 +315,7 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
         # Collect all of this together in a vector of initial conditions
         x0 = [pops;concs;ass;Ï•ss]
         println("Number of strains = $(Ns+nI), min starting C value = $(minimum(concs))")
+        flush(stdout)
         # Now setup and solve the problem with the new strains
         prob = ODEProblem(dyns!,x0,tspan,ms)
         sol = DifferentialEquations.solve(prob)
@@ -322,6 +323,7 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
         time_end = time()
         # Then print out timing data
         println("Time to start and run simulation $(i): $(time_end-time_start) s")
+        flush(stdout)
         # Update the number of survivors, as new strains have been added
         Ns += nI
         # Store new dynamics in a temporary form

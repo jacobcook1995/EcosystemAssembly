@@ -143,10 +143,14 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Micro
     end
     # Final step to correct for any concentrations that have dropped below threshold (1e-15)
     for i = length(ms)+1:length(ms)+ps.M
-        # If the rate of change is above a threshold (1e-20) they are not altered
-        if x[i] < 1e-15 && dx[i] <= 1e-20
-            x[i] = 0.0
-            dx[i] = 0.0
+        # # If the rate of change is above a threshold (1e-20) they are not altered
+        # if x[i] < 1e-15 && dx[i] <= 1e-20
+        #     x[i] = 0.0
+        #     dx[i] = 0.0
+        # end
+        if x[i] < 1e-15
+             x[i] = 1e-15
+             dx[i] = 0.0
         end
     end
     # Any ATP numbers that have gone below 0.33 should be removed
@@ -307,10 +311,10 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
         concs = C[end,in_cons[(Ns+1):(Ns+ps.M)]]
         as_old = C[end,in_cons[(Ns+ps.M+1):(2*Ns+ps.M)]]
         ϕs_old = C[end,in_cons[(2*Ns+ps.M+1):(3*Ns+ps.M)]]
-        # Find indices of negative concentrations and overwrite
-        nCids = findall(x->x<0.0,concs)
+        # Find indices of concentrations below threshold and overwrite
+        nCids = findall(x->x<1e-15,concs)
         # Then set all these to zero
-        concs[nCids] .= 0.0
+        concs[nCids] .= 1e-15
         # Make new vectors incoperating old and new microbes
         pops = cat(pops_old,pop*ones(length(mst)),dims=1)
         ass = cat(as_old,as*ones(length(mst)),dims=1)

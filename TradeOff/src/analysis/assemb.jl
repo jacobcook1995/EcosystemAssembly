@@ -69,7 +69,7 @@ function assemble()
     ϕR0 = 0.128
     # Fairly arbitary inital conditions
     pop = 1000.0
-    conc = 0.0
+    conc = 1e-15
     as = 1e5
     ϕs = ϕR0
     # Starting with 10 strains for now

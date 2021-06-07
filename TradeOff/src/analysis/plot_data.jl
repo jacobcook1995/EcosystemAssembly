@@ -142,6 +142,86 @@ function plot_traj()
     return(nothing)
 end
 
+# Function to plot the generalist vs specialist trade-off with time
+function plot_genvsspec()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 2
+        error("insufficent inputs provided")
+    end
+    # Preallocate the variables I want to extract from the input
+    rps = 0
+    ims = 0
+    # Check that all arguments can be converted to integers
+    try
+        rps = parse(Int64,ARGS[1])
+        ims = parse(Int64,ARGS[2])
+    catch e
+            error("need to provide 2 integers")
+    end
+    println("Compiled")
+    # Load in hardcoded simulation parameters
+    Np, Rls, Rus, Nt, M = sim_paras()
+    # Read in parameter file
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld"
+    if ~isfile(pfile)
+        error("$(ims) immigrations run $(rN) is missing a parameter file")
+    end
+    # Load parameters
+    ps = load(pfile,"ps")
+    # Preallocate containers for the reaction distributions
+    iRd = zeros(5)
+    fRd = zeros(5)
+    # List of pools already loaded in
+    pls = []
+    # Array of array to store pools
+    pools = Array{Array{Microbe,1},1}(undef,1)
+    # Loop over number of repeats
+    for i = 1:rps
+        # Load in relevant output file
+        ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Run$(i)Data$(ims)Ims.jld"
+        if ~isfile(ofile)
+            error("$(ims) immigrations run $(rN) is missing an output file")
+        end
+        # Load in microbe data, and immigration times
+        T = load(ofile,"T")
+        micd = load(ofile,"micd")
+        its = load(ofile,"its")
+        # Find final time
+        Tf = T[end]
+        # Find initial microbes
+        iis = findall(x->x==0.0,micd.↦:ImT)
+        # Extract subset of the data
+        imicd = micd[iis]
+        # Then loop over the data
+        for j = 1:length(imicd)
+            # check for case where pool hasn't already been loaded in
+            if imicd[j].PID ∉ pls
+                # Add new pool ID in
+                pls = cat(pls,imicd[j].PID,dims=1)
+                # Find name of pool
+                file = "Pools/ID=$(imicd[j].PID)N=$(Nt)M=$(ps.M)Reacs$(Rls[1])-$(Rus[1]).jld"
+                # Check if this is the first pool
+                if length(pls) == 1
+                    # If so save the pool
+                    pools[1] = load(file,"mics")
+                else
+                    # Otherwise just cat it on existing vector
+                    pool = load(file,"mics")
+                    pools = cat(pools,pool,dims=1)
+                end
+            end
+            # Find correct pool to read from
+            ind = findfirst(x->x==imicd[j].PID,pls)
+            # Use this index to find the correct microbe
+            mic = (pools[ind])[imicd[j].MID]
+            # Add one to the relevant total
+            iRd[mic.R] += 1
+        end
+    end
+    println(iRd)
+    return(nothing)
+end
+
 # Hard code simulation parameters into this function
 function sim_paras()
     # Set the hardcoded variables here
@@ -153,4 +233,4 @@ function sim_paras()
     return(Np,Rls,Rus,Nt,M)
 end
 
-@time plot_traj()
+@time plot_genvsspec()

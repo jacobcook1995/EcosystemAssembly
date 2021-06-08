@@ -172,6 +172,8 @@ function plot_genvsspec()
     times = [0.0,5e6,1e7,1.5e7,2e7]
     # Preallocate containers for the reaction distributions
     Rds = zeros(5,length(times)+1)
+    # And corresponding biomass distributions
+    Rbs = zeros(5,length(times)+1)
     # List of pools already loaded in
     pls = []
     # Array of array to store pools
@@ -185,6 +187,7 @@ function plot_genvsspec()
         end
         # Load in microbe data, and immigration times
         T = load(ofile,"T")
+        traj = load(ofile,"traj")
         micd = load(ofile,"micd")
         its = load(ofile,"its")
         # Find final time
@@ -201,6 +204,22 @@ function plot_genvsspec()
             iis = ((micd.↦:ImT) .<= Ts[j]) .& (((micd.↦:ExT) .> Ts[j]) .| isnan.(micd.↦:ExT))
             # Extract subset of the data
             imicd = micd[iis]
+            # Find immigration number that we are interested in
+            imN = findfirst(x->x>=Ts[j],its)
+            # Now extract trajectories we are interested in
+            if !isnothing(imN)
+                trc = traj[imN]
+            else
+                # Find current size
+                sz = (size(traj[end],2) - ps.M)/3
+                sz = convert(Int64,sz)
+                # find indices that don't end in zero
+                inds = (traj[end])[end,1:sz] .> 0.0
+                # Make into the require index form for full traj object
+                tinds = collect(1:sz)[inds]
+                # Extract relvant trajectory here
+                trc = (traj[end])[:,tinds]
+            end
             # Then loop over the data
             for k = 1:length(imicd)
                 # check for case where pool hasn't already been loaded in
@@ -225,6 +244,15 @@ function plot_genvsspec()
                 mic = (pools[ind])[imicd[k].MID]
                 # Add one to the relevant total
                 Rds[mic.R,j] += 1
+                # Find biomass of this microbe at end of this time
+                if j != 1
+                    bm = trc[end,k]
+                else
+                    # Want starting amounts for inital values
+                    bm = trc[1,k]
+                end
+                # Add biomass to the relevant biomass totals
+                Rbs[mic.R,j] += bm
             end
         end
     end
@@ -239,6 +267,40 @@ function plot_genvsspec()
         # Then store the number
         pRds[i] = length(inds)
     end
+    pyplot(dpi=200)
+    # First plot the distribution in the pool
+    plot(ylabel="Number of strains",xlabel="Number of reactions",title="Orginal pool")
+    bar!(pRds,label="")
+    savefig("Output/ReacsInitialPool.png")
+    for i = 1:length(times)
+        plot(ylabel="Number of strains",xlabel="Number of reactions",title="Ecosystem at time $(times[i])s")
+        bar!(Rds[:,i],label="")
+        savefig("Output/ReacsT=$(i).png")
+    end
+    # Save final time
+    plot(ylabel="Number of strains",xlabel="Number of reactions",title="Final ecosystem")
+    bar!(Rds[:,end],label="")
+    savefig("Output/ReacsT=$(length(times)+1).png")
+    # Same plots for biomass
+    for i = 1:length(times)
+        plot(ylabel="Strain biomass",xlabel="Number of reactions",title="Ecosystem at time $(times[i])s")
+        bar!(Rbs[:,i],label="")
+        savefig("Output/BiomassT=$(i).png")
+    end
+    # Save final time
+    plot(ylabel="Strain biomass",xlabel="Number of reactions",title="Final ecosystem")
+    bar!(Rbs[:,end],label="")
+    savefig("Output/BiomassT=$(length(times)+1).png")
+    # Maybe also want average biomass per strain
+    for i = 1:length(times)
+        plot(ylabel="Average biomass per strain",xlabel="Number of reactions",title="Ecosystem at time $(times[i])s")
+        bar!(Rbs[:,i]./Rds[:,i],label="")
+        savefig("Output/AvBiomT=$(i).png")
+    end
+    # Save final time
+    plot(ylabel="Average biomass per strain",xlabel="Number of reactions",title="Final ecosystem")
+    bar!(Rbs[:,end]./Rds[:,end],label="")
+    savefig("Output/AvBiomT=$(length(times)+1).png")
     return(nothing)
 end
 
@@ -253,4 +315,5 @@ function sim_paras()
     return(Np,Rls,Rus,Nt,M)
 end
 
+# @time plot_traj()
 @time plot_genvsspec()

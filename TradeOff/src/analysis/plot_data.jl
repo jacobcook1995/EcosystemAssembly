@@ -168,9 +168,10 @@ function plot_genvsspec()
     end
     # Load parameters
     ps = load(pfile,"ps")
+    # Define list of times to check
+    times = [0.0,5e6,1e7,1.5e7,2e7]
     # Preallocate containers for the reaction distributions
-    iRd = zeros(5)
-    fRd = zeros(5)
+    Rds = zeros(5,length(times)+1)
     # List of pools already loaded in
     pls = []
     # Array of array to store pools
@@ -188,37 +189,56 @@ function plot_genvsspec()
         its = load(ofile,"its")
         # Find final time
         Tf = T[end]
-        # Find initial microbes
-        iis = findall(x->x==0.0,micd.↦:ImT)
-        # Extract subset of the data
-        imicd = micd[iis]
-        # Then loop over the data
-        for j = 1:length(imicd)
-            # check for case where pool hasn't already been loaded in
-            if imicd[j].PID ∉ pls
-                # Add new pool ID in
-                pls = cat(pls,imicd[j].PID,dims=1)
-                # Find name of pool
-                file = "Pools/ID=$(imicd[j].PID)N=$(Nt)M=$(ps.M)Reacs$(Rls[1])-$(Rus[1]).jld"
-                # Check if this is the first pool
-                if length(pls) == 1
-                    # If so save the pool
-                    pools[1] = load(file,"mics")
-                else
-                    # Otherwise just cat it on existing vector
-                    pool = load(file,"mics")
-                    pools = cat(pools,pool,dims=1)
+        # Check if final time is below for any run
+        if times[end] > Tf
+            println("Run $(i) final time = $(Tf)")
+        end
+        # Make vector of all times to check
+        Ts = cat(times,Tf,dims=1)
+        # Now loop over all times to check
+        for j = 1:length(Ts)
+            # Find initial microbes
+            iis = ((micd.↦:ImT) .<= Ts[j]) .& (((micd.↦:ExT) .> Ts[j]) .| isnan.(micd.↦:ExT))
+            # Extract subset of the data
+            imicd = micd[iis]
+            # Then loop over the data
+            for k = 1:length(imicd)
+                # check for case where pool hasn't already been loaded in
+                if imicd[k].PID ∉ pls
+                    # Add new pool ID in
+                    pls = cat(pls,imicd[k].PID,dims=1)
+                    # Find name of pool
+                    file = "Pools/ID=$(imicd[j].PID)N=$(Nt)M=$(ps.M)Reacs$(Rls[1])-$(Rus[1]).jld"
+                    # Check if this is the first pool
+                    if length(pls) == 1
+                        # If so save the pool
+                        pools[1] = load(file,"mics")
+                    else
+                        # Otherwise just cat it on existing vector
+                        pool = load(file,"mics")
+                        pools = cat(pools,pool,dims=1)
+                    end
                 end
+                # Find correct pool to read from
+                ind = findfirst(x->x==imicd[k].PID,pls)
+                # Use this index to find the correct microbe
+                mic = (pools[ind])[imicd[k].MID]
+                # Add one to the relevant total
+                Rds[mic.R,j] += 1
             end
-            # Find correct pool to read from
-            ind = findfirst(x->x==imicd[j].PID,pls)
-            # Use this index to find the correct microbe
-            mic = (pools[ind])[imicd[j].MID]
-            # Add one to the relevant total
-            iRd[mic.R] += 1
         end
     end
-    println(iRd)
+    # Extract maximum reaction number from the pool
+    maxR, _ = findmax(pools[1].↦:R)
+    # Preallocate output
+    pRds = zeros(maxR)
+    # Loop of reaction number
+    for i = 1:maxR
+        # Find all microbes with i reactions
+        inds = findall(x->x==i,pools[1].↦:R)
+        # Then store the number
+        pRds[i] = length(inds)
+    end
     return(nothing)
 end
 

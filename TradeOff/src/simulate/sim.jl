@@ -143,11 +143,6 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Micro
     end
     # Final step to correct for any concentrations that have dropped below threshold (1e-15)
     for i = length(ms)+1:length(ms)+ps.M
-        # # If the rate of change is above a threshold (1e-20) they are not altered
-        # if x[i] < 1e-15 && dx[i] <= 1e-20
-        #     x[i] = 0.0
-        #     dx[i] = 0.0
-        # end
         if x[i] < 1e-15
              x[i] = 1e-15
              dx[i] = 0.0
@@ -334,7 +329,7 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,Ï
         # Add to full vector of times
         T = cat(T,Tt[2:end],dims=1)
         # Now find indices of recently extinct strains
-        inds = (C[end,1:Ns] .< 1e-5)
+        inds = (C[end,1:Ns] .<= 1e-5)
         # Make vector to store indices to delete
         dls = []
         # Find indices of all strains that still survive in micd

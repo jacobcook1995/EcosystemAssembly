@@ -122,16 +122,19 @@ function plot_traj()
     # Find C from a function
     C = merge_data(ps,traj,T,micd,its)
     println("Data merged")
+    # Time snapshots that I'm highlighting
+    times = [5e6,1.5e7,T[end]]
     # Find total number of strains
     totN = length(micd)
     pyplot(dpi=200)
     # Plot all the populations
-    p1 = plot(yaxis=:log10,ylabel="Population (# cells)")
+    p1 = plot(yaxis=:log10,ylabel="Population (# cells)",ylims=(1e-5,Inf))
     for i = 1:totN
         # Find and eliminate zeros so that they can be plotted on a log plot
         inds = (C[:,i] .> 0)
         plot!(p1,T[inds],C[inds,i],label="")
     end
+    vline!(p1,times,color=:red,style=:dash,label="")
     savefig(p1,"Output/pops.png")
     plot(T,C[:,(totN+1):(totN+ps.M)],label="")
     savefig("Output/concs.png")
@@ -269,7 +272,7 @@ function plot_genvsspec()
     end
     pyplot(dpi=200)
     # First plot the distribution in the pool
-    plot(ylabel="Number of strains",xlabel="Number of reactions",title="Orginal pool")
+    plot(ylabel="Number of strains",xlabel="Number of reactions",title="Original pool")
     bar!(pRds,label="")
     savefig("Output/ReacsInitialPool.png")
     for i = 1:length(times)
@@ -315,5 +318,5 @@ function sim_paras()
     return(Np,Rls,Rus,Nt,M)
 end
 
-# @time plot_traj()
-@time plot_genvsspec()
+@time plot_traj()
+# @time plot_genvsspec()

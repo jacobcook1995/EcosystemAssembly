@@ -1,5 +1,16 @@
 # Script to allow merging of data into the form of full plotable trajectories
-export merge_data
+export merge_data, sim_paras
+
+# Hard code simulation parameters into this function
+function sim_paras()
+    # Set the hardcoded variables here
+    Np = 1
+    Rls = [1]
+    Rus = [5]
+    Nt = 1000
+    M = 25
+    return(Np,Rls,Rus,Nt,M)
+end
 
 # function to merge my output data into a plotable form
 function merge_data(ps::TOParameters,traj::Array{Array{Float64,2},1},T::Array{Float64,1},

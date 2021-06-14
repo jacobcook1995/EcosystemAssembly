@@ -56,8 +56,14 @@ function plot_traj()
     end
     vline!(p1,times,color=:red,style=:dash,label="")
     savefig(p1,"Output/pops.png")
-    plot(T,C[:,(totN+1):(totN+ps.M)],label="")
-    savefig("Output/concs.png")
+    # Plot all the concentrations
+    p2 = plot(yaxis=:log10,ylabel="Concentration")#,ylims=(1e-15,Inf))
+    for i = 1:ps.M
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,totN+i] .> 0)
+        plot!(p2,T[inds],C[inds,totN+i],label="")
+    end
+    savefig(p2,"Output/concs.png")
     plot(T,C[:,(totN+ps.M+1):(2*totN+ps.M)],label="")
     savefig("Output/as.png")
     plot(T,C[:,(2*totN+ps.M+1):end],label="")
@@ -150,7 +156,7 @@ function plot_genvsspec()
                     # Add new pool ID in
                     pls = cat(pls,imicd[k].PID,dims=1)
                     # Find name of pool
-                    file = "Pools/ID=$(imicd[j].PID)N=$(Nt)M=$(ps.M)Reacs$(Rls[1])-$(Rus[1]).jld"
+                    file = "Pools/ID=$(imicd[k].PID)N=$(Nt)M=$(ps.M)Reacs$(Rls[1])-$(Rus[1]).jld"
                     # Check if this is the first pool
                     if length(pls) == 1
                         # If so save the pool
@@ -225,17 +231,6 @@ function plot_genvsspec()
     bar!(Rbs[:,end]./Rds[:,end],label="")
     savefig("Output/AvBiomT=$(length(times)+1).png")
     return(nothing)
-end
-
-# Hard code simulation parameters into this function
-function sim_paras()
-    # Set the hardcoded variables here
-    Np = 1
-    Rls = [1]
-    Rus = [5]
-    Nt = 1000
-    M = 25
-    return(Np,Rls,Rus,Nt,M)
 end
 
 @time plot_traj()

@@ -233,5 +233,56 @@ function plot_genvsspec()
     return(nothing)
 end
 
-@time plot_traj()
+# Function to load in and plot the averages
+function plot_aves()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 1
+        error("insufficent inputs provided")
+    end
+    # Preallocate the variables I want to extract from the input
+    ims = 0
+    # Check that all arguments can be converted to integers
+    try
+        ims = parse(Int64,ARGS[1])
+    catch e
+            error("need to provide an integer")
+    end
+    println("Compiled")
+    # Load in hardcoded simulation parameters
+    Np, Rls, Rus, Nt, M = sim_paras()
+    # Find file name to load in
+    sfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/RunStats$(ims)Ims.jld"
+    # Check it actually exists
+    if ~isfile(sfile)
+        error("missing stats file for $(ims) immigrations simulations")
+    end
+    # Now load out the times, and number of trajectories
+    times = load(sfile,"times")
+    no_sims = load(sfile,"no_sims")
+    # Load in averages
+    mn_svt = load(sfile,"mn_svt")
+    mn_tsvt = load(sfile,"mn_tsvt")
+    mn_sbs = load(sfile,"mn_sbs")
+    mn_Rs = load(sfile,"mn_Rs")
+    # Load in standard deviations
+    sd_svt = load(sfile,"sd_svt")
+    sd_tsvt = load(sfile,"sd_tsvt")
+    sd_sbs = load(sfile,"sd_sbs")
+    sd_Rs = load(sfile,"sd_Rs")
+    # Setup plotting
+    pyplot(dpi=200)
+    plot(xlabel="Time (s)",ylabel="Number of surviving strains")
+    plot!(times,mn_svt,ribbon=sd_svt,label="")
+    savefig("Output/AvSurvTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of viable strains")
+    plot!(times,mn_tsvt,ribbon=sd_tsvt,label="")
+    savefig("Output/AvViaTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of diversified substrates")
+    plot!(times,mn_sbs,ribbon=sd_sbs,label="")
+    savefig("Output/AvSubTime.png")
+    return(nothing)
+end
+
+@time plot_aves()
+# @time plot_traj()
 # @time plot_genvsspec()

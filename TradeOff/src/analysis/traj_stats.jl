@@ -24,7 +24,7 @@ function trjstats()
     # Save number of reactions
     NoR = Rus[1] - Rls[1] + 1
     # Number of steps to calculate stats for
-    NumS = 5000
+    NumS = 2500
     # Read in parameter file
     pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
@@ -125,12 +125,14 @@ function trjstats()
     sd_Rs = zeros(size(mn_Rs))
     # Loop over times
     for i = 1:length(times)
+        # Find indices of still progressing trajectories
+        inds = (Tfs .>= times[i])
         # Calculate standard deviations
-        sd_svt[i] = sqrt(sum((cmb_svt[:,i] .- mn_svt[i]).^2)/(no_sims[i] - 1))
-        sd_tsvt[i] = sqrt(sum((cmb_tsvt[:,i] .- mn_tsvt[i]).^2)/(no_sims[i] - 1))
-        sd_sbs[i] = sqrt(sum((cmb_sbs[:,i] .- mn_sbs[i]).^2)/(no_sims[i] - 1))
+        sd_svt[i] = sqrt(sum((cmb_svt[inds,i] .- mn_svt[i]).^2)/(no_sims[i] - 1))
+        sd_tsvt[i] = sqrt(sum((cmb_tsvt[inds,i] .- mn_tsvt[i]).^2)/(no_sims[i] - 1))
+        sd_sbs[i] = sqrt(sum((cmb_sbs[inds,i] .- mn_sbs[i]).^2)/(no_sims[i] - 1))
         for j = 1:NoR
-            sd_Rs[j,i] = sqrt(sum((cmb_Rs[:,j,i] .- mn_Rs[j,i]).^2)/(no_sims[i] - 1))
+            sd_Rs[j,i] = sqrt(sum((cmb_Rs[inds,j,i] .- mn_Rs[j,i]).^2)/(no_sims[i] - 1))
         end
     end
     # Now want to save means and standard deviations

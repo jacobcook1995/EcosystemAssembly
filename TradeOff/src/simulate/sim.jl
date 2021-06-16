@@ -3,6 +3,8 @@ export full_simulate, θ, θ_smooth, qs
 
 export full_simulate_syn, sing_pop
 
+# DUPLICATED LOADS OF FUNCTIONS, THIS WILL HAVE TO BE SORTED OUT AT SOMEPOINT
+
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
     # Catch perverse cases that sometimes arise
@@ -47,8 +49,24 @@ function qs(S::Float64,P::Float64,E::Float64,i::Int64,ps::Microbe,T::Float64,r::
     return(max(q,0.0))
 end
 
+# function to find the rate of substrate consumption by a particular reaction
+function qs(S::Float64,P::Float64,E::Float64,i::Int64,ps::new_Microbe,T::Float64,r::Reaction)
+    # To speed things I don't have a check here to ensure that r.ID matches ps.Reac[i]
+    # This is something to check if I start getting errors
+    θs = θ(S,P,T,ps.η[i],r.ΔG0)
+    q = ps.kc[i]*E*S*(1-θs)/(ps.KS[i] + S*(1+ps.kr[i]*θs))
+    # Ensure that negative value cannot be returned
+    return(max(q,0.0))
+end
+
 # function to calculate the amount of a partcular enzyme a strain has
 function Eα(ϕR::Float64,ps::Microbe,i::Int64)
+    E = ps.MC*(1-ϕR-ps.ϕH)*ps.ϕP[i]/(ps.n[2])
+    return(E)
+end
+
+# function to calculate the amount of a partcular enzyme a strain has
+function Eα(ϕR::Float64,ps::new_Microbe,i::Int64)
     E = ps.MC*(1-ϕR-ps.ϕH)*ps.ϕP[i]/(ps.n[2])
     return(E)
 end
@@ -60,7 +78,7 @@ function γs(a::Float64,ps::Microbe)
 end
 
 # function to find (energy use dependent) elongation rate γ
-function γs(a::Float64,ϕR::Float64,ps::Microbe)
+function γs(a::Float64,ϕR::Float64,ps::new_Microbe)
     γ = ps.γm*exp(-ps.μ*ϕR/χs(a,ps))
     return(γ)
 end
@@ -75,7 +93,7 @@ end
 
 # function to find the growth rate λ
 # NEW FUNCTION THAT SHOULD REPLACE THE OLD WHEN I'M HAPPY WITH IT
-function new_λs(a::Float64,ϕR::Float64,ps::Microbe)
+function new_λs(a::Float64,ϕR::Float64,ps::new_Microbe)
     # Find elongation rate
     γ = γs(a,ϕR,ps)
     λ = (γ*ϕR*ps.Pb)/ps.n[1]
@@ -88,8 +106,14 @@ function ϕ_R(a::Float64,ps::Microbe)
     return(ϕ)
 end
 
+# function to find ϕR based on the energy concentration
+function ϕ_R(a::Float64,ps::new_Microbe)
+    ϕ = ps.ω*(1-ps.ϕH)*a/(ps.KΩ + a)
+    return(ϕ)
+end
+
 # function to calculate energy use per step χ
-function χs(a::Float64,ps::Microbe)
+function χs(a::Float64,ps::new_Microbe)
     χ = ps.χl + ps.χu*a/(a + ps.Kχ)
     return(χ)
 end
@@ -181,7 +205,7 @@ end
 
 # function to implement the consumer resource dynamics
 # THIS IS ONE USING THE NEW FUNCTION It SHOULD REPLACE THE OLD ONCE I'M HAPPY WITH IT
-function new_full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Microbe,1},ps::TOParameters,
+function new_full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{new_Microbe,1},ps::TOParameters,
                         rate::Array{Float64,2},t::Float64)
     # loop over the reactions to find reaction rate for each reaction for each strain
     for j = 1:ps.O
@@ -476,16 +500,19 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
 end
 
 # function to test for single population growth
-function sing_pop(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,mic::new_Microbe)
+function sing_pop(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,
+                    mic::new_Microbe,Tmax::Float64)
     # Preallocate memory
     rate = zeros(1,ps.O)
     # Now substitute preallocated memory in
     dyns!(dx,x,ms,t) = new_full_dynamics!(dx,x,ms,ps,rate,t)
     # Find time span for this step
     tspan = (0,Tmax)
-    x0 = [pop;conc;as;ϕs]
+    # Make appropriate initial condition
+    concs = conc*ones(ps.M)
+    x0 = [pop;concs;as;ϕs]
     # Then setup and solve the problem
-    prob = ODEProblem(dyns!,x0,tspan,ps)
+    prob = ODEProblem(dyns!,x0,tspan,[mic])
     sol = DifferentialEquations.solve(prob)
     return(sol',sol.t)
 end

@@ -20,7 +20,16 @@ function test()
     Kχ = 1e9
     # Then make a microbes
     mic = new_mic(M,μ,ω,KΩ,Kχ,Rl,Ru)
-    println(mic)
+    # Set reasonable time window
+    Tmax = 1e5
+    # Choose initial condition
+    pop = 1000.0
+    conc = 1e-5
+    as = 1e5
+    ϕs = 0.128
+    # Then simulate
+    C, T = sing_pop(ps,pop,conc,as,ϕs,mic,Tmax)
+    println(T)
     return(nothing)
 end
 

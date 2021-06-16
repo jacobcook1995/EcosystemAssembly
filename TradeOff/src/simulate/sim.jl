@@ -79,7 +79,12 @@ end
 
 # function to find (energy use dependent) elongation rate γ
 function γs(a::Float64,ϕR::Float64,ps::new_Microbe)
-    γ = ps.γm*exp(-ps.μ*ϕR/χs(a,ps))
+    # Check that there's actually energy to grow with
+    if a > 0.0
+        γ = ps.γm*exp(-ps.μ*ϕR/χs(a,ps))
+    else
+        γ = 0.0
+    end
     return(γ)
 end
 

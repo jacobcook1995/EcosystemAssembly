@@ -188,10 +188,11 @@ function new_mic(M::Int64,μ::Float64,ω::Float64,KΩ::Float64,Kχ::Float64,Rl::
     d = 6.0e-5
     # The number of ATP per translation step, including the cost of amino acid sythesis
     # This figure is taken from Lynch and Marinov 2015
-    # ESTIMATE THESE FROM LYNCH AND MARINOV 2015
-    # THEY ARE GUESSES AT THE MOMENT
-    χl = 20.0
-    χu = 9.0
+    # χl thus represents the minimum cost of synthesising a gene
+    χl = 27.55
+    # Carbon use efficency varies by factor ~3 (Roller et al 2016)
+    # So go with max usage ~double the basal value i.e. 60.0
+    χu = 60.0
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
     # Housekeeping fraction is taken from Scott et al. 2010

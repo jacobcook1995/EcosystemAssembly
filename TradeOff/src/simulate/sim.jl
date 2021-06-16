@@ -59,6 +59,12 @@ function γs(a::Float64,ps::Microbe)
     return(γ)
 end
 
+# function to find (energy use dependent) elongation rate γ
+function γs(a::Float64,ϕR::Float64,ps::Microbe)
+    γ = ps.γm*exp(-ps.μ*ϕR/χs(a,ps))
+    return(γ)
+end
+
 # function to find the growth rate λ
 function λs(a::Float64,ϕR::Float64,ps::Microbe)
     # Find elongation rate
@@ -69,8 +75,14 @@ end
 
 # function to find ϕR based on the energy concentration
 function ϕ_R(a::Float64,ps::Microbe)
-    ϕ = (1-ps.ϕH)*a/(ps.KΩ + a)
+    ϕ = ps.ω*(1-ps.ϕH)*a/(ps.KΩ + a)
     return(ϕ)
+end
+
+# function to calculate energy use per step χ
+function χs(a::Float64,ps::Microbe)
+    χ = ps.χl + ps.χu*a/(a + ps.Kχ)
+    return(χ)
 end
 
 # function to implement the consumer resource dynamics

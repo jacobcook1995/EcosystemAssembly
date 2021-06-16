@@ -57,6 +57,7 @@ Type containing the parameters for a particular microbial strain, this now inclu
 - `ϕH::Float64`: Fraction of proteome allocated to housekeeping proteins
 - `KΩ::Float64`: Saturation constant for proteome fraction with energy
 - `fd::Float64`: Number of doublings required to reorder proteome
+- `ω::Float64`: Fraction of maximum ribsome fraction can reach
 - `R::Int64`: Number of reactions
 - `Reacs::Vector{Int64}`: Reaction numbers
 - `η::Vector{Float64}`: ATP generated per mole of reaction
@@ -78,6 +79,7 @@ struct Microbe
     ϕH::Float64;
     KΩ::Float64;
     fd::Float64;
+    ω::Float64;
     R::Int64;
     Reacs::Vector{Int64}
     η::Vector{Float64}
@@ -92,13 +94,13 @@ end
 
 """
     make_Microbe(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,ϕH::Float64,KΩ::Float64,
-    fd::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},
+    fd::Float64,ω::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},
     kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
 Helper function used internally. Takes values for parameters and returns a `Microbe` object.
 Also does checks internally to make sure the values are correct.
 """
 function make_Microbe(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float64,d::Float64,
-                        ϕH::Float64,KΩ::Float64,fd::Float64,R::Int64,Reacs::Vector{Int64},
+                        ϕH::Float64,KΩ::Float64,fd::Float64,ω::Float64,R::Int64,Reacs::Vector{Int64},
                         η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},kr::Vector{Float64},
                         n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
     # Check that physical parameters have been provided
@@ -112,6 +114,7 @@ function make_Microbe(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float6
     @assert 0.0 <= ϕH <= 1.0 "Housekeeping proteins have to be between 0 and 100% of total"
     @assert KΩ > 0.0 "Proteome fraction saturation constant must be positive"
     @assert fd > 0.0 "Number of doublings required must be positive"
+    @assert 0.0 <= ω <= 1.0 "Ribosome fraction maximum has to be between 0.0 and 1.0 of total"
     # Check that the vectors have the right length
     @assert length(Reacs) == R "Vector of reactions is the wrong length"
     @assert length(η) == R "Vector of ATP generation rates (η) is the wrong length"
@@ -129,7 +132,7 @@ function make_Microbe(MC::Int64,γm::Float64,ρ::Float64,Kγ::Float64,Pb::Float6
     @assert all(n .> 0) "All proteins must have positive mass"
     @assert all(ϕP .>= 0.0) "All metabolic fractions must be non-negative"
     @assert sum(ϕP) ≈ 1.0 "Metabolic fractions should sum to 1"
-    return(Microbe(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kc,KS,kr,n,ϕP,ID,PID))
+    return(Microbe(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kc,KS,kr,n,ϕP,ID,PID))
 end
 
 """

@@ -114,6 +114,8 @@ function new_pool(Nt::Int64,M::Int64,Rl::Int64,Ru::Int64)
     KΩ = 1e9
     # Number of doublings required to dilute to 1%
     fd = log(100)/log(2)
+    # For now just want to set ω so as to allow maximal ribosome fraction
+    ω = 1.0
     # Chosen so that 100 steps yields slightly more free energy than respiring glucose
     μrange = 5e6*(M/25)
     # Generate fixed set of reactions
@@ -137,7 +139,7 @@ function new_pool(Nt::Int64,M::Int64,Rl::Int64,Ru::Int64)
         # Find corresponding η's for these reactions
         η = choose_η_mix(reacs,Reacs,T,syn)
         # Can finally generate microbe
-        mics[i] = make_Microbe(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,R,Reacs,η,kcs,KSs,krs,n,ϕP,i,PID)
+        mics[i] = make_Microbe(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,i,PID)
     end
     # Write out necessary data
     jldopen("Pools/ID=$(PID)N=$(Nt)M=$(M)Reacs$(Rl)-$(Ru).jld","w") do file

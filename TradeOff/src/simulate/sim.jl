@@ -1,7 +1,7 @@
 # A script to run the dynamics for the full model.
-export full_simulate, θ, θ_smooth, qs, test_full_simulate
+export full_simulate, θ, θ_smooth, qs
 
-export test_dynamics!, full_simulate_syn
+export full_simulate_syn, sing_pop
 
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
@@ -73,6 +73,15 @@ function λs(a::Float64,ϕR::Float64,ps::Microbe)
     return(λ)
 end
 
+# function to find the growth rate λ
+# NEW FUNCTION THAT SHOULD REPLACE THE OLD WHEN I'M HAPPY WITH IT
+function new_λs(a::Float64,ϕR::Float64,ps::Microbe)
+    # Find elongation rate
+    γ = γs(a,ϕR,ps)
+    λ = (γ*ϕR*ps.Pb)/ps.n[1]
+    return(λ)
+end
+
 # function to find ϕR based on the energy concentration
 function ϕ_R(a::Float64,ps::Microbe)
     ϕ = ps.ω*(1-ps.ϕH)*a/(ps.KΩ + a)
@@ -136,6 +145,92 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Micro
             end
             # Add energy intake and substract translation and dilution from the energy concentration
             dx[length(ms)+ps.M+i] = J - (ms[i].MC*ms[i].ρ + x[length(ms)+ps.M+i])*λ
+        end
+    end
+    # Do basic resource dynamics
+    for i = length(ms)+1:length(ms)+ps.M
+        # fist add external supply of resource and decay
+        dx[i] = ps.κ[i-length(ms)] - ps.δ[i-length(ms)]*x[i]
+    end
+    # Then loop over microbes
+    for i = 1:length(ms)
+        # Loop over reactions for specific microbe
+        for j = 1:ms[i].R
+            # Increase the product
+            dx[length(ms)+ps.reacs[ms[i].Reacs[j]].Prd] += rate[i,ms[i].Reacs[j]]*x[i]/NA
+            # and decrease the reactant
+            dx[length(ms)+ps.reacs[ms[i].Reacs[j]].Rct] -= rate[i,ms[i].Reacs[j]]*x[i]/NA
+        end
+    end
+    # Final step to correct for any concentrations that have dropped below threshold (1e-15)
+    for i = length(ms)+1:length(ms)+ps.M
+        if x[i] < 1e-15
+             x[i] = 1e-15
+             dx[i] = 0.0
+        end
+    end
+    # Any ATP numbers that have gone below 0.33 should be removed
+    for i = (length(ms)+ps.M+1):(2*length(ms)+ps.M)
+        if x[i] < 0.33
+            x[i] = 0.0
+            dx[i] = 0.0
+        end
+    end
+    return(dx)
+end
+
+# function to implement the consumer resource dynamics
+# THIS IS ONE USING THE NEW FUNCTION It SHOULD REPLACE THE OLD ONCE I'M HAPPY WITH IT
+function new_full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Microbe,1},ps::TOParameters,
+                        rate::Array{Float64,2},t::Float64)
+    # loop over the reactions to find reaction rate for each reaction for each strain
+    for j = 1:ps.O
+        # Find substrate and product for this reaction
+        for i = 1:length(ms)
+            # Check if microbe i performs reaction j
+            if j ∈ ms[i].Reacs
+                # Find index of this reaction in microbe
+                k = findfirst(x->x==j,ms[i].Reacs)
+                # Find amount of enzyme E
+                E = Eα(x[2*length(ms)+ps.M+i],ms[i],k)
+                # Then finally calculate reaction rate
+                rate[i,j] = qs(x[length(ms)+ps.reacs[j].Rct],x[length(ms)+ps.reacs[j].Prd],E,k,ms[i],ps.T,ps.reacs[ms[i].Reacs[k]])
+            else
+                rate[i,j] = 0.0
+            end
+        end
+    end
+    # Now want to use the rate matrix in the consumer dynamics
+    for i = 1:length(ms)
+        # Check if strain is effectively extinct
+        if x[i] <= 1e-5
+            # If so x should be set to zero and should not change from that
+            dx[i] = 0.0
+            x[i] = 0.0
+            # In this case the energy concentration should also be fixed to zero
+            dx[length(ms)+ps.M+i] = 0.0
+            x[length(ms)+ps.M+i] = 0.0
+            # Corresponding proteome fraction also shouldn't shift
+            dx[2*length(ms)+ps.M+i] = 0.0
+        else
+            # find growth rate for strains that aren't extinct
+            λ = new_λs(x[length(ms)+ps.M+i],x[2*length(ms)+ps.M+i],ms[i])
+            # (growth rate - death rate)*population
+            dx[i] = (λ - ms[i].d)*x[i]
+            # Now find optimal ribosome fraction
+            ϕR = ϕ_R(x[length(ms)+ps.M+i],ms[i])
+            # This introduces a time delay
+            τ = ms[i].fd/λ
+            # Then update actual ribosome fraction
+            dx[2*length(ms)+ps.M+i] = (ϕR - x[2*length(ms)+ps.M+i])/τ
+            # Energy intake is zero
+            J = 0
+            # Loop over all reactions to find energy gained by them
+            for j = 1:ms[i].R
+                J += ms[i].η[j]*rate[i,ms[i].Reacs[j]]
+            end
+            # Add energy intake and substract translation and dilution from the energy concentration
+            dx[length(ms)+ps.M+i] = J - (ms[i].MC*χs(x[length(ms)+ps.M+i],ms[i]) + x[length(ms)+ps.M+i])*λ
         end
     end
     # Do basic resource dynamics
@@ -378,4 +473,19 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
         ms = deleteat!(ms,dls)
     end
     return(traj,T,micd,its)
+end
+
+# function to test for single population growth
+function sing_pop(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,mic::new_Microbe)
+    # Preallocate memory
+    rate = zeros(1,ps.O)
+    # Now substitute preallocated memory in
+    dyns!(dx,x,ms,t) = new_full_dynamics!(dx,x,ms,ps,rate,t)
+    # Find time span for this step
+    tspan = (0,Tmax)
+    x0 = [pop;conc;as;ϕs]
+    # Then setup and solve the problem
+    prob = ODEProblem(dyns!,x0,tspan,ps)
+    sol = DifferentialEquations.solve(prob)
+    return(sol',sol.t)
 end

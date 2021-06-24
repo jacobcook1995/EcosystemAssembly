@@ -16,7 +16,7 @@ function test()
     Rl = 1
     Ru = 1
     # Choose new parameter values
-    μ = 1e-1
+    μ = 1.1e2
     ω = 0.5
     KΩ = 1e9
     Kχ = 1e9
@@ -55,6 +55,22 @@ function test()
     savefig("Output/as.png")
     plot(T,C[:,(2*totN+ps.M+1):end],label="")
     savefig("Output/fracs.png")
+    # Preallocate containers for growth rates, elongation rates, efficencies
+    λ_t = zeros(length(T))
+    γ_t = zeros(length(T))
+    χ_t = zeros(length(T))
+    # Loop over time points
+    for i = 1:length(T)
+        λ_t[i] = λs(C[i,totN+ps.M+1],C[i,totN+ps.M+2],mic)
+        γ_t[i] = γs(C[i,totN+ps.M+1],C[i,totN+ps.M+2],mic)
+        χ_t[i] = χs(C[i,totN+ps.M+1],mic)
+    end
+    plot(T,λ_t,label="")
+    savefig("Output/growth.png")
+    plot(T,γ_t,label="")
+    savefig("Output/trans.png")
+    plot(T,χ_t,label="")
+    savefig("Output/eff.png")
     return(nothing)
 end
 

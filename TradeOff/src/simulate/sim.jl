@@ -1,7 +1,8 @@
 # A script to run the dynamics for the full model.
-export full_simulate, θ, θ_smooth, qs
+export full_simulate, sing_pop, θ, θ_smooth, qs
 
-export full_simulate_syn, sing_pop
+# These are temporarily being output to aid with testing
+export γs, λs, χs
 
 # DUPLICATED LOADS OF FUNCTIONS, THIS WILL HAVE TO BE SORTED OUT AT SOMEPOINT
 
@@ -81,7 +82,7 @@ end
 function γs(a::Float64,ϕR::Float64,ps::new_Microbe)
     # Check that there's actually energy to grow with
     if a > 0.0
-        γ = ps.γm*exp(-ps.μ*ϕR/χs(a,ps))
+        γ = ps.γm*exp(-ps.μ*ϕR/(χs(a,ps)-ps.χl))
     else
         γ = 0.0
     end
@@ -98,7 +99,7 @@ end
 
 # function to find the growth rate λ
 # NEW FUNCTION THAT SHOULD REPLACE THE OLD WHEN I'M HAPPY WITH IT
-function new_λs(a::Float64,ϕR::Float64,ps::new_Microbe)
+function λs(a::Float64,ϕR::Float64,ps::new_Microbe)
     # Find elongation rate
     γ = γs(a,ϕR,ps)
     λ = (γ*ϕR*ps.Pb)/ps.n[1]
@@ -243,7 +244,7 @@ function new_full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{n
             dx[2*length(ms)+ps.M+i] = 0.0
         else
             # find growth rate for strains that aren't extinct
-            λ = new_λs(x[length(ms)+ps.M+i],x[2*length(ms)+ps.M+i],ms[i])
+            λ = λs(x[length(ms)+ps.M+i],x[2*length(ms)+ps.M+i],ms[i])
             # (growth rate - death rate)*population
             dx[i] = (λ - ms[i].d)*x[i]
             # Now find optimal ribosome fraction

@@ -2,6 +2,7 @@
 using TradeOff
 using Random
 using Plots
+using LaTeXStrings
 import PyPlot
 
 # Simply want to test if the new function I've written works
@@ -36,7 +37,7 @@ function test()
     # Only 1 strain at the moment
     totN = 1
     # Plot all the populations
-    p1 = plot(yaxis=:log10,ylabel="Population (# cells)",ylims=(1e-5,Inf))
+    p1 = plot(yaxis=:log10,ylabel="Population (# cells)",xlabel="Time")
     for i = 1:totN
         # Find and eliminate zeros so that they can be plotted on a log plot
         inds = (C[:,i] .> 0)
@@ -44,16 +45,16 @@ function test()
     end
     savefig(p1,"Output/pops.png")
     # Plot all the concentrations
-    p2 = plot(yaxis=:log10,ylabel="Concentration")#,ylims=(1e-15,Inf))
+    p2 = plot(yaxis=:log10,ylabel="Concentration",xlabel="Time")
     for i = 1:ps.M
         # Find and eliminate zeros so that they can be plotted on a log plot
         inds = (C[:,totN+i] .> 0)
         plot!(p2,T[inds],C[inds,totN+i],label="")
     end
     savefig(p2,"Output/concs.png")
-    plot(T,C[:,(totN+ps.M+1):(2*totN+ps.M)],label="")
+    plot(T,C[:,(totN+ps.M+1):(2*totN+ps.M)],label="",ylabel="ATP",xlabel="Time")
     savefig("Output/as.png")
-    plot(T,C[:,(2*totN+ps.M+1):end],label="")
+    plot(T,C[:,(2*totN+ps.M+1):end],label="",ylabel=L"\phi_R",xlabel="Time")
     savefig("Output/fracs.png")
     # Preallocate containers for growth rates, elongation rates, efficencies
     λ_t = zeros(length(T))
@@ -65,11 +66,11 @@ function test()
         γ_t[i] = γs(C[i,totN+ps.M+1],C[i,totN+ps.M+2],mic)
         χ_t[i] = χs(C[i,totN+ps.M+1],mic)
     end
-    plot(T,λ_t,label="")
+    plot(T,λ_t,label="",ylabel=L"\lambda",xlabel="Time")
     savefig("Output/growth.png")
-    plot(T,γ_t,label="")
+    plot(T,γ_t,label="",ylabel=L"\gamma",xlabel="Time")
     savefig("Output/trans.png")
-    plot(T,χ_t,label="")
+    plot(T,χ_t,label="",ylabel=L"\chi",xlabel="Time")
     savefig("Output/eff.png")
     return(nothing)
 end

@@ -269,17 +269,30 @@ function plot_aves()
     sd_tsvt = load(sfile,"sd_tsvt")
     sd_sbs = load(sfile,"sd_sbs")
     sd_Rs = load(sfile,"sd_Rs")
+    # Preallocate standard errors
+    se_Rs = zeros(size(sd_Rs))
+    # Calculate standard errors from this
+    se_svt = sd_svt./sqrt.(no_sims)
+    se_tsvt = sd_tsvt./sqrt.(no_sims)
+    se_sbs = sd_sbs./sqrt.(no_sims)
+    for i = 1:size(sd_Rs,1)
+        se_Rs[i,:] = sd_Rs[i,:]./sqrt.(no_sims)
+    end
     # Setup plotting
     pyplot(dpi=200)
     plot(xlabel="Time (s)",ylabel="Number of surviving strains")
-    plot!(times,mn_svt,ribbon=sd_svt,label="")
+    plot!(times,mn_svt,ribbon=se_svt,label="")
     savefig("Output/AvSurvTime.png")
     plot(xlabel="Time (s)",ylabel="Number of viable strains")
-    plot!(times,mn_tsvt,ribbon=sd_tsvt,label="")
+    plot!(times,mn_tsvt,ribbon=se_tsvt,label="")
     savefig("Output/AvViaTime.png")
     plot(xlabel="Time (s)",ylabel="Number of diversified substrates")
-    plot!(times,mn_sbs,ribbon=sd_sbs,label="")
+    plot!(times,mn_sbs,ribbon=se_sbs,label="")
     savefig("Output/AvSubTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of strains")#,xlim=(-Inf,2.5e7))
+    plot!(times,mn_Rs[1,:],ribbon=se_Rs[1,:],label="R=1")
+    plot!(times,mn_Rs[5,:],ribbon=se_Rs[5,:],label="R=5")
+    savefig("Output/AvReacsTime.png")
     return(nothing)
 end
 

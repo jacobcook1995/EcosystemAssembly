@@ -1,6 +1,6 @@
 # Script to generate and save a pool of microbes with particular parameter ranges
 
-export new_pool, new_mic
+export new_pool, new_mic, fix_reactions, choose_reactions
 
 # function to generate fix set of reaction for our model. Each metabolite can be broken
 # down into metabolites 1 or 2 steps down. The steps between metabolites are fixed.

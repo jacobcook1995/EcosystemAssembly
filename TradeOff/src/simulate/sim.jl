@@ -1,5 +1,5 @@
 # A script to run the dynamics for the full model.
-export full_simulate, sing_pop, θ, θ_smooth, qs
+export full_simulate, sing_pop, doub_pop, θ, θ_smooth, qs
 
 # These are temporarily being output to aid with testing
 export γs, λs, χs
@@ -519,6 +519,31 @@ function sing_pop(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::F
     x0 = [pop;concs;as;ϕs]
     # Then setup and solve the problem
     prob = ODEProblem(dyns!,x0,tspan,[mic])
+    sol = DifferentialEquations.solve(prob)
+    return(sol',sol.t)
+end
+
+# function to test for competition between two populations
+function doub_pop(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,
+                    mics::Array{Microbe,1},Tmax::Float64)
+    # Check correct number of microbes has been provided
+    if length(mics) != 2
+        error("must provide two microbes")
+    end
+    # Preallocate memory
+    rate = zeros(2,ps.O)
+    # Now substitute preallocated memory in
+    dyns!(dx,x,ms,t) = full_dynamics!(dx,x,ms,ps,rate,t)
+    # Find time span for this step
+    tspan = (0,Tmax)
+    # Make appropriate initial condition
+    pops = pop*ones(2)
+    concs = conc*ones(ps.M)
+    ass = as*ones(2)
+    ϕss = ϕs*ones(2)
+    x0 = [pops;concs;ass;ϕss]
+    # Then setup and solve the problem
+    prob = ODEProblem(dyns!,x0,tspan,mics)
     sol = DifferentialEquations.solve(prob)
     return(sol',sol.t)
 end

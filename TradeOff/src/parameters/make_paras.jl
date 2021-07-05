@@ -51,3 +51,26 @@ function initialise(M::Int64,O::Int64)
     ps = make_TOParameters(M,O,T,κ,δ,reacs)
     return(ps)
 end
+
+# function to generate parameter set for the fixed parameters
+function initialise(M::Int64,O::Int64,μrange::Float64)
+    # Assume that temperature T is constant at 20°C
+    T = 293.15
+    # From Posfai et al (2017) dilution rate 0.21 per hour
+    δ = 6.0e-5*ones(M) # Metabolite dilution rate
+    # Human blood glucose is approximatly 5.5 m mol per litre (wikipedia)
+    # Sensible order of magnitude to aim for set κ/δ = 5.5e-3
+    κ = zeros(M)
+    # All but resource 1 is not supplied
+    κ[1] = 3.3e-7 # Metabolite supply rate
+    # Generate fixed set of reactions
+    RP, ΔG = fix_reactions(O,M,μrange,T)
+    # Preallocate vector of reactions
+    reacs = Array{Reaction,1}(undef,O)
+    for i = 1:O
+        reacs[i] = make_Reaction(i,RP[i,1],RP[i,2],ΔG[i])
+    end
+    # Now make the parameter set
+    ps = make_TOParameters(M,O,T,κ,δ,reacs)
+    return(ps)
+end

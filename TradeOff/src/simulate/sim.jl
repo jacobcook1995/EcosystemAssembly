@@ -81,11 +81,7 @@ end
 # function to find (energy use dependent) elongation rate γ
 function γs(a::Float64,ϕR::Float64,ps::new_Microbe)
     # Check that there's actually energy to grow with
-    if a > 0.0
-        γ = ps.γm*exp(-ps.μ*ϕR/(χs(a,ps)-ps.χl))
-    else
-        γ = 0.0
-    end
+    γ = ps.γm*a/(a+ps.Kγ*ϕR/ps.χ)
     return(γ)
 end
 
@@ -260,7 +256,7 @@ function new_full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{n
                 J += ms[i].η[j]*rate[i,ms[i].Reacs[j]]
             end
             # Add energy intake and substract translation and dilution from the energy concentration
-            dx[length(ms)+ps.M+i] = J - (ms[i].MC*χs(x[length(ms)+ps.M+i],ms[i]) + x[length(ms)+ps.M+i])*λ
+            dx[length(ms)+ps.M+i] = J - (ms[i].MC*ms[i].χ + x[length(ms)+ps.M+i])*λ
         end
     end
     # Do basic resource dynamics

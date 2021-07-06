@@ -10,6 +10,8 @@ export Reaction, make_Reaction, Microbe, make_Microbe
 
 export TOParameters, make_TOParameters, MicData, make_MicData
 
+export new_make_Microbe
+
 # PRECISE PARAMETERS USED IS GOING TO HAVE TO CHANGE
 
 """
@@ -94,17 +96,15 @@ end
 
 # NEW MICROBE THAT SHOULD REPLACE THE OLD ONE
 """
-    new_Microbe(MC::Int64,γm::Float64,μ::Float64,χl::Float64,χu::Float64,Kχ::Float64,Pb::Float64,d::Float64,ϕH::Float64,
-    KΩ::Float64,fd::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},KS::Vector{Float64},
-    kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
+    new_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χ::Float64,Pb::Float64,d::Float64,ϕH::Float64,
+    KΩ::Float64,fd::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},
+    KS::Vector{Float64},kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
 Type containing the parameters for a particular microbial strain, this now includes proteome parameters.
 # Arguments
 - `MC::Int64`: Mass of cell in amino acids.
 - `γm::Float64`: Maximum elongation rate in amino acids per minute (per ribosome)
-- `μ::Float64`: Constant to set supply and demand on the same scale
-- `χl::Float64`: Lower bound on ATP per translation step
-- `χu::Float64`: Additional possible ATP use per translation step
-- `Kχ::Float64`: Half saturation constant for ATP use χ
+- `Kγ::Float64`: Threshold energy in ATP per cell
+- `χ::Float64`: ATP use per translation step
 - `Pb::Float64`: Proportion of ribosomes bound
 - `d::Float64`: Biomass loss rate (~death rate)
 - `ϕH::Float64`: Fraction of proteome allocated to housekeeping proteins
@@ -125,10 +125,8 @@ Type containing the parameters for a particular microbial strain, this now inclu
 struct new_Microbe
     MC::Int64;
     γm::Float64;
-    μ::Float64;
-    χl::Float64;
-    χu::Float64;
-    Kχ::Float64;
+    Kγ::Float64;
+    χ::Float64;
     Pb::Float64;
     d::Float64;
     ϕH::Float64;
@@ -149,24 +147,21 @@ end
 
 # NEW FUNCTION => SHOULD REPLACE ORGINAL IF ALL GOES WELL
 """
-    new_make_Microbe(MC::Int64,γm::Float64,μ::Float64,χl::Float64,χu::Float64,Kχ::Float64,Pb::Float64,d::Float64,
-    ϕH::Float64,KΩ::Float64,fd::Float64,ω::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},
+    new_make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χ::Float64,Pb::Float64,d::Float64,ϕH::Float64,
+    KΩ::Float64,fd::Float64,ω::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},
     KS::Vector{Float64},kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
 Helper function used internally. Takes values for parameters and returns a `Microbe` object.
 Also does checks internally to make sure the values are correct.
 """
-function new_make_Microbe(MC::Int64,γm::Float64,μ::Float64,χl::Float64,χu::Float64,Kχ::Float64,Pb::Float64,d::Float64,
-            ϕH::Float64,KΩ::Float64,fd::Float64,ω::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},
-            kc::Vector{Float64},KS::Vector{Float64},kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},
-            ID::Int64,PID::String)
+function new_make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χ::Float64,Pb::Float64,d::Float64,ϕH::Float64,
+            KΩ::Float64,fd::Float64,ω::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},
+            KS::Vector{Float64},kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
     # Check that physical parameters have been provided
     @assert R > 0 "Number of reactions must be postive"
     @assert MC > 0 "Cell mass must be positive"
     @assert γm >= 0.0 "Elongation rate cannot be negative"
-    @assert μ > 0.0 "Constant relating supply to demand must be postive"
-    @assert χl > 0.0 "ATP per sythesis step must be positive"
-    @assert χu >= 0.0 "ATP use upper limit must be higher than lower limit"
-    @assert Kχ > 0.0 "Efficency saturation constant must be positive"
+    @assert χ > 0.0 "ATP per sythesis step must be positive"
+    @assert Kγ > 0.0 "Threshold energy must be positive"
     @assert d > 0.0 "Death rate must be positive"
     @assert 0.0 <= Pb <= 1.0 "Proportion of ribosomes bound has to be between 0 and 1"
     @assert 0.0 <= ϕH <= 1.0 "Housekeeping proteins have to be between 0 and 100% of total"
@@ -190,7 +185,7 @@ function new_make_Microbe(MC::Int64,γm::Float64,μ::Float64,χl::Float64,χu::F
     @assert all(n .> 0) "All proteins must have positive mass"
     @assert all(ϕP .>= 0.0) "All metabolic fractions must be non-negative"
     @assert sum(ϕP) ≈ 1.0 "Metabolic fractions should sum to 1"
-    return(new_Microbe(MC,γm,μ,χl,χu,Kχ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kc,KS,kr,n,ϕP,ID,PID))
+    return(new_Microbe(MC,γm,Kγ,χ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kc,KS,kr,n,ϕP,ID,PID))
 end
 
 """

@@ -511,7 +511,7 @@ function sing_pop(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::F
     # Find time span for this step
     tspan = (0,Tmax)
     # Make appropriate initial condition
-    concs = conc*ones(ps.M)
+    concs = [conc,0.0]
     x0 = [pop;concs;as;ϕs]
     # Then setup and solve the problem
     prob = ODEProblem(dyns!,x0,tspan,[mic])

@@ -2,6 +2,7 @@ using TradeOff
 using Plots
 using LaTeXStrings
 using Random
+using LsqFit
 import PyPlot
 
 function new_mic_gl(γm::Float64,ω::Float64,χ::Float64,Kγ::Float64,KΩ::Float64,M::Int64,ps::TOParameters)
@@ -32,9 +33,8 @@ function new_mic_gl(γm::Float64,ω::Float64,χ::Float64,Kγ::Float64,KΩ::Float
     n[1] = 7459
     # Other protein mass averaged from Brandt F, et al. (2009)
     n[2:3] .= 300
-    # Need to think carefully about what a reasonable parameter value is here
-    # This has a large impact on the fraction, so should be careful with this one
-    d = 6.0e-5
+    # Choosing a low value to better highlight the growth laws
+    d = 6.0e-10
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
     # Housekeeping fraction is taken from Scott et al. 2010
@@ -70,6 +70,29 @@ function new_mic_gl(γm::Float64,ω::Float64,χ::Float64,Kγ::Float64,KΩ::Float
     return(mic)
 end
 
+# function to generate parameter set for the fixed parameters
+function initialise_gl(M::Int64,O::Int64,μrange::Float64)
+    # Assume that temperature T is constant at 20°C
+    T = 293.15
+    # Want waste to be removed but not the substrate
+    δ = [0.0,6.0e-5]
+    # Human blood glucose is approximatly 5.5 m mol per litre (wikipedia)
+    # Sensible order of magnitude to aim for set κ/δ = 5.5e-3
+    κ = zeros(M)
+    # All but resource 1 is not supplied
+    κ[1] = 3.3e-7 # Metabolite supply rate
+    # Generate fixed set of reactions
+    RP, ΔG = fix_reactions(O,M,μrange,T)
+    # Preallocate vector of reactions
+    reacs = Array{Reaction,1}(undef,O)
+    for i = 1:O
+        reacs[i] = make_Reaction(i,RP[i,1],RP[i,2],ΔG[i])
+    end
+    # Now make the parameter set
+    ps = make_TOParameters(M,O,T,κ,δ,reacs)
+    return(ps)
+end
+
 # function to plot growth laws
 function growth_laws()
     println("Successfully compiled.")
@@ -83,8 +106,8 @@ function growth_laws()
     ω = 1.0
     χ = 30.0
     # These require real thought
-    Kγ = 5.0e9
-    KΩ = 1.0e10
+    Kγ = 1.0e12
+    KΩ = 5.0e10
     # Simple 1 reaction case
     M = 2
     O = 1
@@ -99,71 +122,53 @@ function growth_laws()
     # Make vector to store final growth rates and fractions
     λ1 = zeros(length(γms))
     ϕ1 = zeros(length(γms))
-    a1 = zeros(length(γms))
     # Setup plotting options
     pyplot(dpi=200)
     pR = L"\phi_R"
     p1 = plot(xaxis="Growth rate, λ",yaxis="Ribosome fraction, $(pR)")
-    for i = length(γms)#1:length(γms)
+    for i = 1:length(γms)
         # Initialise parameters
-        ps = initialise(M,O,μr)
+        ps = initialise_gl(M,O,μr)
         # and then the microbe
         mic = new_mic_gl(γms[i],ω,χ,Kγ,KΩ,M,ps)
         # Simulate dynamics of the single population
         C, T = sing_pop(ps,Ni,Si,ai,ϕi,mic,Tmax)
         # Now calculate growth rates and elongation rates
         λa = zeros(length(T))
-        γa = zeros(length(T))
         for j = 1:length(T)
             λa[j] = λs(C[j,4],C[j,5],mic)
-            γa[j] = γs(C[j,4],C[j,5],mic)
         end
-        # Save final λ and ϕR values
-        λ1[i] = λa[end]
-        ϕ1[i] = C[end,5]
-        a1[i] = C[end,2]
-        # Do the plotting as a test
-        plot(T,C[:,1],label="",yaxis=:log10,ylabel="Population (# cells)",ylims=(1e-5,Inf))
-        savefig("Output/test_pop.png")
-        plot(T,C[:,2:3],label="",ylabel="Concentration")
-        savefig("Output/test_conc.png")
-        plot(T,C[:,4],label="",ylabel="ATP")
-        savefig("Output/test_as.png")
-        plot(T,C[:,5],label="",ylabel="Fraction")
-        savefig("Output/test_phis.png")
-        plot(T,λa,label="")
-        savefig("Output/test_growth.png")
-        plot(T,λa,label="")
-        savefig("Output/test_elong.png")
-        return(nothing)
+        # Save maximum λ and ϕR values
+        λ1[i], ind = findmax(λa)
+        ϕ1[i] = C[ind,5]
     end
     # Now make set of ΔG values
     μrs = [μr,μr/1.5,μr/2,μr/3,μr/4,μr/5,μr/7.5,μr/10,μr/20,μr/50,μr/100]
     # Make vector to store final growth rates and fractions
-    λ2 = zeros(length(ΔGs))
-    ϕ2 = zeros(length(ΔGs))
-    a2 = zeros(length(ΔGs))
-    for i = 1:length(ΔGs)
-        ps = initialise_prot_gl(γm,μrs[i])
-        C, T = prot_simulate_fix(ps,Tmax,ai,Ni,Si,Pi,ϕi)
+    λ2 = zeros(length(μrs))
+    ϕ2 = zeros(length(μrs))
+    for i = 1:length(μrs)
+        # Initialise parameters
+        ps = initialise_gl(M,O,μrs[i])
+        # and then the microbe
+        mic = new_mic_gl(γm,ω,χ,Kγ,KΩ,M,ps)
+        # Simulate dynamics of the single population
+        C, T = sing_pop(ps,Ni,Si,ai,ϕi,mic,Tmax)
         # Now calculate growth rates and proteome fractions
         λa = zeros(length(T))
-        ϕR = zeros(length(T))
         for j = 1:length(T)
-            ϕR[j] = ϕ_R(C[j,4],ps)
-            λa[j] = λs(C[j,4],ϕR[j],ps)
+            λa[j] = λs(C[j,4],C[j,5],mic)
         end
         # Save final λ and ϕR values
-        λ2[i] = λa[end]
-        ϕ2[i] = ϕR[end]
-        a2[i] = C[end,2]
+        λ2[i], ind = findmax(λa)
+        ϕ2[i] = C[ind,5]
     end
     # Now want to do a least squares fit for both sets of data
     @. model(x, p) = p[1]*x + p[2]
     p0 = [0.5,0.5]
     fit1 = curve_fit(model,λ1[4:end],ϕ1[4:end],p0)
     pr1 = coef(fit1)
-    fit2 = curve_fit(model,λ2[1:end-3],ϕ2[1:end-3],p0)
+    fit2 = curve_fit(model,λ2,ϕ2,p0)
     pr2 = coef(fit2)
     # plot both lines on the graph
     λ1s = [0.0;λ1]
@@ -189,7 +194,7 @@ function growth_laws()
     scatter!(p1,λ1,ϕ1,label="",color=:lightblue,markersize=5)
     scatter!(p1,λ2,ϕ2,label="",color=:orange,markersize=5)
     # Finally save the graph
-    savefig(p1,"Output/SI/GrowthLaws.png")
+    savefig(p1,"Output/GrowthLaws.png")
     return(nothing)
 end
 

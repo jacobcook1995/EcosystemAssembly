@@ -125,15 +125,4 @@ function assemble()
     return(nothing)
 end
 
-# Hard code simulation parameters into this function
-function sim_paras()
-    # Set the hardcoded variables here
-    Np = 1
-    Rls = [1]
-    Rus = [5]
-    Nt = 5000
-    M = 25
-    return(Np,Rls,Rus,Nt,M)
-end
-
 @time assemble()

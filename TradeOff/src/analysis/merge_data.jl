@@ -7,7 +7,7 @@ function sim_paras()
     Np = 1
     Rls = [1]
     Rus = [5]
-    Nt = 1000
+    Nt = 5000
     M = 25
     return(Np,Rls,Rus,Nt,M)
 end

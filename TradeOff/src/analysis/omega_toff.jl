@@ -1,4 +1,5 @@
 # Script to test outcome of just the number of ribosomes trade-off
+# THIS SCRIPT IS DEPRECATED NOW, EITHER NEEDS MODIFICATION OR DELETING
 using TradeOff
 using Random
 using LaTeXStrings

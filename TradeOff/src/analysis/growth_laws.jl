@@ -66,7 +66,7 @@ function new_mic_gl(γm::Float64,ω::Float64,χ::Float64,Kγ::Float64,KΩ::Float
         η[i] = -(dG + Rgas*T*log(mratio))/(ΔGATP)
     end
     # Can finally generate microbe
-    mic = new_make_Microbe(MC,γm,Kγ,χ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,ID,PID)
+    mic = make_Microbe(MC,γm,Kγ,χ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,ID,PID)
     return(mic)
 end
 

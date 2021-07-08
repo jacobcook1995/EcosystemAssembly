@@ -103,15 +103,15 @@ function new_pool(Nt::Int64,M::Int64,Rl::Int64,Ru::Int64)
     d = 6.0e-5
     # The number of ATP per translation step, including the cost of amino acid sythesis
     # This figure is taken from Lynch and Marinov 2015
-    ρ = 29.0
+    χ = 29.0
     # Back to old arbitary figures, think this might be the best route
-    Kγ = 5e8
+    Kγ = 1.0e12
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
     # Housekeeping fraction is taken from Scott et al. 2010
     ϕH = 0.45
     # Back to old arbitary figures, think this might be the best route
-    KΩ = 1e9
+    KΩ = 5.0e10
     # Number of doublings required to dilute to 1%
     fd = log(100)/log(2)
     # For now just want to set ω so as to allow maximal ribosome fraction
@@ -139,7 +139,7 @@ function new_pool(Nt::Int64,M::Int64,Rl::Int64,Ru::Int64)
         # Find corresponding η's for these reactions
         η = choose_η_mix(reacs,Reacs,T,syn)
         # Can finally generate microbe
-        mics[i] = make_Microbe(MC,γm,ρ,Kγ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,i,PID)
+        mics[i] = make_Microbe(MC,γm,Kγ,χ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,i,PID)
     end
     # Write out necessary data
     jldopen("Pools/ID=$(PID)N=$(Nt)M=$(M)Reacs$(Rl)-$(Ru).jld","w") do file
@@ -153,7 +153,7 @@ function new_pool(Nt::Int64,M::Int64,Rl::Int64,Ru::Int64)
 end
 
 # Alternative function to generate a single microbe
-function new_mic(M::Int64,μ::Float64,ω::Float64,KΩ::Float64,Kχ::Float64,Rl::Int64,Ru::Int64)
+function new_mic(M::Int64,μ::Float64,ω::Float64,KΩ::Float64,Kγ::Float64,Rl::Int64,Ru::Int64)
     # First generate random unique indetifier for this pool
     PID = randstring(['0':'9'; 'a':'f'])
     # Only generating one microbe so will be ID: 1
@@ -189,10 +189,7 @@ function new_mic(M::Int64,μ::Float64,ω::Float64,KΩ::Float64,Kχ::Float64,Rl::
     # The number of ATP per translation step, including the cost of amino acid sythesis
     # This figure is taken from Lynch and Marinov 2015
     # χl thus represents the minimum cost of synthesising a gene
-    χl = 27.55
-    # Carbon use efficency varies by factor ~3 (Roller et al 2016)
-    # So go with max usage ~double the basal value i.e. 60.0
-    χu = 60.0
+    χ = 27.55
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
     # Housekeeping fraction is taken from Scott et al. 2010
@@ -218,6 +215,6 @@ function new_mic(M::Int64,μ::Float64,ω::Float64,KΩ::Float64,Kχ::Float64,Rl::
     # Find corresponding η's for these reactions
     η = choose_η_mix(reacs,Reacs,T,syn)
     # Can finally generate microbe
-    mic = new_make_Microbe(MC,γm,μ,χl,χu,Kχ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,ID,PID)
+    mic = make_Microbe(MC,γm,Kγ,χ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,ID,PID)
     return(mic)
 end

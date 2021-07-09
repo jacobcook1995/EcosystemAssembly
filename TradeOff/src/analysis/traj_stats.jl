@@ -19,6 +19,7 @@ function trjstats()
             error("need to provide 2 integers")
     end
     println("Compiled")
+    flush(stdout)
     # Load in hardcoded simulation parameters
     Np, Rls, Rus, Nt, M = sim_paras()
     # Save number of reactions
@@ -102,6 +103,7 @@ function trjstats()
             end
         end
         println("Analysed trajectory $(i)")
+        flush(stdout)
     end
     # Sum to find totals
     tot_svt = dropdims(sum(cmb_svt,dims=1),dims=1)

@@ -18,6 +18,7 @@ function v_over_t()
             error("need to provide 2 integers")
     end
     println("Compiled")
+    flush(stdout)
     # Load in hardcoded simulation parameters
     Np, Rls, Rus, Nt, M = sim_paras()
     # Save number of reactions
@@ -109,6 +110,7 @@ function v_over_t()
             write(file,"Tf",T[end])
         end
         println("Run $i analysed")
+        flush(stdout)
     end
     return(nothing)
 end

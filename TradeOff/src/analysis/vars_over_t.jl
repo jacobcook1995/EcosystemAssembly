@@ -2,6 +2,90 @@
 using TradeOff
 using JLD
 
+# function to calculate the "interaction strength" between two facilitating strains
+function fcl_flx(mic1::Microbe,mic2::Microbe,nI::Int64,concs::Array{Float64,1},md1::Array{Float64,1},
+                    md2::Array{Float64,1},ps::TOParameters)
+    # Preallocate vector of indices
+    inds = zeros(Int64,nI,2)
+    # Set up counter
+    c = 0
+    # Loop over all reactions
+    for i = 1:mic1.R
+        for j = 1:mic2.R
+            if ps.reacs[mic1.Reacs[i]].Prd == ps.reacs[mic2.Reacs[j]].Rct
+                # Increment counter
+                c += 1
+                # Store indicies
+                inds[c,1] = i
+                inds[c,2] = j
+            end
+        end
+    end
+    # Set initial flux to zero
+    av_fl = 0.0
+    # Loop over number of interactions
+    for i = 1:nI
+        # Extract reactions
+        r1 = ps.reacs[mic1.Reacs[inds[i,1]]]
+        r2 = ps.reacs[mic2.Reacs[inds[i,2]]]
+        # Extract initial substrate, intermediate product, and final product
+        S = concs[r1.Rct]
+        P = concs[r1.Prd]
+        W = concs[r2.Prd]
+        # Calculate enzyme fractions
+        E1 = Eα(md1[2],mic1,inds[i,1])
+        E2 = Eα(md2[2],mic2,inds[i,2])
+        # Calculate net fluxes
+        nf1 = md1[1]*qs(S,P,E1,inds[i,1],mic1,ps.T,r1)
+        nf2 = md2[1]*qs(P,W,E2,inds[i,2],mic2,ps.T,r2)
+        # Sqrt the product and add to the sum
+        av_fl += sqrt(nf1*nf2)
+    end
+    return(av_fl)
+end
+
+# function to calculate the "interaction strength" between two competing strains
+function fcl_cmp(mic1::Microbe,mic2::Microbe,nI::Int64,concs::Array{Float64,1},md1::Array{Float64,1},
+                    md2::Array{Float64,1},ps::TOParameters)
+    # Preallocate vector of indices
+    inds = zeros(Int64,nI,2)
+    # Set up counter
+    c = 0
+    # Loop over all reactions
+    for i = 1:mic1.R
+        for j = 1:mic2.R
+            if ps.reacs[mic1.Reacs[i]].Rct == ps.reacs[mic2.Reacs[j]].Rct
+                # Increment counter
+                c += 1
+                # Store indicies
+                inds[c,1] = i
+                inds[c,2] = j
+            end
+        end
+    end
+    # Set initial flux to zero
+    av_fl = 0.0
+    # Loop over number of interactions
+    for i = 1:nI
+        # Extract reactions
+        r1 = ps.reacs[mic1.Reacs[inds[i,1]]]
+        r2 = ps.reacs[mic2.Reacs[inds[i,2]]]
+        # Extract initial substrate, and the two products (which will often be the same)
+        S = concs[r1.Rct]
+        P1 = concs[r1.Prd]
+        P2 = concs[r2.Prd]
+        # Calculate enzyme fractions
+        E1 = Eα(md1[2],mic1,inds[i,1])
+        E2 = Eα(md2[2],mic2,inds[i,2])
+        # Calculate net fluxes
+        nf1 = md1[1]*qs(S,P1,E1,inds[i,1],mic1,ps.T,r1)
+        nf2 = md2[1]*qs(S,P2,E2,inds[i,2],mic2,ps.T,r2)
+        # Sqrt the product and add to the sum
+        av_fl += sqrt(nf1*nf2)
+    end
+    return(av_fl)
+end
+
 function v_over_t()
     # Check that sufficent arguments have been provided
     if length(ARGS) < 2
@@ -74,8 +158,8 @@ function v_over_t()
             ms[j] = (pools[ind])[micd[j].MID]
         end
         # Preallocate interaction matrices
-        cmps = zeros(length(ms),length(ms))
-        fcls = zeros(length(ms),length(ms))
+        cmps = zeros(Int64,length(ms),length(ms))
+        fcls = zeros(Int64,length(ms),length(ms))
         # Loop over all microbes to make these interaction structure matrices
         for j = 1:length(ms)
             # Loop over microbes to find facilitation terms
@@ -88,7 +172,7 @@ function v_over_t()
                             fcls[j,k] += 1
                         end
                         # Do the same check for competition cases (avoiding double counting)
-                        if j < k && ps.reacs[ms[j].Reacs[l]].Prd == ps.reacs[ms[k].Reacs[m]].Rct
+                        if j < k && ps.reacs[ms[j].Reacs[l]].Rct == ps.reacs[ms[k].Reacs[m]].Rct
                             cmps[j,k] += 1
                         end
                     end
@@ -106,6 +190,7 @@ function v_over_t()
         no_self = Array{Int64,1}(undef,length(T))
         st_comp = Array{Float64,1}(undef,length(T))
         st_facl = Array{Float64,1}(undef,length(T))
+        st_self = Array{Float64,1}(undef,length(T))
         # Save total number of strains
         numS = length(micd)
         # Loop over all time points
@@ -139,6 +224,39 @@ function v_over_t()
             no_facl[j] = sum(fcls[inds,inds])
             # Remove self interactions from this total
             no_facl[j] -= no_self[j]
+            # Now consider strength of self-interactions
+            for k = 1:length(inds)
+                if fcls[inds[k],inds[k]] != 0
+                    # Find relevant microbe data
+                    md = [C[j,inds[k]],C[j,ps.M+numS+inds[k]]]
+                    # Use to calculate contribution to self-facilitation strength
+                    st_self[j] += fcl_flx(ms[inds[k]],ms[inds[k]],fcls[inds[k],inds[k]],C[j,(numS+1):(numS+ps.M)],md,md,ps)
+                end
+            end
+            # Same process facilitation interactions in general
+            for k = 1:length(inds)
+                for l = 1:length(inds)
+                    if k != l && fcls[inds[k],inds[l]] != 0
+                        # Find relevant microbe data
+                        md1 = [C[j,inds[k]],C[j,ps.M+numS+inds[k]]]
+                        md2 = [C[j,inds[l]],C[j,ps.M+numS+inds[l]]]
+                        # Use to calculate contribution to facilitation strength
+                        st_facl[j] += fcl_flx(ms[inds[k]],ms[inds[l]],fcls[inds[k],inds[l]],C[j,(numS+1):(numS+ps.M)],md1,md2,ps)
+                    end
+                end
+            end
+            # Finally the same process for competition
+            for k = 1:length(inds)
+                for l = (k+1):length(inds)
+                    if cmps[inds[k],inds[l]] != 0
+                        # Find relevant microbe data
+                        md1 = [C[j,inds[k]],C[j,ps.M+numS+inds[k]]]
+                        md2 = [C[j,inds[l]],C[j,ps.M+numS+inds[l]]]
+                        # Use to calculate contribution to competition strength
+                        st_comp[j] += fcl_cmp(ms[inds[k]],ms[inds[l]],cmps[inds[k],inds[l]],C[j,(numS+1):(numS+ps.M)],md1,md2,ps)
+                    end
+                end
+            end
         end
         # Now just save the relevant data
         jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/AvRun$(i)Data$(ims)Ims.jld","w") do file
@@ -154,6 +272,9 @@ function v_over_t()
             write(file,"no_comp",no_comp)
             write(file,"no_facl",no_facl)
             write(file,"no_self",no_self)
+            write(file,"st_comp",st_comp)
+            write(file,"st_facl",st_facl)
+            write(file,"st_self",st_self)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])
         end

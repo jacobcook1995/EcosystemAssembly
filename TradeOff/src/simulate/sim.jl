@@ -2,7 +2,7 @@
 export full_simulate, sing_pop, doub_pop, θ, θ_smooth, qs
 
 # These are temporarily being output to aid with testing
-export γs, λs, χs
+export γs, λs, χs, Eα
 
 # DUPLICATED LOADS OF FUNCTIONS, THIS WILL HAVE TO BE SORTED OUT AT SOMEPOINT
 

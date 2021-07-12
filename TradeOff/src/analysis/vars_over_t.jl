@@ -73,6 +73,28 @@ function v_over_t()
             # Use this index to find and save the correct microbe
             ms[j] = (pools[ind])[micd[j].MID]
         end
+        # Preallocate interaction matrices
+        cmps = zeros(length(ms),length(ms))
+        fcls = zeros(length(ms),length(ms))
+        # Loop over all microbes to make these interaction structure matrices
+        for j = 1:length(ms)
+            # Loop over microbes to find facilitation terms
+            for k = 1:length(ms)
+                # Loop over reactions for both strains
+                for l = 1:ms[j].R
+                    for m = 1:ms[k].R
+                        # Check for facilitation cases
+                        if ps.reacs[ms[j].Reacs[l]].Prd == ps.reacs[ms[k].Reacs[m]].Rct
+                            fcls[j,k] += 1
+                        end
+                        # Do the same check for competition cases (avoiding double counting)
+                        if j < k && ps.reacs[ms[j].Reacs[l]].Prd == ps.reacs[ms[k].Reacs[m]].Rct
+                            cmps[j,k] += 1
+                        end
+                    end
+                end
+            end
+        end
         # Preallocate containers to store number of survivors with time
         svt = Array{Int64,1}(undef,length(T))
         tsvt = Array{Int64,1}(undef,length(T))
@@ -107,39 +129,16 @@ function v_over_t()
             end
             # Average over number of strains
             ηs[j] /= svt[j]
-            # Identify interactions by looping over every microbe
+            # Interactions find via submatrices of precalulated matrices
+            no_comp[j] = sum(cmps[inds,inds])
+            # Find self interaction terms
             for k = 1:length(inds)
-                # Loop over every reaction for this strain
-                for l = 1:ms[inds[k]].R
-                    # Avoid double counting of competition by only looking down in vector of microbes
-                    for m = (k+1):length(inds)
-                        # Loop over every reaction for 2nd strain
-                        for n = 1:ms[inds[m]].R
-                            # Check if substrate is shared between the two reactions
-                            if ps.reacs[ms[inds[k]].Reacs[l]].Rct == ps.reacs[ms[inds[m]].Reacs[n]].Rct
-                                no_comp[j] += 1
-                            end
-                        end
-                    end
-                    # Loop over every other microbe for the facilitation terms
-                    for m = 1:length(inds)
-                        if m != k
-                            # Loop over every reaction for 2nd strain
-                            for n = 1:ms[inds[m]].R
-                                if ps.reacs[ms[inds[k]].Reacs[l]].Prd == ps.reacs[ms[inds[m]].Reacs[n]].Rct
-                                    no_facl[j] += 1
-                                end
-                            end
-                        end
-                    end
-                    # Finally count the number of self-facilitation terms
-                    for m = 1:ms[inds[k]].R
-                        if ps.reacs[ms[inds[k]].Reacs[l]].Prd == ps.reacs[ms[inds[k]].Reacs[m]].Rct
-                            no_self[j] += 1
-                        end
-                    end
-                end
+                no_self[j] += fcls[inds[k],inds[k]]
             end
+            # Find all interaction terms
+            no_facl[j] = sum(fcls[inds,inds])
+            # Remove self interactions from this total
+            no_facl[j] -= no_self[j]
         end
         # Now just save the relevant data
         jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/AvRun$(i)Data$(ims)Ims.jld","w") do file

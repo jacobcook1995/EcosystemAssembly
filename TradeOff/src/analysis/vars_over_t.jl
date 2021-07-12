@@ -78,6 +78,12 @@ function v_over_t()
         tsvt = Array{Int64,1}(undef,length(T))
         sbs = Array{Int64,1}(undef,length(T))
         Rs = Array{Int64,2}(undef,NoR,length(T))
+        ηs = Array{Float64,1}(undef,length(T))
+        no_comp = Array{Int64,1}(undef,length(T))
+        no_facl = Array{Int64,1}(undef,length(T))
+        no_self = Array{Int64,1}(undef,length(T))
+        st_comp = Array{Float64,1}(undef,length(T))
+        st_facl = Array{Float64,1}(undef,length(T))
         # Save total number of strains
         numS = length(micd)
         # Loop over all time points
@@ -95,6 +101,45 @@ function v_over_t()
                 # Count number of strains with reaction for each case
                 Rs[k,j] = count(x->x==k,ms[inds].↦:R)
             end
+            # Find (weighted) total eta value
+            for k = 1:length(inds)
+                ηs[j] += sum(ms[inds[k]].η.*ms[inds[k]].ϕP)
+            end
+            # Average over number of strains
+            ηs[j] /= svt[j]
+            # Identify interactions by looping over every microbe
+            for k = 1:length(inds)
+                # Loop over every reaction for this strain
+                for l = 1:ms[inds[k]].R
+                    # Avoid double counting of competition by only looking down in vector of microbes
+                    for m = (k+1):length(inds)
+                        # Loop over every reaction for 2nd strain
+                        for n = 1:ms[inds[m]].R
+                            # Check if substrate is shared between the two reactions
+                            if ps.reacs[ms[inds[k]].Reacs[l]].Rct == ps.reacs[ms[inds[m]].Reacs[n]].Rct
+                                no_comp[j] += 1
+                            end
+                        end
+                    end
+                    # Loop over every other microbe for the facilitation terms
+                    for m = 1:length(inds)
+                        if m != k
+                            # Loop over every reaction for 2nd strain
+                            for n = 1:ms[inds[m]].R
+                                if ps.reacs[ms[inds[k]].Reacs[l]].Prd == ps.reacs[ms[inds[m]].Reacs[n]].Rct
+                                    no_facl[j] += 1
+                                end
+                            end
+                        end
+                    end
+                    # Finally count the number of self-facilitation terms
+                    for m = 1:ms[inds[k]].R
+                        if ps.reacs[ms[inds[k]].Reacs[l]].Prd == ps.reacs[ms[inds[k]].Reacs[m]].Rct
+                            no_self[j] += 1
+                        end
+                    end
+                end
+            end
         end
         # Now just save the relevant data
         jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/AvRun$(i)Data$(ims)Ims.jld","w") do file
@@ -106,6 +151,10 @@ function v_over_t()
             write(file,"svt",svt)
             write(file,"tsvt",tsvt)
             write(file,"sbs",sbs)
+            write(file,"ηs",ηs)
+            write(file,"no_comp",no_comp)
+            write(file,"no_facl",no_facl)
+            write(file,"no_self",no_self)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])
         end

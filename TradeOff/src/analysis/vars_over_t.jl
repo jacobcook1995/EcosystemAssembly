@@ -213,7 +213,9 @@ function v_over_t()
                 ηs[j] += sum(ms[inds[k]].η.*ms[inds[k]].ϕP)
             end
             # Average over number of strains
-            ηs[j] /= svt[j]
+            if svt[j] > 0
+                ηs[j] /= svt[j]
+            end
             # Interactions find via submatrices of precalulated matrices
             no_comp[j] = sum(cmps[inds,inds])
             # Find self interaction terms
@@ -228,7 +230,7 @@ function v_over_t()
             for k = 1:length(inds)
                 if fcls[inds[k],inds[k]] != 0
                     # Find relevant microbe data
-                    md = [C[j,inds[k]],C[j,ps.M+numS+inds[k]]]
+                    md = [C[j,inds[k]],C[j,ps.M+2*numS+inds[k]]]
                     # Use to calculate contribution to self-facilitation strength
                     st_self[j] += fcl_flx(ms[inds[k]],ms[inds[k]],fcls[inds[k],inds[k]],C[j,(numS+1):(numS+ps.M)],md,md,ps)
                 end
@@ -238,8 +240,8 @@ function v_over_t()
                 for l = 1:length(inds)
                     if k != l && fcls[inds[k],inds[l]] != 0
                         # Find relevant microbe data
-                        md1 = [C[j,inds[k]],C[j,ps.M+numS+inds[k]]]
-                        md2 = [C[j,inds[l]],C[j,ps.M+numS+inds[l]]]
+                        md1 = [C[j,inds[k]],C[j,ps.M+2*numS+inds[k]]]
+                        md2 = [C[j,inds[l]],C[j,ps.M+2*numS+inds[l]]]
                         # Use to calculate contribution to facilitation strength
                         st_facl[j] += fcl_flx(ms[inds[k]],ms[inds[l]],fcls[inds[k],inds[l]],C[j,(numS+1):(numS+ps.M)],md1,md2,ps)
                     end
@@ -250,8 +252,8 @@ function v_over_t()
                 for l = (k+1):length(inds)
                     if cmps[inds[k],inds[l]] != 0
                         # Find relevant microbe data
-                        md1 = [C[j,inds[k]],C[j,ps.M+numS+inds[k]]]
-                        md2 = [C[j,inds[l]],C[j,ps.M+numS+inds[l]]]
+                        md1 = [C[j,inds[k]],C[j,ps.M+2*numS+inds[k]]]
+                        md2 = [C[j,inds[l]],C[j,ps.M+2*numS+inds[l]]]
                         # Use to calculate contribution to competition strength
                         st_comp[j] += fcl_cmp(ms[inds[k]],ms[inds[l]],cmps[inds[k],inds[l]],C[j,(numS+1):(numS+ps.M)],md1,md2,ps)
                     end

@@ -264,17 +264,38 @@ function plot_aves()
     mn_tsvt = load(sfile,"mn_tsvt")
     mn_sbs = load(sfile,"mn_sbs")
     mn_Rs = load(sfile,"mn_Rs")
+    mn_ηs = load(sfile,"mn_ηs")
+    mn_no_comp = load(sfile,"mn_no_comp")
+    mn_no_facl = load(sfile,"mn_no_facl")
+    mn_no_self = load(sfile,"mn_no_self")
+    mn_st_comp = load(sfile,"mn_st_comp")
+    mn_st_facl = load(sfile,"mn_st_facl")
+    mn_st_self = load(sfile,"mn_st_self")
     # Load in standard deviations
     sd_svt = load(sfile,"sd_svt")
     sd_tsvt = load(sfile,"sd_tsvt")
     sd_sbs = load(sfile,"sd_sbs")
     sd_Rs = load(sfile,"sd_Rs")
+    sd_ηs = load(sfile,"sd_ηs")
+    sd_no_comp = load(sfile,"sd_no_comp")
+    sd_no_facl = load(sfile,"sd_no_facl")
+    sd_no_self = load(sfile,"sd_no_self")
+    sd_st_comp = load(sfile,"sd_st_comp")
+    sd_st_facl = load(sfile,"sd_st_facl")
+    sd_st_self = load(sfile,"sd_st_self")
     # Preallocate standard errors
     se_Rs = zeros(size(sd_Rs))
     # Calculate standard errors from this
     se_svt = sd_svt./sqrt.(no_sims)
     se_tsvt = sd_tsvt./sqrt.(no_sims)
     se_sbs = sd_sbs./sqrt.(no_sims)
+    se_ηs = sd_ηs./sqrt.(no_sims)
+    se_no_comp = sd_no_comp./sqrt.(no_sims)
+    se_no_facl = sd_no_facl./sqrt.(no_sims)
+    se_no_self = sd_no_self./sqrt.(no_sims)
+    se_st_comp = sd_st_comp./sqrt.(no_sims)
+    se_st_facl = sd_st_facl./sqrt.(no_sims)
+    se_st_self = sd_st_self./sqrt.(no_sims)
     for i = 1:size(sd_Rs,1)
         se_Rs[i,:] = sd_Rs[i,:]./sqrt.(no_sims)
     end
@@ -293,9 +314,92 @@ function plot_aves()
     plot!(times,mn_Rs[1,:],ribbon=se_Rs[1,:],label="R=1")
     plot!(times,mn_Rs[5,:],ribbon=se_Rs[5,:],label="R=5")
     savefig("Output/AvReacsTime.png")
+    plot(xlabel="Time (s)",ylabel="Average eta value")
+    plot!(times,mn_ηs,ribbon=se_ηs,label="")
+    savefig("Output/AvEtaTime.png")
+    plot(xlabel="Time (s)",ylabel="Average number of competitive interactions")
+    plot!(times,mn_no_comp,ribbon=se_no_comp,label="")
+    savefig("Output/AvNoCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Average number of facilitation interactions")
+    plot!(times,mn_no_facl,ribbon=se_no_facl,label="")
+    savefig("Output/AvNoFaclTime.png")
+    plot(xlabel="Time (s)",ylabel="Average number of self-facilitation interactions")
+    plot!(times,mn_no_self,ribbon=se_no_self,label="")
+    savefig("Output/AvNoSelfTime.png")
+    plot(xlabel="Time (s)",ylabel="Average strength of competitive interactions")
+    plot!(times,mn_st_comp,ribbon=se_st_comp,label="")
+    savefig("Output/AvStCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Average strength of facilitation interactions")
+    plot!(times,mn_st_facl,ribbon=se_st_facl,label="")
+    savefig("Output/AvStFaclTime.png")
+    plot(xlabel="Time (s)",ylabel="Average strength of self-facilitation interactions")
+    plot!(times,mn_st_self,ribbon=se_st_self,label="")
+    savefig("Output/AvStSelfTime.png")
     return(nothing)
 end
 
-@time plot_aves()
+# function to plot the averages for just one run
+function plot_run_averages()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 2
+        error("insufficent inputs provided")
+    end
+    # Preallocate the variables I want to extract from the input
+    ims = 0
+    rN = 0
+    # Check that all arguments can be converted to integers
+    try
+        ims = parse(Int64,ARGS[1])
+        rN = parse(Int64,ARGS[2])
+    catch e
+            error("need to provide two integers")
+    end
+    println("Compiled")
+    # Load in hardcoded simulation parameters
+    Np, Rls, Rus, Nt, M = sim_paras()
+    # Read in appropriate files
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld"
+    if ~isfile(pfile)
+        error("$(ims) immigrations run $(rN) is missing a parameter file")
+    end
+    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/AvRun$(rN)Data$(ims)Ims.jld"
+    if ~isfile(ofile)
+        error("$(ims) immigrations run $(rN) is missing an output file")
+    end
+    # Read in relevant data
+    ps = load(pfile,"ps")
+    T = load(ofile,"T")
+    svt = load(ofile,"svt")
+    ηs = load(ofile,"ηs")
+    no_comp = load(ofile,"no_comp")
+    no_facl = load(ofile,"no_facl")
+    no_self = load(ofile,"no_self",)
+    st_comp = load(ofile,"st_comp")
+    st_facl = load(ofile,"st_facl")
+    st_self = load(ofile,"st_self")
+    # Setup plotting
+    pyplot(dpi=200)
+    # Plot this data
+    plot(T,svt,label="",xlabel="Time (s)",ylabel="Number of survivors")
+    savefig("Output/SvTime.png")
+    plot(T,ηs,label="",xlabel="Time (s)",ylabel="eta")
+    savefig("Output/EtaTime.png")
+    plot(T,no_comp,label="",xlabel="Time (s)",ylabel="Number of competitive interactions")
+    savefig("Output/NoCompTime.png")
+    plot(T,no_facl,label="",xlabel="Time (s)",ylabel="Number of facilitation interactions")
+    savefig("Output/NoFaclTime.png")
+    plot(T,no_self,label="",xlabel="Time (s)",ylabel="Number of self-facilitation interactions")
+    savefig("Output/NoSelfTime.png")
+    plot(T,log10.(st_comp),label="",xlabel="Time (s)",ylabel="Strength of competitive interactions")
+    savefig("Output/StCompTime.png")
+    plot(T,log10.(st_facl),label="",xlabel="Time (s)",ylabel="Strength of facilitation interactions")
+    savefig("Output/StFaclTime.png")
+    plot(T,log10.(st_self),label="",xlabel="Time (s)",ylabel="Strength of self-facilitation interactions")
+    savefig("Output/StSelfTime.png")
+    return(nothing)
+end
+
+@time plot_run_averages()
+# @time plot_aves()
 # @time plot_traj()
 # @time plot_genvsspec()

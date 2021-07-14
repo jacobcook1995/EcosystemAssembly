@@ -211,16 +211,40 @@ function v_over_t()
             # Find (weighted) total eta value
             for k = 1:length(inds)
                 ηs[j] += sum(ms[inds[k]].η.*ms[inds[k]].ϕP)
+                # Check to catch problems
+                if ηs[j] > 1e6
+                    println(length(inds))
+                    println(inds[k])
+                    println(ms[inds[k]].η)
+                    println(ms[inds[k]].ϕP)
+                    println(svt[j])
+                    error()
+                end
             end
             # Average over number of strains
             if svt[j] > 0
                 ηs[j] /= svt[j]
+                # Another check to catch problems
+                if ηs[j] > 1e6
+                    println(inds)
+                    println(ηs[j])
+                    println(svt[j])
+                    error()
+                end
             end
             # Interactions find via submatrices of precalulated matrices
             no_comp[j] = sum(cmps[inds,inds])
             # Find self interaction terms
             for k = 1:length(inds)
                 no_self[j] += fcls[inds[k],inds[k]]
+                # Yet another check to catch problems
+                if no_self[j] > 1e6
+                    println(length(inds))
+                    println(inds[k])
+                    println(fcls[inds[k],inds[k]])
+                    println(no_self[j])
+                    error()
+                end
             end
             # Find all interaction terms
             no_facl[j] = sum(fcls[inds,inds])

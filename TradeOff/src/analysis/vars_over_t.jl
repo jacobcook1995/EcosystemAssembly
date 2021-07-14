@@ -213,11 +213,13 @@ function v_over_t()
                 ηs[j] += sum(ms[inds[k]].η.*ms[inds[k]].ϕP)
                 # Check to catch problems
                 if ηs[j] > 1e6
+                    println("Problem with η 1")
                     println(length(inds))
                     println(inds[k])
                     println(ms[inds[k]].η)
                     println(ms[inds[k]].ϕP)
                     println(svt[j])
+                    flush(stdout)
                     error()
                 end
             end
@@ -226,9 +228,11 @@ function v_over_t()
                 ηs[j] /= svt[j]
                 # Another check to catch problems
                 if ηs[j] > 1e6
+                    println("Problem with η 2")
                     println(inds)
                     println(ηs[j])
                     println(svt[j])
+                    flush(stdout)
                     error()
                 end
             end
@@ -239,10 +243,13 @@ function v_over_t()
                 no_self[j] += fcls[inds[k],inds[k]]
                 # Yet another check to catch problems
                 if no_self[j] > 1e6
+                    println("Problem with no self")
+                    println(k)
                     println(length(inds))
                     println(inds[k])
                     println(fcls[inds[k],inds[k]])
                     println(no_self[j])
+                    flush(stdout)
                     error()
                 end
             end

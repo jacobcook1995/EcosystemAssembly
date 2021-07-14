@@ -184,13 +184,13 @@ function v_over_t()
         tsvt = Array{Int64,1}(undef,length(T))
         sbs = Array{Int64,1}(undef,length(T))
         Rs = Array{Int64,2}(undef,NoR,length(T))
-        ηs = Array{Float64,1}(undef,length(T))
+        ηs = zeros(length(T))
         no_comp = Array{Int64,1}(undef,length(T))
         no_facl = Array{Int64,1}(undef,length(T))
         no_self = zeros(Int64,length(T))
-        st_comp = Array{Float64,1}(undef,length(T))
-        st_facl = Array{Float64,1}(undef,length(T))
-        st_self = Array{Float64,1}(undef,length(T))
+        st_comp = zeros(length(T))
+        st_facl = zeros(length(T))
+        st_self = zeros(length(T))
         # Save total number of strains
         numS = length(micd)
         # Loop over all time points
@@ -211,48 +211,16 @@ function v_over_t()
             # Find (weighted) total eta value
             for k = 1:length(inds)
                 ηs[j] += sum(ms[inds[k]].η.*ms[inds[k]].ϕP)
-                # Check to catch problems
-                if ηs[j] > 1e6
-                    println("Problem with η 1")
-                    println(k)
-                    println(length(inds))
-                    println(inds[k])
-                    println(ms[inds[k]].η)
-                    println(ms[inds[k]].ϕP)
-                    println(svt[j])
-                    flush(stdout)
-                    error()
-                end
             end
             # Average over number of strains
             if svt[j] > 0
                 ηs[j] /= svt[j]
-                # Another check to catch problems
-                if ηs[j] > 1e6
-                    println("Problem with η 2")
-                    println(inds)
-                    println(ηs[j])
-                    println(svt[j])
-                    flush(stdout)
-                    error()
-                end
             end
             # Interactions find via submatrices of precalulated matrices
             no_comp[j] = sum(cmps[inds,inds])
             # Find self interaction terms
             for k = 1:length(inds)
                 no_self[j] += fcls[inds[k],inds[k]]
-                # Yet another check to catch problems
-                if no_self[j] > 1e6
-                    println("Problem with no self")
-                    println(k)
-                    println(length(inds))
-                    println(inds[k])
-                    println(fcls[inds[k],inds[k]])
-                    println(no_self[j])
-                    flush(stdout)
-                    error()
-                end
             end
             # Find all interaction terms
             no_facl[j] = sum(fcls[inds,inds])

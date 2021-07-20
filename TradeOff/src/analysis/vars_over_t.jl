@@ -187,6 +187,7 @@ function v_over_t()
         via_R = Array{Int64,2}(undef,NoR,length(T))
         ηs = zeros(length(T))
         via_η = zeros(length(T))
+        fr_ΔG = zeros(length(T))
         ηs_R = zeros(NoR,length(T))
         no_comp = Array{Int64,1}(undef,length(T))
         no_facl = Array{Int64,1}(undef,length(T))
@@ -242,6 +243,19 @@ function v_over_t()
                 if via_R[k,j] > 0
                     ηs_R[k,j] /= via_R[k,j]
                 end
+            end
+            # Find fraction of free energy transduced
+            for k = 1:length(vinds)
+                for l = 1:ms[vinds[k]].R
+                    # Find relevant reaction
+                    r = ps.reacs[ms[vinds[k]].Reacs[l]]
+                    # Then calculate frac
+                    fr_ΔG[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
+                end
+            end
+            # Average over number of viable strains
+            if tsvt[j] > 0
+                fr_ΔG[j] /= tsvt[j]
             end
             # Interactions find via submatrices of precalulated matrices
             no_comp[j] = sum(cmps[inds,inds])
@@ -301,6 +315,7 @@ function v_over_t()
             write(file,"sbs",sbs)
             write(file,"ηs",ηs)
             write(file,"via_η",via_η)
+            write(file,"fr_ΔG",fr_ΔG)
             write(file,"no_comp",no_comp)
             write(file,"no_facl",no_facl)
             write(file,"no_self",no_self)

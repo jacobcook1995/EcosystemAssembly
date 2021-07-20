@@ -157,6 +157,28 @@ function v_over_t()
             # Use this index to find and save the correct microbe
             ms[j] = (pools[ind])[micd[j].MID]
         end
+        # Preallocate interaction matrices
+        cmps = zeros(Int64,length(ms),length(ms))
+        fcls = zeros(Int64,length(ms),length(ms))
+        # Loop over all microbes to make these interaction structure matrices
+        for j = 1:length(ms)
+            # Loop over microbes to find facilitation terms
+            for k = 1:length(ms)
+                # Loop over reactions for both strains
+                for l = 1:ms[j].R
+                    for m = 1:ms[k].R
+                        # Check for facilitation cases
+                        if ps.reacs[ms[j].Reacs[l]].Prd == ps.reacs[ms[k].Reacs[m]].Rct
+                            fcls[j,k] += 1
+                        end
+                        # Do the same check for competition cases (avoiding double counting)
+                        if j < k && ps.reacs[ms[j].Reacs[l]].Rct == ps.reacs[ms[k].Reacs[m]].Rct
+                            cmps[j,k] += 1
+                        end
+                    end
+                end
+            end
+        end
         # Preallocate containers to store number of survivors with time
         svt = Array{Int64,1}(undef,length(T))
         tsvt = Array{Int64,1}(undef,length(T))
@@ -167,6 +189,12 @@ function v_over_t()
         via_η = zeros(length(T))
         fr_ΔG = zeros(length(T))
         ηs_R = zeros(NoR,length(T))
+        no_comp = Array{Int64,1}(undef,length(T))
+        no_facl = Array{Int64,1}(undef,length(T))
+        no_self = zeros(Int64,length(T))
+        st_comp = zeros(length(T))
+        st_facl = zeros(length(T))
+        st_self = zeros(length(T))
         # Save total number of strains
         numS = length(micd)
         # Loop over all time points
@@ -229,6 +257,49 @@ function v_over_t()
             if tsvt[j] > 0
                 fr_ΔG[j] /= tsvt[j]
             end
+            # Interactions find via submatrices of precalulated matrices
+            no_comp[j] = sum(cmps[inds,inds])
+            # Find self interaction terms
+            for k = 1:length(inds)
+                no_self[j] += fcls[inds[k],inds[k]]
+            end
+            # Find all interaction terms
+            no_facl[j] = sum(fcls[inds,inds])
+            # Remove self interactions from this total
+            no_facl[j] -= no_self[j]
+            # Now consider strength of self-interactions
+            for k = 1:length(inds)
+                if fcls[inds[k],inds[k]] != 0
+                    # Find relevant microbe data
+                    md = [C[j,inds[k]],C[j,ps.M+2*numS+inds[k]]]
+                    # Use to calculate contribution to self-facilitation strength
+                    st_self[j] += fcl_flx(ms[inds[k]],ms[inds[k]],fcls[inds[k],inds[k]],C[j,(numS+1):(numS+ps.M)],md,md,ps)
+                end
+            end
+            # Same process facilitation interactions in general
+            for k = 1:length(inds)
+                for l = 1:length(inds)
+                    if k != l && fcls[inds[k],inds[l]] != 0
+                        # Find relevant microbe data
+                        md1 = [C[j,inds[k]],C[j,ps.M+2*numS+inds[k]]]
+                        md2 = [C[j,inds[l]],C[j,ps.M+2*numS+inds[l]]]
+                        # Use to calculate contribution to facilitation strength
+                        st_facl[j] += fcl_flx(ms[inds[k]],ms[inds[l]],fcls[inds[k],inds[l]],C[j,(numS+1):(numS+ps.M)],md1,md2,ps)
+                    end
+                end
+            end
+            # Finally the same process for competition
+            for k = 1:length(inds)
+                for l = (k+1):length(inds)
+                    if cmps[inds[k],inds[l]] != 0
+                        # Find relevant microbe data
+                        md1 = [C[j,inds[k]],C[j,ps.M+2*numS+inds[k]]]
+                        md2 = [C[j,inds[l]],C[j,ps.M+2*numS+inds[l]]]
+                        # Use to calculate contribution to competition strength
+                        st_comp[j] += fcl_cmp(ms[inds[k]],ms[inds[l]],cmps[inds[k],inds[l]],C[j,(numS+1):(numS+ps.M)],md1,md2,ps)
+                    end
+                end
+            end
         end
         # Now just save the relevant data
         jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/AvRun$(i)Data$(ims)Ims.jld","w") do file
@@ -245,6 +316,12 @@ function v_over_t()
             write(file,"ηs",ηs)
             write(file,"via_η",via_η)
             write(file,"fr_ΔG",fr_ΔG)
+            write(file,"no_comp",no_comp)
+            write(file,"no_facl",no_facl)
+            write(file,"no_self",no_self)
+            write(file,"st_comp",st_comp)
+            write(file,"st_facl",st_facl)
+            write(file,"st_self",st_self)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])
         end

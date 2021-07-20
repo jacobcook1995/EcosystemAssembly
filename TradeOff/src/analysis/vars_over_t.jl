@@ -184,7 +184,10 @@ function v_over_t()
         tsvt = Array{Int64,1}(undef,length(T))
         sbs = Array{Int64,1}(undef,length(T))
         Rs = Array{Int64,2}(undef,NoR,length(T))
+        via_R = Array{Int64,2}(undef,NoR,length(T))
         ηs = zeros(length(T))
+        via_η = zeros(length(T))
+        ηs_R = zeros(NoR,length(T))
         no_comp = Array{Int64,1}(undef,length(T))
         no_facl = Array{Int64,1}(undef,length(T))
         no_self = zeros(Int64,length(T))
@@ -199,14 +202,17 @@ function v_over_t()
             inds = findall(x->x>1e-5,C[j,1:numS])
             # Save number of surviving strains at each time point
             svt[j] = length(inds)
-            # Also top survivors
-            tsvt[j] = count(x->x>1e5,C[j,1:numS])
+            # Find indices of "viable" strains
+            vinds = findall(x->x>1e5,C[j,1:numS])
+            # Save number of "viable" strains
+            tsvt[j] = length(vinds)
             # Then also number of substrates
             sbs[j] = count(x->x>1e-12,C[j,(numS+1):(numS+ps.M)])
             # Loop over number of reactions
             for k = 1:NoR
                 # Count number of strains with reaction for each case
                 Rs[k,j] = count(x->x==k,ms[inds].↦:R)
+                via_R[k,j] = count(x->x==k,ms[vinds].↦:R)
             end
             # Find (weighted) total eta value
             for k = 1:length(inds)
@@ -215,6 +221,27 @@ function v_over_t()
             # Average over number of strains
             if svt[j] > 0
                 ηs[j] /= svt[j]
+            end
+            # Find (weighted) total eta value for viable strains
+            for k = 1:length(vinds)
+                via_η[j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
+            end
+            # Average over number of strains
+            if tsvt[j] > 0
+                via_η[j] /= tsvt[j]
+            end
+            # Break down eta value by R
+            for k = 1:length(vinds)
+                # Find relevant reaction number
+                l = ms[vinds[k]].R
+                # Add contribution to relevant total
+                ηs_R[l,j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
+            end
+            # Now weight by number of strains with each type of reaction
+            for k = 1:NoR
+                if via_R[k,j] > 0
+                    ηs_R[k,j] /= via_R[k,j]
+                end
             end
             # Interactions find via submatrices of precalulated matrices
             no_comp[j] = sum(cmps[inds,inds])
@@ -266,11 +293,14 @@ function v_over_t()
             write(file,"T",T)
             # Save reaction data
             write(file,"Rs",Rs)
+            write(file,"via_R",via_R)
+            write(file,"ηs_R",ηs_R)
             # Save the other quantities
             write(file,"svt",svt)
             write(file,"tsvt",tsvt)
             write(file,"sbs",sbs)
             write(file,"ηs",ηs)
+            write(file,"via_η",via_η)
             write(file,"no_comp",no_comp)
             write(file,"no_facl",no_facl)
             write(file,"no_self",no_self)

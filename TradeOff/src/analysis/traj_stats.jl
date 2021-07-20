@@ -53,13 +53,11 @@ function trjstats()
     cmb_tsvt = zeros(rps,length(times))
     cmb_sbs = zeros(rps,length(times))
     cmb_Rs = zeros(rps,NoR,length(times))
+    cmb_via_R = zeros(rps,NoR,length(times))
+    cmb_ηs_R = zeros(rps,NoR,length(times))
     cmb_ηs = zeros(rps,length(times))
-    cmb_no_comp = zeros(rps,length(times))
-    cmb_no_facl = zeros(rps,length(times))
-    cmb_no_self = zeros(rps,length(times))
-    cmb_st_comp = zeros(rps,length(times))
-    cmb_st_facl = zeros(rps,length(times))
-    cmb_st_self = zeros(rps,length(times))
+    cmb_via_η = zeros(rps,length(times))
+    cmb_fr_ΔG = zeros(rps,length(times))
     # Loop over number of trajectories (to minimise the number of reads in)
     for i = 1:rps
         # Load in relevant output file
@@ -72,13 +70,11 @@ function trjstats()
         tsvt = load(vfile,"tsvt")
         sbs = load(vfile,"sbs")
         Rs = load(vfile,"Rs")
+        via_R = load(vfile,"via_R")
+        ηs_R = load(vfile,"ηs_R")
         ηs = load(vfile,"ηs")
-        no_comp = load(vfile,"no_comp")
-        no_facl = load(vfile,"no_facl")
-        no_self = load(vfile,"no_self")
-        st_comp = load(vfile,"st_comp")
-        st_facl = load(vfile,"st_facl")
-        st_self = load(vfile,"st_self")
+        via_η = load(vfile,"via_η")
+        fr_ΔG = load(vfile,"fr_ΔG")
         # Bool to indicate end of the run
         Rn_end = false
         cnt = 0
@@ -100,14 +96,12 @@ function trjstats()
                 cmb_tsvt[i,cnt] = tsvt[Tind]*(T1x)/Tg + tsvt[Tind-1]*(Tx2)/Tg
                 cmb_sbs[i,cnt] = sbs[Tind]*(T1x)/Tg + sbs[Tind-1]*(Tx2)/Tg
                 cmb_ηs[i,cnt] = ηs[Tind]*(T1x)/Tg + ηs[Tind-1]*(Tx2)/Tg
-                cmb_no_comp[i,cnt] = no_comp[Tind]*(T1x)/Tg + no_comp[Tind-1]*(Tx2)/Tg
-                cmb_no_facl[i,cnt] = no_facl[Tind]*(T1x)/Tg + no_facl[Tind-1]*(Tx2)/Tg
-                cmb_no_self[i,cnt] = no_self[Tind]*(T1x)/Tg + no_self[Tind-1]*(Tx2)/Tg
-                cmb_st_comp[i,cnt] = st_comp[Tind]*(T1x)/Tg + st_comp[Tind-1]*(Tx2)/Tg
-                cmb_st_facl[i,cnt] = st_facl[Tind]*(T1x)/Tg + st_facl[Tind-1]*(Tx2)/Tg
-                cmb_st_self[i,cnt] = st_self[Tind]*(T1x)/Tg + st_self[Tind-1]*(Tx2)/Tg
+                cmb_via_η[i,cnt] = via_η[Tind]*(T1x)/Tg + via_η[Tind-1]*(Tx2)/Tg
+                cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]*(T1x)/Tg + fr_ΔG[Tind-1]*(Tx2)/Tg
                 for j = 1:NoR
                     cmb_Rs[i,j,cnt] = Rs[j,Tind]*(T1x)/Tg + Rs[j,Tind-1]*(Tx2)/Tg
+                    cmb_via_R[i,j,cnt] = via_R[j,Tind]*(T1x)/Tg + via_R[j,Tind-1]*(Tx2)/Tg
+                    cmb_ηs_R[i,j,cnt] = ηs_R[j,Tind]*(T1x)/Tg + ηs_R[j,Tind-1]*(Tx2)/Tg
                 end
             else
                 # In the one case just add the value at time = 0
@@ -115,14 +109,12 @@ function trjstats()
                 cmb_tsvt[i,cnt] = tsvt[Tind]
                 cmb_sbs[i,cnt] = sbs[Tind]
                 cmb_ηs[i,cnt] = ηs[Tind]
-                cmb_no_comp[i,cnt] = no_comp[Tind]
-                cmb_no_facl[i,cnt] = no_facl[Tind]
-                cmb_no_self[i,cnt] = no_self[Tind]
-                cmb_st_comp[i,cnt] = st_comp[Tind]
-                cmb_st_facl[i,cnt] = st_facl[Tind]
-                cmb_st_self[i,cnt] = st_self[Tind]
+                cmb_via_η[i,cnt] = via_η[Tind]
+                cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]
                 for j = 1:NoR
                     cmb_Rs[i,j,cnt] = Rs[j,Tind]
+                    cmb_via_R[i,j,cnt] = via_R[j,Tind]
+                    cmb_ηs_R[i,j,cnt] = ηs_R[j,Tind]
                 end
             end
             # Finally check if next time point is higher than final time for this trajectory
@@ -138,28 +130,26 @@ function trjstats()
     tot_tsvt = dropdims(sum(cmb_tsvt,dims=1),dims=1)
     tot_sbs = dropdims(sum(cmb_sbs,dims=1),dims=1)
     tot_Rs = dropdims(sum(cmb_Rs,dims=1),dims=1)
+    tot_via_R = dropdims(sum(cmb_via_R,dims=1),dims=1)
+    tot_ηs_R = dropdims(sum(cmb_ηs_R,dims=1),dims=1)
     tot_ηs = dropdims(sum(cmb_ηs,dims=1),dims=1)
-    tot_no_comp = dropdims(sum(cmb_no_comp,dims=1),dims=1)
-    tot_no_facl = dropdims(sum(cmb_no_facl,dims=1),dims=1)
-    tot_no_self = dropdims(sum(cmb_no_self,dims=1),dims=1)
-    tot_st_comp = dropdims(sum(cmb_st_comp,dims=1),dims=1)
-    tot_st_facl = dropdims(sum(cmb_st_facl,dims=1),dims=1)
-    tot_st_self = dropdims(sum(cmb_st_self,dims=1),dims=1)
+    tot_via_η = dropdims(sum(cmb_via_η,dims=1),dims=1)
+    tot_fr_ΔG = dropdims(sum(cmb_fr_ΔG,dims=1),dims=1)
     # Now calculate means
     mn_svt = tot_svt./no_sims
     mn_tsvt = tot_tsvt./no_sims
     mn_sbs = tot_sbs./no_sims
     mn_ηs = tot_ηs./no_sims
-    mn_no_comp = tot_no_comp./no_sims
-    mn_no_facl = tot_no_facl./no_sims
-    mn_no_self = tot_no_self./no_sims
-    mn_st_comp = tot_st_comp./no_sims
-    mn_st_facl = tot_st_facl./no_sims
-    mn_st_self = tot_st_self./no_sims
+    mn_via_η = tot_via_η./no_sims
+    mn_fr_ΔG = tot_fr_ΔG./no_sims
     # 2D array has to be preallocated
     mn_Rs = zeros(NoR,length(times))
+    mn_via_R = zeros(NoR,length(times))
+    mn_ηs_R = zeros(NoR,length(times))
     for i = 1:NoR
         mn_Rs[i,:] = tot_Rs[i,:]./no_sims
+        mn_via_R[i,:] = tot_via_R[i,:]./no_sims
+        mn_ηs_R[i,:] = tot_ηs_R[i,:]./no_sims
     end
     println("Means found")
     # Preallocate containers for the standard deviations
@@ -167,13 +157,11 @@ function trjstats()
     sd_tsvt = zeros(size(mn_tsvt))
     sd_sbs = zeros(size(mn_sbs))
     sd_Rs = zeros(size(mn_Rs))
+    sd_via_R = zeros(size(mn_via_R))
+    sd_ηs_R = zeros(size(mn_ηs_R))
     sd_ηs = zeros(size(mn_ηs))
-    sd_no_comp = zeros(size(mn_no_comp))
-    sd_no_facl = zeros(size(mn_no_facl))
-    sd_no_self = zeros(size(mn_no_self))
-    sd_st_comp = zeros(size(mn_st_comp))
-    sd_st_facl = zeros(size(mn_st_facl))
-    sd_st_self = zeros(size(mn_st_self))
+    sd_via_η = zeros(size(mn_via_η))
+    sd_fr_ΔG = zeros(size(mn_fr_ΔG))
     # Loop over times
     for i = 1:length(times)
         # Find indices of still progressing trajectories
@@ -183,14 +171,12 @@ function trjstats()
         sd_tsvt[i] = sqrt(sum((cmb_tsvt[inds,i] .- mn_tsvt[i]).^2)/(no_sims[i] - 1))
         sd_sbs[i] = sqrt(sum((cmb_sbs[inds,i] .- mn_sbs[i]).^2)/(no_sims[i] - 1))
         sd_ηs[i] = sqrt(sum((cmb_ηs[inds,i] .- mn_ηs[i]).^2)/(no_sims[i] - 1))
-        sd_no_comp[i] = sqrt(sum((cmb_no_comp[inds,i] .- mn_no_comp[i]).^2)/(no_sims[i] - 1))
-        sd_no_facl[i] = sqrt(sum((cmb_no_facl[inds,i] .- mn_no_facl[i]).^2)/(no_sims[i] - 1))
-        sd_no_self[i] = sqrt(sum((cmb_no_self[inds,i] .- mn_no_self[i]).^2)/(no_sims[i] - 1))
-        sd_st_comp[i] = sqrt(sum((cmb_st_comp[inds,i] .- mn_st_comp[i]).^2)/(no_sims[i] - 1))
-        sd_st_facl[i] = sqrt(sum((cmb_st_facl[inds,i] .- mn_st_facl[i]).^2)/(no_sims[i] - 1))
-        sd_st_self[i] = sqrt(sum((cmb_st_self[inds,i] .- mn_st_self[i]).^2)/(no_sims[i] - 1))
+        sd_via_η[i] = sqrt(sum((cmb_via_η[inds,i] .- mn_via_η[i]).^2)/(no_sims[i] - 1))
+        sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[inds,i] .- mn_fr_ΔG[i]).^2)/(no_sims[i] - 1))
         for j = 1:NoR
             sd_Rs[j,i] = sqrt(sum((cmb_Rs[inds,j,i] .- mn_Rs[j,i]).^2)/(no_sims[i] - 1))
+            sd_via_R[j,i] = sqrt(sum((cmb_via_R[inds,j,i] .- mn_via_R[j,i]).^2)/(no_sims[i] - 1))
+            sd_ηs_R[j,i] = sqrt(sum((cmb_ηs_R[inds,j,i] .- mn_ηs_R[j,i]).^2)/(no_sims[i] - 1))
         end
     end
     # Now want to save means and standard deviations
@@ -204,25 +190,21 @@ function trjstats()
         write(file,"mn_tsvt",mn_tsvt)
         write(file,"mn_sbs",mn_sbs)
         write(file,"mn_Rs",mn_Rs)
-        write(file,"mn_ηs",sd_ηs)
-        write(file,"mn_no_comp",sd_no_comp)
-        write(file,"mn_no_facl",sd_no_facl)
-        write(file,"mn_no_self",sd_no_self)
-        write(file,"mn_st_comp",sd_st_comp)
-        write(file,"mn_st_facl",sd_st_facl)
-        write(file,"mn_st_self",sd_st_self)
+        write(file,"mn_via_R",mn_via_R)
+        write(file,"mn_ηs_R",mn_ηs_R)
+        write(file,"mn_ηs",mn_ηs)
+        write(file,"mn_via_η",mn_via_η)
+        write(file,"mn_fr_ΔG",mn_fr_ΔG)
         # Save standard deviations
         write(file,"sd_svt",sd_svt)
         write(file,"sd_tsvt",sd_tsvt)
         write(file,"sd_sbs",sd_sbs)
         write(file,"sd_Rs",sd_Rs)
+        write(file,"sd_via_R",sd_via_R)
+        write(file,"sd_ηs_R",sd_ηs_R)
         write(file,"sd_ηs",sd_ηs)
-        write(file,"sd_no_comp",sd_no_comp)
-        write(file,"sd_no_facl",sd_no_facl)
-        write(file,"sd_no_self",sd_no_self)
-        write(file,"sd_st_comp",sd_st_comp)
-        write(file,"sd_st_facl",sd_st_facl)
-        write(file,"sd_st_self",sd_st_self)
+        write(file,"sd_via_η",sd_via_η)
+        write(file,"sd_fr_ΔG",sd_fr_ΔG)
     end
     return(nothing)
 end

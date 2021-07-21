@@ -36,8 +36,14 @@ function make_spool()
     if M < 2
         error("model requires at least two metabolites")
     end
+    # Make desired vector of reactions
+    Rs = collect(Rl:Ru)
+    # HARDCODING THESE IN FOR NOW, WORK MORE CAREFULLY ON THESE LATER
+    d = 6e-5
+    μrange = 5e6*(M/25)
+    mratio = 1e-2 # Product to substrate ratio for equilbrium
     # Finally generate the new pool
-    new_pool(Nt,M,Rl,Ru)
+    new_pool(Nt,M,Rs,d,μrange,mratio)
     return(nothing)
 end
 

@@ -10,8 +10,6 @@ export Reaction, make_Reaction, Microbe, make_Microbe
 
 export TOParameters, make_TOParameters, MicData, make_MicData
 
-# PRECISE PARAMETERS USED IS GOING TO HAVE TO CHANGE
-
 """
      Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
  Type containing the parameters for a particular reaction.
@@ -43,7 +41,7 @@ function make_Reaction(ID::Int64,Rct::Int64,Prd::Int64,ΔG0::Float64)
 end
 
 """
-    Microbe(MC::Int64,γm::Float64,Kγ::Float64,χ::Float64,Pb::Float64,d::Float64,ϕH::Float64,
+    Microbe(MC::Int64,γm::Float64,Kγ::Float64,χl::Float64,χu::Float64,Pb::Float64,d::Float64,ϕH::Float64,
     KΩ::Float64,fd::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},
     KS::Vector{Float64},kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
 Type containing the parameters for a particular microbial strain, this now includes proteome parameters.
@@ -51,7 +49,8 @@ Type containing the parameters for a particular microbial strain, this now inclu
 - `MC::Int64`: Mass of cell in amino acids.
 - `γm::Float64`: Maximum elongation rate in amino acids per minute (per ribosome)
 - `Kγ::Float64`: Threshold energy in ATP per cell
-- `χ::Float64`: ATP use per translation step
+- `χl::Float64`: minimum ATP use per translation step
+- `χu::Float64`: maximum (additional) ATP use per translation step
 - `Pb::Float64`: Proportion of ribosomes bound
 - `d::Float64`: Biomass loss rate (~death rate)
 - `ϕH::Float64`: Fraction of proteome allocated to housekeeping proteins
@@ -73,7 +72,8 @@ struct Microbe
     MC::Int64;
     γm::Float64;
     Kγ::Float64;
-    χ::Float64;
+    χl::Float64;
+    χu::Float64;
     Pb::Float64;
     d::Float64;
     ϕH::Float64;
@@ -93,27 +93,28 @@ struct Microbe
 end
 
 """
-    make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χ::Float64,Pb::Float64,d::Float64,ϕH::Float64,
+    make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χl::Float64,χu::Float64,Pb::Float64,d::Float64,ϕH::Float64,
     KΩ::Float64,fd::Float64,ω::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},
     KS::Vector{Float64},kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
 Helper function used internally. Takes values for parameters and returns a `Microbe` object.
 Also does checks internally to make sure the values are correct.
 """
-function make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χ::Float64,Pb::Float64,d::Float64,ϕH::Float64,
+function make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χl::Float64,χu::Float64,Pb::Float64,d::Float64,ϕH::Float64,
             KΩ::Float64,fd::Float64,ω::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},
             KS::Vector{Float64},kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
     # Check that physical parameters have been provided
-    @assert R > 0 "Number of reactions must be postive"
-    @assert MC > 0 "Cell mass must be positive"
-    @assert γm >= 0.0 "Elongation rate cannot be negative"
-    @assert χ > 0.0 "ATP per sythesis step must be positive"
-    @assert Kγ > 0.0 "Threshold energy must be positive"
-    @assert d > 0.0 "Death rate must be positive"
-    @assert 0.0 <= Pb <= 1.0 "Proportion of ribosomes bound has to be between 0 and 1"
-    @assert 0.0 <= ϕH <= 1.0 "Housekeeping proteins have to be between 0 and 100% of total"
-    @assert KΩ > 0.0 "Proteome fraction saturation constant must be positive"
-    @assert fd > 0.0 "Number of doublings required must be positive"
-    @assert 0.0 <= ω <= 1.0 "Ribosome fraction maximum has to be between 0.0 and 1.0 of total"
+    @assert R > 0 "number of reactions must be postive"
+    @assert MC > 0 "cell mass must be positive"
+    @assert γm >= 0.0 "elongation rate cannot be negative"
+    @assert χl > 0.0 "minimum ATP per sythesis step must be positive"
+    @assert χu > 0.0 "maximum (additional) ATP per sythesis step must be positive"
+    @assert Kγ > 0.0 "threshold energy must be positive"
+    @assert d > 0.0 "death rate must be positive"
+    @assert 0.0 <= Pb <= 1.0 "proportion of ribosomes bound has to be between 0 and 1"
+    @assert 0.0 <= ϕH <= 1.0 "housekeeping proteins have to be between 0 and 100% of total"
+    @assert KΩ > 0.0 "proteome fraction saturation constant must be positive"
+    @assert fd > 0.0 "number of doublings required must be positive"
+    @assert 0.0 <= ω <= 1.0 "ribosome fraction maximum has to be between 0.0 and 1.0 of total"
     # Check that the vectors have the right length
     @assert length(Reacs) == R "Vector of reactions is the wrong length"
     @assert length(η) == R "Vector of ATP generation rates (η) is the wrong length"
@@ -131,7 +132,7 @@ function make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χ::Float64,Pb::Float6
     @assert all(n .> 0) "All proteins must have positive mass"
     @assert all(ϕP .>= 0.0) "All metabolic fractions must be non-negative"
     @assert sum(ϕP) ≈ 1.0 "Metabolic fractions should sum to 1"
-    return(Microbe(MC,γm,Kγ,χ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kc,KS,kr,n,ϕP,ID,PID))
+    return(Microbe(MC,γm,Kγ,χl,χu,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kc,KS,kr,n,ϕP,ID,PID))
 end
 
 """

@@ -57,16 +57,21 @@ function Eα(ϕR::Float64,ps::Microbe,i::Int64)
 end
 
 # function to find (energy use dependent) elongation rate γ
-function γs(a::Float64,ϕR::Float64,ps::Microbe)
-    # Check that there's actually energy to grow with
-    γ = ps.γm*a/(a+ps.Kγ*ϕR/ps.χ)
+function γs(a::Float64,ps::Microbe)
+    γ = ps.γm*a/(a+ps.Kγ)
     return(γ)
+end
+
+# function to find ATP dissipated (per translation step)
+function χs(ϕR::Float64,ps::Microbe)
+    χ = ps.χl + ps.χu*(ϕR/(1-ps.ϕH))
+    return(χ)
 end
 
 # function to find the growth rate λ
 function λs(a::Float64,ϕR::Float64,ps::Microbe)
     # Find elongation rate
-    γ = γs(a,ϕR,ps)
+    γ = γs(a,ps)
     λ = (γ*ϕR*ps.Pb)/ps.n[1]
     return(λ)
 end
@@ -127,7 +132,7 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Micro
                 J += ms[i].η[j]*rate[i,ms[i].Reacs[j]]
             end
             # Add energy intake and substract translation and dilution from the energy concentration
-            dx[length(ms)+ps.M+i] = J - (ms[i].MC*ms[i].χ + x[length(ms)+ps.M+i])*λ
+            dx[length(ms)+ps.M+i] = J - (ms[i].MC*χs(ϕR,ms[i]) + x[length(ms)+ps.M+i])*λ
         end
     end
     # Do basic resource dynamics

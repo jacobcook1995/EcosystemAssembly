@@ -1,5 +1,5 @@
 # Script that makes the parameters needed for simulation of the full proteome model
-export initialise
+export initialise, choose_reactions
 
 # function to randomly choose the reactions that a specific microbe can make use of
 function choose_reactions(O::Int64,Rs::Array{Int64,1})

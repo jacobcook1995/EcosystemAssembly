@@ -112,16 +112,13 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
     mics = Array{Microbe,1}(undef,Nt)
     # Then construct microbes
     for i = 1:Nt
-        println("Micobe $i")
         # For each microbe generate random set of reactions
         R, Reacs = choose_reactions(O,Rs)
         # Roller et al suggest a factor of 10 variation in max growth rate
         # So varies between 0.1 and 1.0
         ω = 0.1 + 0.9*rand()
-        println(ω)
         # Want KΩ variations to be smaller, i.e. factor of 2.5
         KΩ = 1.5*(ω-0.1)*KΩm + 1*KΩm
-        println(KΩ)
         # Make vectors of the (fixed) kinetic parameters
         kcs, KSs, krs = kin_rand(kc,KS,kr,R)
         # Reactions given random proportional weightings, done this in the simplest way possible
@@ -144,25 +141,13 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
 end
 
 # Alternative function to generate a single microbe
-function new_mic(M::Int64,μ::Float64,ω::Float64,KΩ::Float64,Kγ::Float64,Rl::Int64,Ru::Int64)
+function new_mic(M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Float64,mratio::Float64)
     # First generate random unique indetifier for this pool
     PID = randstring(['0':'9'; 'a':'f'])
+    # Print out that this is happening
+    println("Generating random pool with identifer: $(PID)")
     # Only generating one microbe so will be ID: 1
     ID = 1
-    # Print out that this is happening
-    println("Generating random microbe with identifer: $(PID)")
-    # Assume that half saturation occurs at a quarter κ/δ
-    KS = (1/4)*5.5e-3
-    # Arbitary number that seems to give decent survival
-    kc = 10.0
-    # The reversibility factor remains the same as previously
-    kr = 10.0
-    # Always want to allow near to equilbrium reactions now
-    syn = true
-    # Use formula to calculate how many reactions are implied
-    O = 2*M - 3
-    # Assume that temperature T is constant at 20°C
-    T = 293.15
     # Cell mass is taken from Bremer H, Dennis P (1996) Modulation of chemical
     # composition and other parameters of the cell by growth rate (Book chapter).
     MC = 10^8
@@ -174,21 +159,25 @@ function new_mic(M::Int64,μ::Float64,ω::Float64,KΩ::Float64,Kγ::Float64,Rl::
     n[1] = 7459
     # Other protein mass averaged from Brandt F, et al. (2009)
     n[2:3] .= 300
-    # Need to think carefully about what a reasonable parameter value is here
-    # This has a large impact on the fraction, so should be careful with this one
-    d = 6.0e-5
-    # The number of ATP per translation step, including the cost of amino acid sythesis
-    # This figure is taken from Lynch and Marinov 2015
-    # χl thus represents the minimum cost of synthesising a gene
-    χ = 27.55
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
-    # Housekeeping fraction is taken from Scott et al. 2010
-    ϕH = 0.45
     # Number of doublings required to dilute to 1%
     fd = log(100)/log(2)
-    # Chosen so that 100 steps yields slightly more free energy than respiring glucose
-    μrange = 5e6*(M/25)
+    # Housekeeping fraction is taken from Scott et al. 2010
+    ϕH = 0.45
+    # The number of ATP per translation step, including the cost of amino acid sythesis
+    # This figure is taken from Lynch and Marinov 2015
+    χl = 29.0
+    # Estimate maximum additional cost to be three times mimumum (from Fig 1 in Roller et al)
+    χu = 3.5*χl
+    # This is a slightly arbitary choice for Kγ
+    Kγ = 5e8
+    # Set mimumum KΩ value
+    KΩm = 1e9
+    # Use formula to calculate how many reactions are implied
+    O = 2*M - 3
+    # Assume that temperature T is constant at 20°C
+    T = 293.15
     # Generate fixed set of reactions
     RP, ΔG = fix_reactions(O,M,μrange,T)
     # Preallocate vector of reactions
@@ -196,16 +185,27 @@ function new_mic(M::Int64,μ::Float64,ω::Float64,KΩ::Float64,Kγ::Float64,Rl::
     for i = 1:O
         reacs[i] = make_Reaction(i,RP[i,1],RP[i,2],ΔG[i])
     end
-    # For each microbe generate random set of reactions
-    R, Reacs = choose_reactions(O,Rl,Ru)
+    # Assume that half saturation occurs at a quarter κ/δ
+    KS = (1/4)*5.5e-3
+    # Arbitary number that seems to give decent survival
+    kc = 10.0
+    # The reversibility factor remains the same as previously
+    kr = 10.0
+    # Generate random set of reactions
+    R, Reacs = choose_reactions(O,Rs)
+    # Roller et al suggest a factor of 10 variation in max growth rate
+    # So varies between 0.1 and 1.0
+    ω = 0.1 + 0.9*rand()
+    # Want KΩ variations to be smaller, i.e. factor of 2.5
+    KΩ = 1.5*(ω-0.1)*KΩm + 1*KΩm
     # Make vectors of the (fixed) kinetic parameters
     kcs, KSs, krs = kin_rand(kc,KS,kr,R)
     # Reactions given random proportional weightings, done this in the simplest way possible
     ϕP = rand(R)
     ϕP = ϕP/sum(ϕP)
     # Find corresponding η's for these reactions
-    η = choose_η_mix(reacs,Reacs,T,syn)
+    η = choose_η_mix(reacs,Reacs,T,mratio)
     # Can finally generate microbe
-    mic = make_Microbe(MC,γm,Kγ,χ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,ID,PID)
+    mic = make_Microbe(MC,γm,Kγ,χl,χu,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,ID,PID)
     return(mic)
 end

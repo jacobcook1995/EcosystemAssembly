@@ -5,25 +5,14 @@ using Random
 using LsqFit
 import PyPlot
 
-function new_mic_gl(γm::Float64,ω::Float64,χ::Float64,Kγ::Float64,KΩ::Float64,M::Int64,ps::TOParameters)
+# Alternative function to generate a single microbe
+function new_mic_gl(M::Int64,Rs::Array{Int64,1},d::Float64,ω::Float64,μrange::Float64,γm::Float64,ps::TOParameters)
     # First generate random unique indetifier for this pool
     PID = randstring(['0':'9'; 'a':'f'])
-    # Only generating one microbe so will be ID: 1
-    ID = 1
     # Print out that this is happening
     println("Generating random microbe with identifer: $(PID)")
-    # Assume that half saturation occurs at a quarter κ/δ
-    KS = (1/4)*5.5e-3
-    # Arbitary number that seems to give decent survival
-    kc = 10.0
-    # The reversibility factor remains the same as previously
-    kr = 10.0
-    # Always want to allow near to equilbrium reactions now
-    syn = true
-    # Use formula to calculate how many reactions are implied
-    O = 2*M - 3
-    # Assume that temperature T is constant at 20°C
-    T = 293.15
+    # Only generating one microbe so will be ID: 1
+    ID = 1
     # Cell mass is taken from Bremer H, Dennis P (1996) Modulation of chemical
     # composition and other parameters of the cell by growth rate (Book chapter).
     MC = 10^8
@@ -33,25 +22,50 @@ function new_mic_gl(γm::Float64,ω::Float64,χ::Float64,Kγ::Float64,KΩ::Float
     n[1] = 7459
     # Other protein mass averaged from Brandt F, et al. (2009)
     n[2:3] .= 300
-    # Choosing a low value to better highlight the growth laws
-    d = 6.0e-10
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
-    # Housekeeping fraction is taken from Scott et al. 2010
-    ϕH = 0.45
     # Number of doublings required to dilute to 1%
     fd = log(100)/log(2)
+    # Housekeeping fraction is taken from Scott et al. 2010
+    ϕH = 0.45
+    # The number of ATP per translation step, including the cost of amino acid sythesis
+    # This figure is taken from Lynch and Marinov 2015
+    χl = 29.0
+    # Estimate maximum additional cost to be three times mimumum (from Fig 1 in Roller et al)
+    χu = 3.5*χl
+    # This is a slightly arbitary choice for Kγ
+    Kγ = 5e8
+    # Set mimumum KΩ value
+    KΩm = 1e9
+    # Use formula to calculate how many reactions are implied
+    O = 2*M - 3
+    # Assume that temperature T is constant at 20°C
+    T = 293.15
+    # Generate fixed set of reactions
+    RP, ΔG = fix_reactions(O,M,μrange,T)
+    # Preallocate vector of reactions
+    reacs = Array{Reaction,1}(undef,O)
+    for i = 1:O
+        reacs[i] = make_Reaction(i,RP[i,1],RP[i,2],ΔG[i])
+    end
+    # Assume that half saturation occurs at a quarter κ/δ
+    KS = (1/4)*5.5e-3
+    # Arbitary number that seems to give decent survival
+    kc = 10.0
+    # The reversibility factor remains the same as previously
+    kr = 10.0
+    # Want KΩ variations to be smaller, i.e. factor of 2.5
+    KΩ = 1.5*(ω-0.1)*KΩm + 1*KΩm
     # Each strain should just have the one available reaction
     R = 1
     Reacs = [1]
     # Make vectors of the (fixed) kinetic parameters
-    kcs = kc.*ones(R)
-    KSs = KS.*ones(R)
-    krs = kr.*ones(R)
+    kcs = kc*ones(R)
+    KSs = KS*ones(R)
+    krs = kr*ones(R)
     # Reactions given random proportional weightings, done this in the simplest way possible
     ϕP = rand(R)
     ϕP = ϕP/sum(ϕP)
-    # Find corresponding η's for these reactions
     # Find corresponding η's for these reactions
     η = zeros(R)
     # Set ratio for equilbrium
@@ -66,7 +80,7 @@ function new_mic_gl(γm::Float64,ω::Float64,χ::Float64,Kγ::Float64,KΩ::Float
         η[i] = -(dG + Rgas*T*log(mratio))/(ΔGATP)
     end
     # Can finally generate microbe
-    mic = make_Microbe(MC,γm,Kγ,χ,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,ID,PID)
+    mic = make_Microbe(MC,γm,Kγ,χl,χu,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,ID,PID)
     return(mic)
 end
 
@@ -102,19 +116,17 @@ function growth_laws()
     Si = 1.0
     Pi = 0.0
     ϕi = 0.1
-    # These are parameters I might need to change to get reasonable results
-    ω = 1.0
-    χ = 30.0
-    # These require real thought
-    Kγ = 1.0e12
-    KΩ = 5.0e10
     # Simple 1 reaction case
     M = 2
     O = 1
+    # Only 1 reaction possible
+    Rs = [1]
     # Choose simulation time
     Tmax = 5e6
     # Set this as a middling value of Gibbs free energy change
-    μr = 3e6 # Relatively small Gibbs free energy change
+    μr = 1e6 # Relatively small Gibbs free energy change
+    d = 6e-10 # Tiny biomass loss rate
+    ω = 0.75
     # Max Elongation rate also taken from Bremer (1996), convert from minutes to seconds
     γm = 1260.0/60.0 # Change this one
     # Make vector of γm values
@@ -130,7 +142,7 @@ function growth_laws()
         # Initialise parameters
         ps = initialise_gl(M,O,μr)
         # and then the microbe
-        mic = new_mic_gl(γms[i],ω,χ,Kγ,KΩ,M,ps)
+        mic = new_mic_gl(M,Rs,d,ω,μr,γms[i],ps)
         # Simulate dynamics of the single population
         C, T = sing_pop(ps,Ni,Si,ai,ϕi,mic,Tmax)
         # Now calculate growth rates and elongation rates
@@ -143,7 +155,7 @@ function growth_laws()
         ϕ1[i] = C[ind,5]
     end
     # Now make set of ΔG values
-    μrs = [μr,μr/1.5,μr/2,μr/3,μr/4,μr/5,μr/7.5,μr/10,μr/20,μr/50,μr/100]
+    μrs = [μr,μr/1.5,μr/2,μr/3,μr/4,μr/5,μr/7.5,μr/10,μr/15,μr/20,μr/25]
     # Make vector to store final growth rates and fractions
     λ2 = zeros(length(μrs))
     ϕ2 = zeros(length(μrs))
@@ -151,7 +163,7 @@ function growth_laws()
         # Initialise parameters
         ps = initialise_gl(M,O,μrs[i])
         # and then the microbe
-        mic = new_mic_gl(γm,ω,χ,Kγ,KΩ,M,ps)
+        mic = new_mic_gl(M,Rs,d,ω,μrs[i],γm,ps)
         # Simulate dynamics of the single population
         C, T = sing_pop(ps,Ni,Si,ai,ϕi,mic,Tmax)
         # Now calculate growth rates and proteome fractions

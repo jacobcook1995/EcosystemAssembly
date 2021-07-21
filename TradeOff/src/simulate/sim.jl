@@ -4,8 +4,6 @@ export full_simulate, sing_pop, doub_pop, θ, θ_smooth, qs
 # These are temporarily being output to aid with testing
 export γs, λs, χs, Eα
 
-# DUPLICATED LOADS OF FUNCTIONS, THIS WILL HAVE TO BE SORTED OUT AT SOMEPOINT
-
 # function to find the thermodynamic term θ, for the case of 1 to 1 stochiometry
 function θ(S::Float64,P::Float64,T::Float64,η::Float64,ΔG0::Float64)
     # Catch perverse cases that sometimes arise
@@ -383,7 +381,7 @@ function sing_pop(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::F
     # Preallocate memory
     rate = zeros(1,ps.O)
     # Now substitute preallocated memory in
-    dyns!(dx,x,ms,t) = new_full_dynamics!(dx,x,ms,ps,rate,t)
+    dyns!(dx,x,ms,t) = full_dynamics!(dx,x,ms,ps,rate,t)
     # Find time span for this step
     tspan = (0,Tmax)
     # Make appropriate initial condition

@@ -21,13 +21,11 @@ function trjstats()
     println("Compiled")
     flush(stdout)
     # Load in hardcoded simulation parameters
-    Np, Rls, Rus, Nt, M = sim_paras()
-    # Save number of reactions
-    NoR = Rus[1] - Rls[1] + 1
+    Np, Nt, M, d = sim_paras()
     # Number of steps to calculate stats for
     NumS = 2500
     # Read in parameter file
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld"
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations run $(rN) is missing a parameter file")
     end
@@ -35,15 +33,22 @@ function trjstats()
     ps = load(pfile,"ps")
     # Container to store final times
     Tfs = zeros(rps)
+    # Counter for number of reactions
+    NoR = 0
     # Loop over number of repeats
     for i = 1:rps
         # Load in relevant output file
-        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/AvRun$(i)Data$(ims)Ims.jld"
+        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/AvRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
             error("$(ims) immigrations run $(rN) is missing a variables file")
         end
         # Just want to save final times for now
         Tfs[i] = load(vfile,"Tf")
+        # Save number of reactions from the first run
+        if i == 1
+            Rs = load(vfile,"Rs")
+            NoR = size(Rs,1)
+        end
     end
     # Use maximum final time to set time value
     times = collect(range(0.0,maximum(Tfs),length=NumS))
@@ -55,13 +60,16 @@ function trjstats()
     cmb_Rs = zeros(rps,NoR,length(times))
     cmb_via_R = zeros(rps,NoR,length(times))
     cmb_ηs_R = zeros(rps,NoR,length(times))
+    cmb_ωs_R = zeros(rps,NoR,length(times))
     cmb_ηs = zeros(rps,length(times))
     cmb_via_η = zeros(rps,length(times))
+    cmb_ωs = zeros(rps,length(times))
+    cmb_via_ω = zeros(rps,length(times))
     cmb_fr_ΔG = zeros(rps,length(times))
     # Loop over number of trajectories (to minimise the number of reads in)
     for i = 1:rps
         # Load in relevant output file
-        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/AvRun$(i)Data$(ims)Ims.jld"
+        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/AvRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
             error("$(ims) immigrations run $(rN) is missing a variables file")
         end
@@ -72,8 +80,11 @@ function trjstats()
         Rs = load(vfile,"Rs")
         via_R = load(vfile,"via_R")
         ηs_R = load(vfile,"ηs_R")
+        ωs_R = load(vfile,"ωs_R")
         ηs = load(vfile,"ηs")
         via_η = load(vfile,"via_η")
+        ωs = load(vfile,"ωs")
+        via_ω = load(vfile,"via_ω")
         fr_ΔG = load(vfile,"fr_ΔG")
         # Bool to indicate end of the run
         Rn_end = false
@@ -97,11 +108,14 @@ function trjstats()
                 cmb_sbs[i,cnt] = sbs[Tind]*(T1x)/Tg + sbs[Tind-1]*(Tx2)/Tg
                 cmb_ηs[i,cnt] = ηs[Tind]*(T1x)/Tg + ηs[Tind-1]*(Tx2)/Tg
                 cmb_via_η[i,cnt] = via_η[Tind]*(T1x)/Tg + via_η[Tind-1]*(Tx2)/Tg
+                cmb_ωs[i,cnt] = ωs[Tind]*(T1x)/Tg + ωs[Tind-1]*(Tx2)/Tg
+                cmb_via_ω[i,cnt] = via_ω[Tind]*(T1x)/Tg + via_ω[Tind-1]*(Tx2)/Tg
                 cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]*(T1x)/Tg + fr_ΔG[Tind-1]*(Tx2)/Tg
                 for j = 1:NoR
                     cmb_Rs[i,j,cnt] = Rs[j,Tind]*(T1x)/Tg + Rs[j,Tind-1]*(Tx2)/Tg
                     cmb_via_R[i,j,cnt] = via_R[j,Tind]*(T1x)/Tg + via_R[j,Tind-1]*(Tx2)/Tg
                     cmb_ηs_R[i,j,cnt] = ηs_R[j,Tind]*(T1x)/Tg + ηs_R[j,Tind-1]*(Tx2)/Tg
+                    cmb_ωs_R[i,j,cnt] = ωs_R[j,Tind]*(T1x)/Tg + ωs_R[j,Tind-1]*(Tx2)/Tg
                 end
             else
                 # In the one case just add the value at time = 0
@@ -110,11 +124,14 @@ function trjstats()
                 cmb_sbs[i,cnt] = sbs[Tind]
                 cmb_ηs[i,cnt] = ηs[Tind]
                 cmb_via_η[i,cnt] = via_η[Tind]
+                cmb_ωs[i,cnt] = ωs[Tind]
+                cmb_via_ω[i,cnt] = via_ω[Tind]
                 cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]
                 for j = 1:NoR
                     cmb_Rs[i,j,cnt] = Rs[j,Tind]
                     cmb_via_R[i,j,cnt] = via_R[j,Tind]
                     cmb_ηs_R[i,j,cnt] = ηs_R[j,Tind]
+                    cmb_ωs_R[i,j,cnt] = ωs_R[j,Tind]
                 end
             end
             # Finally check if next time point is higher than final time for this trajectory
@@ -132,8 +149,11 @@ function trjstats()
     tot_Rs = dropdims(sum(cmb_Rs,dims=1),dims=1)
     tot_via_R = dropdims(sum(cmb_via_R,dims=1),dims=1)
     tot_ηs_R = dropdims(sum(cmb_ηs_R,dims=1),dims=1)
+    tot_ωs_R = dropdims(sum(cmb_ωs_R,dims=1),dims=1)
     tot_ηs = dropdims(sum(cmb_ηs,dims=1),dims=1)
     tot_via_η = dropdims(sum(cmb_via_η,dims=1),dims=1)
+    tot_ωs = dropdims(sum(cmb_ωs,dims=1),dims=1)
+    tot_via_ω = dropdims(sum(cmb_via_ω,dims=1),dims=1)
     tot_fr_ΔG = dropdims(sum(cmb_fr_ΔG,dims=1),dims=1)
     # Now calculate means
     mn_svt = tot_svt./no_sims
@@ -141,15 +161,19 @@ function trjstats()
     mn_sbs = tot_sbs./no_sims
     mn_ηs = tot_ηs./no_sims
     mn_via_η = tot_via_η./no_sims
+    mn_ωs = tot_ωs./no_sims
+    mn_via_ω = tot_via_ω./no_sims
     mn_fr_ΔG = tot_fr_ΔG./no_sims
     # 2D array has to be preallocated
     mn_Rs = zeros(NoR,length(times))
     mn_via_R = zeros(NoR,length(times))
     mn_ηs_R = zeros(NoR,length(times))
+    mn_ωs_R = zeros(NoR,length(times))
     for i = 1:NoR
         mn_Rs[i,:] = tot_Rs[i,:]./no_sims
         mn_via_R[i,:] = tot_via_R[i,:]./no_sims
         mn_ηs_R[i,:] = tot_ηs_R[i,:]./no_sims
+        mn_ωs_R[i,:] = tot_ωs_R[i,:]./no_sims
     end
     println("Means found")
     # Preallocate containers for the standard deviations
@@ -159,8 +183,11 @@ function trjstats()
     sd_Rs = zeros(size(mn_Rs))
     sd_via_R = zeros(size(mn_via_R))
     sd_ηs_R = zeros(size(mn_ηs_R))
+    sd_ωs_R = zeros(size(mn_ωs_R))
     sd_ηs = zeros(size(mn_ηs))
     sd_via_η = zeros(size(mn_via_η))
+    sd_ωs = zeros(size(mn_ωs))
+    sd_via_ω = zeros(size(mn_via_ω))
     sd_fr_ΔG = zeros(size(mn_fr_ΔG))
     # Loop over times
     for i = 1:length(times)
@@ -172,15 +199,18 @@ function trjstats()
         sd_sbs[i] = sqrt(sum((cmb_sbs[inds,i] .- mn_sbs[i]).^2)/(no_sims[i] - 1))
         sd_ηs[i] = sqrt(sum((cmb_ηs[inds,i] .- mn_ηs[i]).^2)/(no_sims[i] - 1))
         sd_via_η[i] = sqrt(sum((cmb_via_η[inds,i] .- mn_via_η[i]).^2)/(no_sims[i] - 1))
+        sd_ωs[i] = sqrt(sum((cmb_ωs[inds,i] .- mn_ωs[i]).^2)/(no_sims[i] - 1))
+        sd_via_ω[i] = sqrt(sum((cmb_via_ω[inds,i] .- mn_via_ω[i]).^2)/(no_sims[i] - 1))
         sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[inds,i] .- mn_fr_ΔG[i]).^2)/(no_sims[i] - 1))
         for j = 1:NoR
             sd_Rs[j,i] = sqrt(sum((cmb_Rs[inds,j,i] .- mn_Rs[j,i]).^2)/(no_sims[i] - 1))
             sd_via_R[j,i] = sqrt(sum((cmb_via_R[inds,j,i] .- mn_via_R[j,i]).^2)/(no_sims[i] - 1))
             sd_ηs_R[j,i] = sqrt(sum((cmb_ηs_R[inds,j,i] .- mn_ηs_R[j,i]).^2)/(no_sims[i] - 1))
+            sd_ωs_R[j,i] = sqrt(sum((cmb_ωs_R[inds,j,i] .- mn_ωs_R[j,i]).^2)/(no_sims[i] - 1))
         end
     end
     # Now want to save means and standard deviations
-    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/RunStats$(ims)Ims.jld","w") do file
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/RunStats$(ims)Ims.jld","w") do file
         # Save times
         write(file,"times",times)
         # Save number of continuing trajectories
@@ -192,8 +222,11 @@ function trjstats()
         write(file,"mn_Rs",mn_Rs)
         write(file,"mn_via_R",mn_via_R)
         write(file,"mn_ηs_R",mn_ηs_R)
+        write(file,"mn_ωs_R",mn_ωs_R)
         write(file,"mn_ηs",mn_ηs)
         write(file,"mn_via_η",mn_via_η)
+        write(file,"mn_ωs",mn_ωs)
+        write(file,"mn_via_ω",mn_via_ω)
         write(file,"mn_fr_ΔG",mn_fr_ΔG)
         # Save standard deviations
         write(file,"sd_svt",sd_svt)
@@ -202,8 +235,11 @@ function trjstats()
         write(file,"sd_Rs",sd_Rs)
         write(file,"sd_via_R",sd_via_R)
         write(file,"sd_ηs_R",sd_ηs_R)
+        write(file,"sd_ωs_R",sd_ωs_R)
         write(file,"sd_ηs",sd_ηs)
         write(file,"sd_via_η",sd_via_η)
+        write(file,"sd_ωs",sd_ωs)
+        write(file,"sd_via_ω",sd_via_ω)
         write(file,"sd_fr_ΔG",sd_fr_ΔG)
     end
     return(nothing)

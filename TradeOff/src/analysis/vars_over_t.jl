@@ -2,90 +2,6 @@
 using TradeOff
 using JLD
 
-# function to calculate the "interaction strength" between two facilitating strains
-function fcl_flx(mic1::Microbe,mic2::Microbe,nI::Int64,concs::Array{Float64,1},md1::Array{Float64,1},
-                    md2::Array{Float64,1},ps::TOParameters)
-    # Preallocate vector of indices
-    inds = zeros(Int64,nI,2)
-    # Set up counter
-    c = 0
-    # Loop over all reactions
-    for i = 1:mic1.R
-        for j = 1:mic2.R
-            if ps.reacs[mic1.Reacs[i]].Prd == ps.reacs[mic2.Reacs[j]].Rct
-                # Increment counter
-                c += 1
-                # Store indicies
-                inds[c,1] = i
-                inds[c,2] = j
-            end
-        end
-    end
-    # Set initial flux to zero
-    av_fl = 0.0
-    # Loop over number of interactions
-    for i = 1:nI
-        # Extract reactions
-        r1 = ps.reacs[mic1.Reacs[inds[i,1]]]
-        r2 = ps.reacs[mic2.Reacs[inds[i,2]]]
-        # Extract initial substrate, intermediate product, and final product
-        S = concs[r1.Rct]
-        P = concs[r1.Prd]
-        W = concs[r2.Prd]
-        # Calculate enzyme fractions
-        E1 = Eα(md1[2],mic1,inds[i,1])
-        E2 = Eα(md2[2],mic2,inds[i,2])
-        # Calculate net fluxes
-        nf1 = md1[1]*qs(S,P,E1,inds[i,1],mic1,ps.T,r1)
-        nf2 = md2[1]*qs(P,W,E2,inds[i,2],mic2,ps.T,r2)
-        # Sqrt the product and add to the sum
-        av_fl += sqrt(nf1*nf2)
-    end
-    return(av_fl)
-end
-
-# function to calculate the "interaction strength" between two competing strains
-function fcl_cmp(mic1::Microbe,mic2::Microbe,nI::Int64,concs::Array{Float64,1},md1::Array{Float64,1},
-                    md2::Array{Float64,1},ps::TOParameters)
-    # Preallocate vector of indices
-    inds = zeros(Int64,nI,2)
-    # Set up counter
-    c = 0
-    # Loop over all reactions
-    for i = 1:mic1.R
-        for j = 1:mic2.R
-            if ps.reacs[mic1.Reacs[i]].Rct == ps.reacs[mic2.Reacs[j]].Rct
-                # Increment counter
-                c += 1
-                # Store indicies
-                inds[c,1] = i
-                inds[c,2] = j
-            end
-        end
-    end
-    # Set initial flux to zero
-    av_fl = 0.0
-    # Loop over number of interactions
-    for i = 1:nI
-        # Extract reactions
-        r1 = ps.reacs[mic1.Reacs[inds[i,1]]]
-        r2 = ps.reacs[mic2.Reacs[inds[i,2]]]
-        # Extract initial substrate, and the two products (which will often be the same)
-        S = concs[r1.Rct]
-        P1 = concs[r1.Prd]
-        P2 = concs[r2.Prd]
-        # Calculate enzyme fractions
-        E1 = Eα(md1[2],mic1,inds[i,1])
-        E2 = Eα(md2[2],mic2,inds[i,2])
-        # Calculate net fluxes
-        nf1 = md1[1]*qs(S,P1,E1,inds[i,1],mic1,ps.T,r1)
-        nf2 = md2[1]*qs(S,P2,E2,inds[i,2],mic2,ps.T,r2)
-        # Sqrt the product and add to the sum
-        av_fl += sqrt(nf1*nf2)
-    end
-    return(av_fl)
-end
-
 function v_over_t()
     # Check that sufficent arguments have been provided
     if length(ARGS) < 2
@@ -104,11 +20,9 @@ function v_over_t()
     println("Compiled")
     flush(stdout)
     # Load in hardcoded simulation parameters
-    Np, Rls, Rus, Nt, M = sim_paras()
-    # Save number of reactions
-    NoR = Rus[1] - Rls[1] + 1
+    Np, Nt, M, d = sim_paras()
     # Read in parameter file
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld"
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations run $(rN) is missing a parameter file")
     end
@@ -118,10 +32,12 @@ function v_over_t()
     pls = []
     # Array of array to store pools
     pools = Array{Array{Microbe,1},1}(undef,1)
+    # Counter for number of reactions
+    NoR = 0
     # Loop over number of repeats
     for i = 1:rps
         # Load in relevant output file
-        ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Run$(i)Data$(ims)Ims.jld"
+        ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
             error("$(ims) immigrations run $(rN) is missing an output file")
         end
@@ -141,15 +57,21 @@ function v_over_t()
                 # Add new pool ID in
                 pls = cat(pls,micd[j].PID,dims=1)
                 # Find name of pool
-                file = "Pools/ID=$(micd[j].PID)N=$(Nt)M=$(ps.M)Reacs$(Rls[1])-$(Rus[1]).jld"
+                file = "Pools/ID=$(micd[j].PID)N=$(Nt)M=$(ps.M)d=$(d).jld"
                 # Check if this is the first pool
                 if length(pls) == 1
                     # If so save the pool
                     pools[1] = load(file,"mics")
+                    # Find number of reactions based on this
+                    NoR = maximum(pools[1].↦:R)
                 else
                     # Otherwise just cat it on existing vector
                     pool = load(file,"mics")
                     pools = cat(pools,pool,dims=1)
+                    # Find maximum number of reactions for this pool
+                    NoRt = maximum(pools[1].↦:R)
+                    # Save if higher than old number of reactions
+                    NoR = max(NoR,NoRt)
                 end
             end
             # Find correct pool to read from
@@ -165,8 +87,11 @@ function v_over_t()
         via_R = Array{Int64,2}(undef,NoR,length(T))
         ηs = zeros(length(T))
         via_η = zeros(length(T))
+        ωs = zeros(length(T))
+        via_ω = zeros(length(T))
         fr_ΔG = zeros(length(T))
         ηs_R = zeros(NoR,length(T))
+        ωs_R = zeros(NoR,length(T))
         # Save total number of strains
         numS = length(micd)
         # Loop over all time points
@@ -187,33 +112,39 @@ function v_over_t()
                 Rs[k,j] = count(x->x==k,ms[inds].↦:R)
                 via_R[k,j] = count(x->x==k,ms[vinds].↦:R)
             end
-            # Find (weighted) total eta value
+            # Find (weighted) total eta value, and ω value
             for k = 1:length(inds)
                 ηs[j] += sum(ms[inds[k]].η.*ms[inds[k]].ϕP)
+                ωs[j] += ms[inds[k]].ω
             end
             # Average over number of strains
             if svt[j] > 0
                 ηs[j] /= svt[j]
+                ωs[j] /= svt[j]
             end
             # Find (weighted) total eta value for viable strains
             for k = 1:length(vinds)
                 via_η[j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
+                via_ω[j] += ms[vinds[k]].ω
             end
             # Average over number of strains
             if tsvt[j] > 0
                 via_η[j] /= tsvt[j]
+                via_ω[j] /= tsvt[j]
             end
-            # Break down eta value by R
+            # Break down eta and omega value by R
             for k = 1:length(vinds)
                 # Find relevant reaction number
                 l = ms[vinds[k]].R
                 # Add contribution to relevant total
                 ηs_R[l,j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
+                ωs_R[l,j] += ms[vinds[k]].ω
             end
             # Now weight by number of strains with each type of reaction
             for k = 1:NoR
                 if via_R[k,j] > 0
                     ηs_R[k,j] /= via_R[k,j]
+                    ωs_R[k,j] /= via_R[k,j]
                 end
             end
             # Find fraction of free energy transduced
@@ -231,19 +162,22 @@ function v_over_t()
             end
         end
         # Now just save the relevant data
-        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/AvRun$(i)Data$(ims)Ims.jld","w") do file
+        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/AvRun$(i)Data$(ims)Ims.jld","w") do file
             # Save full timecourse
             write(file,"T",T)
             # Save reaction data
             write(file,"Rs",Rs)
             write(file,"via_R",via_R)
             write(file,"ηs_R",ηs_R)
+            write(file,"ωs_R",ωs_R)
             # Save the other quantities
             write(file,"svt",svt)
             write(file,"tsvt",tsvt)
             write(file,"sbs",sbs)
             write(file,"ηs",ηs)
             write(file,"via_η",via_η)
+            write(file,"ωs",ωs)
+            write(file,"via_ω",via_ω)
             write(file,"fr_ΔG",fr_ΔG)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])

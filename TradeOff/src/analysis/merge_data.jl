@@ -5,11 +5,10 @@ export merge_data, sim_paras
 function sim_paras()
     # Set the hardcoded variables here
     Np = 1
-    Rls = [1]
-    Rus = [5]
     Nt = 5000
     M = 25
-    return(Np,Rls,Rus,Nt,M)
+    d = 6e-5
+    return(Np,Nt,M,d)
 end
 
 # function to merge my output data into a plotable form

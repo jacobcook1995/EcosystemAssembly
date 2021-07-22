@@ -36,7 +36,7 @@ function assemble()
         error("starting run can't be higher than final run")
     end
     # Now read in hard coded simulation parameters
-    Np, Rls, Rus, Nt, M = sim_paras()
+    Np, Nt, M, d = sim_paras()
     # Now start actual script
     println("Compiled and input read in!")
     flush(stdout)
@@ -47,7 +47,7 @@ function assemble()
     # Loop over number of required pools
     for i = 1:Np
         # Find all pools satisfying the condition
-        flnms = glob("Pools/ID=*N=$(Nt)M=$(M)Reacs$(Rls[i])-$(Rus[i]).jld")
+        flnms = glob("Pools/ID=*N=$(Nt)M=$(M)d=$(d).jld")
         # Loop over valid filenames
         for j = 1:length(flnms)
             # Save first that hasn't already been used
@@ -87,11 +87,11 @@ function assemble()
         error("simulation reaction set does not match pool reaction set")
     end
     # Check if directory exists and if not make it
-    if ~isdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Species")
-        mkdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Species")
+    if ~isdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)")
+        mkdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)")
     end
     # Save this parameter set
-    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld","w") do file
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld","w") do file
         write(file,"ps",ps)
     end
     # ONLY LOADING ONE POOL AT THE MOMENT, THIS PROBABLY HAS TO CHANGE
@@ -109,7 +109,7 @@ function assemble()
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")
         # Now just save the relevant data
-        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Run$(i)Data$(ims)Ims.jld","w") do file
+        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Run$(i)Data$(ims)Ims.jld","w") do file
             # Save full set of microbe data
             write(file,"micd",micd)
             # Save extinction times

@@ -37,7 +37,7 @@ function make_spool()
         error("model requires at least two metabolites")
     end
     # Make desired vector of reactions
-    Rs = collect(Rl:Ru)
+    Rs = collect(Rl:2:Ru)
     # HARDCODING THESE IN FOR NOW, WORK MORE CAREFULLY ON THESE LATER
     d = 6e-5
     μrange = 5e6*(M/25)

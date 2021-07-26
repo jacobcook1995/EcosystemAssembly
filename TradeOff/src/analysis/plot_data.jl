@@ -22,13 +22,13 @@ function plot_traj()
     end
     println("Compiled")
     # Extract other simulation parameters from the function
-    Np, Rls, Rus, Nt, M = sim_paras()
+    Np, Nt, M, d = sim_paras()
     # Read in appropriate files
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld"
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations run $(rN) is missing a parameter file")
     end
-    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Run$(rN)Data$(ims)Ims.jld"
+    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Run$(rN)Data$(ims)Ims.jld"
     if ~isfile(ofile)
         error("$(ims) immigrations run $(rN) is missing an output file")
     end
@@ -318,31 +318,27 @@ function plot_aves()
     savefig("Output/AvSubTime.png")
     plot(xlabel="Time (s)",ylabel="Number of strains",xlim=(-Inf,5e7))
     plot!(times,mn_Rs[1,:],ribbon=se_Rs[1,:],label="R=1")
-    plot!(times,mn_Rs[2,:],ribbon=se_Rs[2,:],label="R=2")
     plot!(times,mn_Rs[3,:],ribbon=se_Rs[3,:],label="R=3")
-    plot!(times,mn_Rs[4,:],ribbon=se_Rs[4,:],label="R=4")
     plot!(times,mn_Rs[5,:],ribbon=se_Rs[5,:],label="R=5")
+    plot!(times,mn_Rs[7,:],ribbon=se_Rs[7,:],label="R=7")
     savefig("Output/AvReacsTime.png")
     plot(xlabel="Time (s)",ylabel="Number of strains",xlim=(-Inf,5e7))
     plot!(times,mn_via_R[1,:],ribbon=se_via_R[1,:],label="R=1")
-    plot!(times,mn_via_R[2,:],ribbon=se_via_R[2,:],label="R=2")
     plot!(times,mn_via_R[3,:],ribbon=se_via_R[3,:],label="R=3")
-    plot!(times,mn_via_R[4,:],ribbon=se_via_R[4,:],label="R=4")
     plot!(times,mn_via_R[5,:],ribbon=se_via_R[5,:],label="R=5")
+    plot!(times,mn_via_R[7,:],ribbon=se_via_R[7,:],label="R=7")
     savefig("Output/AvViaReacsTime.png")
     plot(xlabel="Time (s)",ylabel="Average eta value",xlim=(-Inf,5e7))
     plot!(times,mn_ηs_R[1,:],ribbon=se_ηs_R[1,:],label="R=1")
-    plot!(times,mn_ηs_R[2,:],ribbon=se_ηs_R[2,:],label="R=2")
     plot!(times,mn_ηs_R[3,:],ribbon=se_ηs_R[3,:],label="R=3")
-    plot!(times,mn_ηs_R[4,:],ribbon=se_ηs_R[4,:],label="R=4")
     plot!(times,mn_ηs_R[5,:],ribbon=se_ηs_R[5,:],label="R=5")
+    plot!(times,mn_ηs_R[7,:],ribbon=se_ηs_R[7,:],label="R=7")
     savefig("Output/AvEtaperReacTime.png")
     plot(xlabel="Time (s)",ylabel="Average omega value",xlim=(-Inf,5e7))
     plot!(times,mn_ωs_R[1,:],ribbon=se_ωs_R[1,:],label="R=1")
-    plot!(times,mn_ωs_R[2,:],ribbon=se_ωs_R[2,:],label="R=2")
     plot!(times,mn_ωs_R[3,:],ribbon=se_ωs_R[3,:],label="R=3")
-    plot!(times,mn_ωs_R[4,:],ribbon=se_ωs_R[4,:],label="R=4")
     plot!(times,mn_ωs_R[5,:],ribbon=se_ωs_R[5,:],label="R=5")
+    plot!(times,mn_ωs_R[7,:],ribbon=se_ωs_R[7,:],label="R=7")
     savefig("Output/AvOmegaperReacTime.png")
     plot(xlabel="Time (s)",ylabel="Average eta value",xlim=(-Inf,5e7))
     plot!(times,mn_ηs,ribbon=se_ηs,label="")
@@ -380,13 +376,13 @@ function plot_run_averages()
     end
     println("Compiled")
     # Load in hardcoded simulation parameters
-    Np, Rls, Rus, Nt, M = sim_paras()
+    Np, Nt, M, d = sim_paras()
     # Read in appropriate files
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld"
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations run $(rN) is missing a parameter file")
     end
-    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/AvRun$(rN)Data$(ims)Ims.jld"
+    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/AvRun$(rN)Data$(ims)Ims.jld"
     if ~isfile(ofile)
         error("$(ims) immigrations run $(rN) is missing an output file")
     end
@@ -394,13 +390,8 @@ function plot_run_averages()
     ps = load(pfile,"ps")
     T = load(ofile,"T")
     svt = load(ofile,"svt")
+    tsvt = load(ofile,"tsvt")
     ηs = load(ofile,"ηs")
-    no_comp = load(ofile,"no_comp")
-    no_facl = load(ofile,"no_facl")
-    no_self = load(ofile,"no_self",)
-    st_comp = load(ofile,"st_comp")
-    st_facl = load(ofile,"st_facl")
-    st_self = load(ofile,"st_self")
     # Setup plotting
     pyplot(dpi=200)
     # Plot this data
@@ -408,18 +399,8 @@ function plot_run_averages()
     savefig("Output/SvTime.png")
     plot(T,ηs,label="",xlabel="Time (s)",ylabel="eta")
     savefig("Output/EtaTime.png")
-    plot(T,no_comp,label="",xlabel="Time (s)",ylabel="Number of competitive interactions")
-    savefig("Output/NoCompTime.png")
-    plot(T,no_facl,label="",xlabel="Time (s)",ylabel="Number of facilitation interactions")
-    savefig("Output/NoFaclTime.png")
-    plot(T,no_self,label="",xlabel="Time (s)",ylabel="Number of self-facilitation interactions")
-    savefig("Output/NoSelfTime.png")
-    plot(T,log10.(st_comp),label="",xlabel="Time (s)",ylabel="Strength of competitive interactions")
-    savefig("Output/StCompTime.png")
-    plot(T,log10.(st_facl),label="",xlabel="Time (s)",ylabel="Strength of facilitation interactions")
-    savefig("Output/StFaclTime.png")
-    plot(T,log10.(st_self),label="",xlabel="Time (s)",ylabel="Strength of self-facilitation interactions")
-    savefig("Output/StSelfTime.png")
+    plot(T,tsvt,label="",xlabel="Time (s)",ylabel="Number of viable strains")
+    savefig("Output/ViaTime.png")
     return(nothing)
 end
 

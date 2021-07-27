@@ -160,20 +160,47 @@ function trjstats()
     mn_tsvt = tot_tsvt./no_sims
     mn_sbs = tot_sbs./no_sims
     mn_ηs = tot_ηs./no_sims
-    mn_via_η = tot_via_η./no_sims
     mn_ωs = tot_ωs./no_sims
-    mn_via_ω = tot_via_ω./no_sims
-    mn_fr_ΔG = tot_fr_ΔG./no_sims
+    # Preallocate viable strains data containers
+    mn_via_ω = zeros(length(times))
+    mn_via_η = zeros(length(times))
+    mn_fr_ΔG = zeros(length(times))
+    mn_via_R = zeros(NoR,length(times))
+    # Loop over times to find number of viable strains
+    for i = 1:length(times)
+        # count number of cases with no viable strains
+        nvs = count(x->x==0.0,cmb_tsvt[:,i])
+        # Check if additional non viable strains have been found
+        if nvs > rps - no_sims[i]
+            vi_sim = rps - nvs
+        else
+            vi_sim = no_sims[i]
+        end
+        # Use to calculate accurate means
+        mn_via_ω[i] = tot_via_ω[i]/(vi_sim)
+        mn_via_η[i] = tot_via_η[i]/(vi_sim)
+        mn_fr_ΔG[i] = tot_fr_ΔG[i]/(vi_sim)
+        mn_via_R[:,i] = tot_via_R[:,i]./(vi_sim)
+    end
     # 2D array has to be preallocated
     mn_Rs = zeros(NoR,length(times))
-    mn_via_R = zeros(NoR,length(times))
     mn_ηs_R = zeros(NoR,length(times))
     mn_ωs_R = zeros(NoR,length(times))
     for i = 1:NoR
         mn_Rs[i,:] = tot_Rs[i,:]./no_sims
-        mn_via_R[i,:] = tot_via_R[i,:]./no_sims
-        mn_ηs_R[i,:] = tot_ηs_R[i,:]./no_sims
-        mn_ωs_R[i,:] = tot_ωs_R[i,:]./no_sims
+        for j = 1:length(times)
+            # count number of instances where reaction isn't present
+            nvR = count(x->x==0.0,cmb_via_R[:,i,j])
+            # Check if additional non viable strains have been found
+            if nvR > rps - no_sims[i]
+                vi_R = rps - nvR
+            else
+                vi_R = no_sims[i]
+            end
+            # Use number of strains with reaction to calculate the mean
+            mn_ηs_R[i,j] = tot_ηs_R[i,j]/vi_R
+            mn_ωs_R[i,j] = tot_ωs_R[i,j]/vi_R
+        end
     end
     println("Means found")
     # Preallocate containers for the standard deviations
@@ -193,20 +220,45 @@ function trjstats()
     for i = 1:length(times)
         # Find indices of still progressing trajectories
         inds = (Tfs .>= times[i])
+        # Find indices of still progressing trajectories with one or more viable strains
+        vinds = (Tfs .>= times[i]) .& (cmb_tsvt[:,i] .> 0.0)
+        # calculate value to divide viable cases by
+        no_via = sum(vinds)
         # Calculate standard deviations
         sd_svt[i] = sqrt(sum((cmb_svt[inds,i] .- mn_svt[i]).^2)/(no_sims[i] - 1))
         sd_tsvt[i] = sqrt(sum((cmb_tsvt[inds,i] .- mn_tsvt[i]).^2)/(no_sims[i] - 1))
         sd_sbs[i] = sqrt(sum((cmb_sbs[inds,i] .- mn_sbs[i]).^2)/(no_sims[i] - 1))
         sd_ηs[i] = sqrt(sum((cmb_ηs[inds,i] .- mn_ηs[i]).^2)/(no_sims[i] - 1))
-        sd_via_η[i] = sqrt(sum((cmb_via_η[inds,i] .- mn_via_η[i]).^2)/(no_sims[i] - 1))
         sd_ωs[i] = sqrt(sum((cmb_ωs[inds,i] .- mn_ωs[i]).^2)/(no_sims[i] - 1))
-        sd_via_ω[i] = sqrt(sum((cmb_via_ω[inds,i] .- mn_via_ω[i]).^2)/(no_sims[i] - 1))
-        sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[inds,i] .- mn_fr_ΔG[i]).^2)/(no_sims[i] - 1))
+        # These should be calculated just for viable strains
+        if no_via > 1
+            sd_via_η[i] = sqrt(sum((cmb_via_η[vinds,i] .- mn_via_η[i]).^2)/(no_via - 1))
+            sd_via_ω[i] = sqrt(sum((cmb_via_ω[vinds,i] .- mn_via_ω[i]).^2)/(no_via - 1))
+            sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[vinds,i] .- mn_fr_ΔG[i]).^2)/(no_via - 1))
+            for j = 1:NoR
+                sd_via_R[j,i] = sqrt(sum((cmb_via_R[vinds,j,i] .- mn_via_R[j,i]).^2)/(no_via - 1))
+            end
+        else
+            sd_via_η[i] = NaN
+            sd_via_ω[i] = NaN
+            sd_fr_ΔG[i] = NaN
+            sd_via_R[:,i] .= NaN
+        end
+        # Calculate standard deviations for reactions
         for j = 1:NoR
             sd_Rs[j,i] = sqrt(sum((cmb_Rs[inds,j,i] .- mn_Rs[j,i]).^2)/(no_sims[i] - 1))
-            sd_via_R[j,i] = sqrt(sum((cmb_via_R[inds,j,i] .- mn_via_R[j,i]).^2)/(no_sims[i] - 1))
-            sd_ηs_R[j,i] = sqrt(sum((cmb_ηs_R[inds,j,i] .- mn_ηs_R[j,i]).^2)/(no_sims[i] - 1))
-            sd_ωs_R[j,i] = sqrt(sum((cmb_ωs_R[inds,j,i] .- mn_ωs_R[j,i]).^2)/(no_sims[i] - 1))
+            # Find indices of where reactions exist
+            rinds = (Tfs .>= times[i]) .& (cmb_via_R[:,j,i] .> 0.0)
+            # calculate value to divide viable cases by
+            no_rs = sum(rinds)
+            # Use only these in the reaction calculation
+            if no_rs > 1
+                sd_ηs_R[j,i] = sqrt(sum((cmb_ηs_R[rinds,j,i] .- mn_ηs_R[j,i]).^2)/(no_rs - 1))
+                sd_ωs_R[j,i] = sqrt(sum((cmb_ωs_R[rinds,j,i] .- mn_ωs_R[j,i]).^2)/(no_rs - 1))
+            else
+                sd_ηs_R[j,i] = NaN
+                sd_ωs_R[j,i] = NaN
+            end
         end
     end
     # Now want to save means and standard deviations

@@ -86,12 +86,19 @@ function v_over_t()
         Rs = Array{Int64,2}(undef,NoR,length(T))
         via_R = Array{Int64,2}(undef,NoR,length(T))
         ηs = zeros(length(T))
+        kcs = zeros(length(T))
+        KSs = zeros(length(T))
+        krs = zeros(length(T))
+        av_steps = zeros(length(T))
         via_η = zeros(length(T))
         ωs = zeros(length(T))
         via_ω = zeros(length(T))
         fr_ΔG = zeros(length(T))
         ηs_R = zeros(NoR,length(T))
         ωs_R = zeros(NoR,length(T))
+        kc_R = zeros(NoR,length(T))
+        KS_R = zeros(NoR,length(T))
+        kr_R = zeros(NoR,length(T))
         # Save total number of strains
         numS = length(micd)
         # Loop over all time points
@@ -112,7 +119,7 @@ function v_over_t()
                 Rs[k,j] = count(x->x==k,ms[inds].↦:R)
                 via_R[k,j] = count(x->x==k,ms[vinds].↦:R)
             end
-            # Find (weighted) total eta value, and ω value
+            # Find (weighted) total eta value, and ω value, and kinetic parameters
             for k = 1:length(inds)
                 ηs[j] += sum(ms[inds[k]].η.*ms[inds[k]].ϕP)
                 ωs[j] += ms[inds[k]].ω
@@ -126,11 +133,25 @@ function v_over_t()
             for k = 1:length(vinds)
                 via_η[j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
                 via_ω[j] += ms[vinds[k]].ω
+                kcs[j] += sum(ms[vinds[k]].kc.*ms[vinds[k]].ϕP)
+                KSs[j] += sum(ms[vinds[k]].KS.*ms[vinds[k]].ϕP)
+                krs[j] += sum(ms[vinds[k]].kr.*ms[vinds[k]].ϕP)
+                # Loop over all reactions this strain has
+                for l = 1:ms[vinds[k]].R
+                    # Find reaction number
+                    Rn = ms[vinds[k]].Reacs[l]
+                    # Find step size and weight by 1
+                    av_steps[j] += (ps.reacs[Rn].Prd - ps.reacs[Rn].Rct)*ms[vinds[k]].ϕP[l]
+                end
             end
             # Average over number of strains
             if tsvt[j] > 0
                 via_η[j] /= tsvt[j]
                 via_ω[j] /= tsvt[j]
+                kcs[j] /= tsvt[j]
+                KSs[j] /= tsvt[j]
+                krs[j] /= tsvt[j]
+                av_steps[j] /= tsvt[j]
             end
             # Break down eta and omega value by R
             for k = 1:length(vinds)
@@ -139,12 +160,18 @@ function v_over_t()
                 # Add contribution to relevant total
                 ηs_R[l,j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
                 ωs_R[l,j] += ms[vinds[k]].ω
+                kc_R[l,j] += sum(ms[vinds[k]].kc.*ms[vinds[k]].ϕP)
+                KS_R[l,j] += sum(ms[vinds[k]].KS.*ms[vinds[k]].ϕP)
+                kr_R[l,j] += sum(ms[vinds[k]].kr.*ms[vinds[k]].ϕP)
             end
             # Now weight by number of strains with each type of reaction
             for k = 1:NoR
                 if via_R[k,j] > 0
                     ηs_R[k,j] /= via_R[k,j]
                     ωs_R[k,j] /= via_R[k,j]
+                    kc_R[k,j] /= via_R[k,j]
+                    KS_R[k,j] /= via_R[k,j]
+                    kr_R[k,j] /= via_R[k,j]
                 end
             end
             # Find fraction of free energy transduced
@@ -170,12 +197,19 @@ function v_over_t()
             write(file,"via_R",via_R)
             write(file,"ηs_R",ηs_R)
             write(file,"ωs_R",ωs_R)
+            write(file,"kc_R",kc_R)
+            write(file,"KS_R",KS_R)
+            write(file,"kr_R",kr_R)
             # Save the other quantities
             write(file,"svt",svt)
             write(file,"tsvt",tsvt)
             write(file,"sbs",sbs)
             write(file,"ηs",ηs)
             write(file,"via_η",via_η)
+            write(file,"kcs",kcs)
+            write(file,"KSs",KSs)
+            write(file,"krs",krs)
+            write(file,"av_steps",av_steps)
             write(file,"ωs",ωs)
             write(file,"via_ω",via_ω)
             write(file,"fr_ΔG",fr_ΔG)

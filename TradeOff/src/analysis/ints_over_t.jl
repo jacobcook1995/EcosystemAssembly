@@ -234,7 +234,9 @@ function ints_over_t()
             # Remove self interactions from this total
             no_facl[j] -= no_selff[j]
             # Find number of self-competition reactions (sum of reaction numbers across strains)
-            no_selfc[j] = sum(ms[inds].↦:R)
+            if length(inds) > 0
+                no_selfc[j] = sum(ms[inds].↦:R)
+            end
             # Do the same but only for viable strains
             via_no_comp[j] = sum(cmps[vinds,vinds])
             # Find self interaction terms

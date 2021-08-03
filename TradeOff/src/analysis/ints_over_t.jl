@@ -91,6 +91,7 @@ function comp(Mn::Int64,ps::TOParameters,ms::Array{Microbe,1},pops::Array{Float6
     return(selfc,cmp)
 end
 
+# Calculate interaction strengths over time
 function ints_over_t()
     # Check that sufficent arguments have been provided
     if length(ARGS) < 2

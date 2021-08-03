@@ -54,6 +54,8 @@ function trjstats()
     times = collect(range(0.0,maximum(Tfs),length=NumS))
     # Preallocate relevant containers
     no_sims = zeros(length(times))
+    no_via = zeros(length(times))
+    no_rs = zeros(NoR,length(times))
     cmb_svt = zeros(rps,length(times))
     cmb_tsvt = zeros(rps,length(times))
     cmb_sbs = zeros(rps,length(times))
@@ -111,6 +113,17 @@ function trjstats()
             no_sims[cnt] += 1
             # Find index of first point greater than or equal to time
             Tind = findfirst(x->x>=times[cnt],T)
+            # Only increment the viable counter if there are viable strains at time point
+            if tsvt[Tind] != 0
+                no_via[cnt] += 1
+            end
+            # Loop over reactions to find number of viable reactions
+            for j = 1:NoR
+                # Check if counter should be incremented
+                if via_R[j,Tind] .> 0.0
+                    no_rs[j,cnt] += 1
+                end
+            end
             if Tind > 1
                 # Calculate relevant time gaps
                 Tg = (T[Tind]-T[Tind-1])
@@ -196,36 +209,20 @@ function trjstats()
     mn_sbs = tot_sbs./no_sims
     mn_ηs = tot_ηs./no_sims
     mn_ωs = tot_ωs./no_sims
-    # Preallocate viable strains data containers
-    mn_via_ω = zeros(length(times))
-    mn_via_η = zeros(length(times))
-    mn_fr_ΔG = zeros(length(times))
-    mn_kcs = zeros(length(times))
-    mn_KSs = zeros(length(times))
-    mn_krs = zeros(length(times))
-    mn_av_steps = zeros(length(times))
+    # Calculate means for viable case
+    mn_via_ω = tot_via_ω./(no_via)
+    mn_via_η = tot_via_η./(no_via)
+    mn_fr_ΔG = tot_fr_ΔG./(no_via)
+    mn_kcs = tot_kcs./(no_via)
+    mn_KSs = tot_KSs./(no_via)
+    mn_krs = tot_krs./(no_via)
+    mn_av_steps = tot_av_steps./(no_via)
+    # Preallocate 2D array
     mn_via_R = zeros(NoR,length(times))
-    # Loop over times to find number of viable strains
-    for i = 1:length(times)
-        # count number of cases with no viable strains
-        nvs = count(x->x==0.0,cmb_tsvt[:,i])
-        # Check if additional non viable strains have been found
-        if nvs > rps - no_sims[i]
-            vi_sim = rps - nvs
-        else
-            vi_sim = no_sims[i]
-        end
-        # Use to calculate accurate means
-        mn_via_ω[i] = tot_via_ω[i]/(vi_sim)
-        mn_via_η[i] = tot_via_η[i]/(vi_sim)
-        mn_fr_ΔG[i] = tot_fr_ΔG[i]/(vi_sim)
-        mn_kcs[i] = tot_kcs[i]/(vi_sim)
-        mn_KSs[i] = tot_KSs[i]/(vi_sim)
-        mn_krs[i] = tot_krs[i]/(vi_sim)
-        mn_av_steps[i] = tot_av_steps[i]/(vi_sim)
-        mn_via_R[:,i] = tot_via_R[:,i]./(vi_sim)
+    for i = 1:NoR
+        mn_via_R[i,:] = tot_via_R[i,:]./(no_via)
     end
-    # 2D array has to be preallocated
+    # 2D arrays have to be preallocated
     mn_Rs = zeros(NoR,length(times))
     mn_ηs_R = zeros(NoR,length(times))
     mn_ωs_R = zeros(NoR,length(times))
@@ -234,22 +231,12 @@ function trjstats()
     mn_kr_R = zeros(NoR,length(times))
     for i = 1:NoR
         mn_Rs[i,:] = tot_Rs[i,:]./no_sims
-        for j = 1:length(times)
-            # count number of instances where reaction isn't present
-            nvR = count(x->x==0.0,cmb_via_R[:,i,j])
-            # Check if additional non viable strains have been found
-            if nvR > rps - no_sims[i]
-                vi_R = rps - nvR
-            else
-                vi_R = no_sims[i]
-            end
-            # Use number of strains with reaction to calculate the mean
-            mn_ηs_R[i,j] = tot_ηs_R[i,j]/vi_R
-            mn_ωs_R[i,j] = tot_ωs_R[i,j]/vi_R
-            mn_kc_R[i,j] = tot_kc_R[i,j]/vi_R
-            mn_KS_R[i,j] = tot_KS_R[i,j]/vi_R
-            mn_kr_R[i,j] = tot_kr_R[i,j]/vi_R
-        end
+        # Use number of strains with reaction to calculate the mean
+        mn_ηs_R[i,:] = tot_ηs_R[i,:]./no_rs[i,:]
+        mn_ωs_R[i,:] = tot_ωs_R[i,:]./no_rs[i,:]
+        mn_kc_R[i,:] = tot_kc_R[i,:]./no_rs[i,:]
+        mn_KS_R[i,:] = tot_KS_R[i,:]./no_rs[i,:]
+        mn_kr_R[i,:] = tot_kr_R[i,:]./no_rs[i,:]
     end
     println("Means found")
     # Preallocate containers for the standard deviations
@@ -278,8 +265,6 @@ function trjstats()
         inds = (Tfs .>= times[i])
         # Find indices of still progressing trajectories with one or more viable strains
         vinds = (Tfs .>= times[i]) .& (cmb_tsvt[:,i] .> 0.0)
-        # calculate value to divide viable cases by
-        no_via = sum(vinds)
         # Calculate standard deviations
         sd_svt[i] = sqrt(sum((cmb_svt[inds,i] .- mn_svt[i]).^2)/(no_sims[i] - 1))
         sd_tsvt[i] = sqrt(sum((cmb_tsvt[inds,i] .- mn_tsvt[i]).^2)/(no_sims[i] - 1))
@@ -287,16 +272,16 @@ function trjstats()
         sd_ηs[i] = sqrt(sum((cmb_ηs[inds,i] .- mn_ηs[i]).^2)/(no_sims[i] - 1))
         sd_ωs[i] = sqrt(sum((cmb_ωs[inds,i] .- mn_ωs[i]).^2)/(no_sims[i] - 1))
         # These should be calculated just for viable strains
-        if no_via > 1
-            sd_via_η[i] = sqrt(sum((cmb_via_η[vinds,i] .- mn_via_η[i]).^2)/(no_via - 1))
-            sd_via_ω[i] = sqrt(sum((cmb_via_ω[vinds,i] .- mn_via_ω[i]).^2)/(no_via - 1))
-            sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[vinds,i] .- mn_fr_ΔG[i]).^2)/(no_via - 1))
-            sd_kcs[i] = sqrt(sum((cmb_kcs[vinds,i] .- mn_kcs[i]).^2)/(no_via - 1))
-            sd_KSs[i] = sqrt(sum((cmb_KSs[vinds,i] .- mn_KSs[i]).^2)/(no_via - 1))
-            sd_krs[i] = sqrt(sum((cmb_krs[vinds,i] .- mn_krs[i]).^2)/(no_via - 1))
-            sd_av_steps[i] = sqrt(sum((cmb_av_steps[vinds,i] .- mn_av_steps[i]).^2)/(no_via - 1))
+        if no_via[i] > 1
+            sd_via_η[i] = sqrt(sum((cmb_via_η[vinds,i] .- mn_via_η[i]).^2)/(no_via[i] - 1))
+            sd_via_ω[i] = sqrt(sum((cmb_via_ω[vinds,i] .- mn_via_ω[i]).^2)/(no_via[i] - 1))
+            sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[vinds,i] .- mn_fr_ΔG[i]).^2)/(no_via[i] - 1))
+            sd_kcs[i] = sqrt(sum((cmb_kcs[vinds,i] .- mn_kcs[i]).^2)/(no_via[i] - 1))
+            sd_KSs[i] = sqrt(sum((cmb_KSs[vinds,i] .- mn_KSs[i]).^2)/(no_via[i] - 1))
+            sd_krs[i] = sqrt(sum((cmb_krs[vinds,i] .- mn_krs[i]).^2)/(no_via[i] - 1))
+            sd_av_steps[i] = sqrt(sum((cmb_av_steps[vinds,i] .- mn_av_steps[i]).^2)/(no_via[i] - 1))
             for j = 1:NoR
-                sd_via_R[j,i] = sqrt(sum((cmb_via_R[vinds,j,i] .- mn_via_R[j,i]).^2)/(no_via - 1))
+                sd_via_R[j,i] = sqrt(sum((cmb_via_R[vinds,j,i] .- mn_via_R[j,i]).^2)/(no_via[i] - 1))
             end
         else
             sd_via_η[i] = NaN
@@ -313,15 +298,13 @@ function trjstats()
             sd_Rs[j,i] = sqrt(sum((cmb_Rs[inds,j,i] .- mn_Rs[j,i]).^2)/(no_sims[i] - 1))
             # Find indices of where reactions exist
             rinds = (Tfs .>= times[i]) .& (cmb_via_R[:,j,i] .> 0.0)
-            # calculate value to divide viable cases by
-            no_rs = sum(rinds)
             # Use only these in the reaction calculation
-            if no_rs > 1
-                sd_ηs_R[j,i] = sqrt(sum((cmb_ηs_R[rinds,j,i] .- mn_ηs_R[j,i]).^2)/(no_rs - 1))
-                sd_ωs_R[j,i] = sqrt(sum((cmb_ωs_R[rinds,j,i] .- mn_ωs_R[j,i]).^2)/(no_rs - 1))
-                sd_kc_R[j,i] = sqrt(sum((cmb_kc_R[rinds,j,i] .- mn_kc_R[j,i]).^2)/(no_rs - 1))
-                sd_KS_R[j,i] = sqrt(sum((cmb_KS_R[rinds,j,i] .- mn_KS_R[j,i]).^2)/(no_rs - 1))
-                sd_kr_R[j,i] = sqrt(sum((cmb_kr_R[rinds,j,i] .- mn_kr_R[j,i]).^2)/(no_rs - 1))
+            if no_rs[j,i] > 1
+                sd_ηs_R[j,i] = sqrt(sum((cmb_ηs_R[rinds,j,i] .- mn_ηs_R[j,i]).^2)/(no_rs[j,i] - 1))
+                sd_ωs_R[j,i] = sqrt(sum((cmb_ωs_R[rinds,j,i] .- mn_ωs_R[j,i]).^2)/(no_rs[j,i] - 1))
+                sd_kc_R[j,i] = sqrt(sum((cmb_kc_R[rinds,j,i] .- mn_kc_R[j,i]).^2)/(no_rs[j,i] - 1))
+                sd_KS_R[j,i] = sqrt(sum((cmb_KS_R[rinds,j,i] .- mn_KS_R[j,i]).^2)/(no_rs[j,i] - 1))
+                sd_kr_R[j,i] = sqrt(sum((cmb_kr_R[rinds,j,i] .- mn_kr_R[j,i]).^2)/(no_rs[j,i] - 1))
             else
                 sd_ηs_R[j,i] = NaN
                 sd_ωs_R[j,i] = NaN
@@ -337,6 +320,8 @@ function trjstats()
         write(file,"times",times)
         # Save number of continuing trajectories
         write(file,"no_sims",no_sims)
+        write(file,"no_via",no_via)
+        write(file,"no_rs",no_rs)
         # Save averages
         write(file,"mn_svt",mn_svt)
         write(file,"mn_tsvt",mn_tsvt)

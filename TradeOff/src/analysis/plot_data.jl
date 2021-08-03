@@ -245,7 +245,7 @@ function plot_aves()
     try
         ims = parse(Int64,ARGS[1])
     catch e
-            error("need to provide an integer")
+        error("need to provide an integer")
     end
     println("Compiled")
     # Load in hardcoded simulation parameters
@@ -259,6 +259,8 @@ function plot_aves()
     # Now load out the times, and number of trajectories
     times = load(sfile,"times")
     no_sims = load(sfile,"no_sims")
+    no_via = load(sfile,"no_via")
+    no_rs = load(sfile,"no_rs")
     # Load in averages
     mn_svt = load(sfile,"mn_svt")
     mn_tsvt = load(sfile,"mn_tsvt")
@@ -300,8 +302,6 @@ function plot_aves()
     sd_krs = load(sfile,"sd_krs")
     sd_av_steps = load(sfile,"sd_av_steps")
     # Preallocate standard errors
-    # THESE AREN'T ACTUALLY CORRECT AND NEED TO BE ADJUSTED AT SOME POINT
-    # THIS HAS TO BE FIXED IN THE PREVIOUS SCRIPT ACTUALLY
     se_Rs = zeros(size(sd_Rs))
     se_via_R = zeros(size(sd_via_R))
     se_ηs_R = zeros(size(sd_ηs_R))
@@ -314,22 +314,23 @@ function plot_aves()
     se_tsvt = sd_tsvt./sqrt.(no_sims)
     se_sbs = sd_sbs./sqrt.(no_sims)
     se_ηs = sd_ηs./sqrt.(no_sims)
-    se_via_η = sd_via_η./sqrt.(no_sims)
     se_ωs = sd_ωs./sqrt.(no_sims)
-    se_via_ω = sd_via_ω./sqrt.(no_sims)
-    se_fr_ΔG = sd_fr_ΔG./sqrt.(no_sims)
-    se_kcs = sd_kcs./sqrt.(no_sims)
-    se_KSs = sd_KSs./sqrt.(no_sims)
-    se_krs = sd_krs./sqrt.(no_sims)
-    se_av_steps = sd_av_steps./sqrt.(no_sims)
+    # Calculation (slightly) different in the viable case
+    se_via_η = sd_via_η./sqrt.(no_via)
+    se_via_ω = sd_via_ω./sqrt.(no_via)
+    se_fr_ΔG = sd_fr_ΔG./sqrt.(no_via)
+    se_kcs = sd_kcs./sqrt.(no_via)
+    se_KSs = sd_KSs./sqrt.(no_via)
+    se_krs = sd_krs./sqrt.(no_via)
+    se_av_steps = sd_av_steps./sqrt.(no_via)
     for i = 1:size(sd_Rs,1)
         se_Rs[i,:] = sd_Rs[i,:]./sqrt.(no_sims)
-        se_via_R[i,:] = sd_via_R[i,:]./sqrt.(no_sims)
-        se_ηs_R[i,:] = sd_ηs_R[i,:]./sqrt.(no_sims)
-        se_ωs_R[i,:] = sd_ωs_R[i,:]./sqrt.(no_sims)
-        se_kc_R[i,:] = sd_kc_R[i,:]./sqrt.(no_sims)
-        se_KS_R[i,:] = sd_KS_R[i,:]./sqrt.(no_sims)
-        se_kr_R[i,:] = sd_kr_R[i,:]./sqrt.(no_sims)
+        se_via_R[i,:] = sd_via_R[i,:]./sqrt.(no_via)
+        se_ηs_R[i,:] = sd_ηs_R[i,:]./sqrt.(no_rs[i,:])
+        se_ωs_R[i,:] = sd_ωs_R[i,:]./sqrt.(no_rs[i,:])
+        se_kc_R[i,:] = sd_kc_R[i,:]./sqrt.(no_rs[i,:])
+        se_KS_R[i,:] = sd_KS_R[i,:]./sqrt.(no_rs[i,:])
+        se_kr_R[i,:] = sd_kr_R[i,:]./sqrt.(no_rs[i,:])
     end
     # Setup plotting
     pyplot(dpi=200)
@@ -414,6 +415,120 @@ function plot_aves()
     return(nothing)
 end
 
+# Function to load in and plot the average interaction strengths
+function plot_av_ints()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 1
+        error("insufficent inputs provided")
+    end
+    # Preallocate the variables I want to extract from the input
+    ims = 0
+    # Check that all arguments can be converted to integers
+    try
+        ims = parse(Int64,ARGS[1])
+    catch e
+        error("need to provide an integer")
+    end
+    println("Compiled")
+    # Load in hardcoded simulation parameters
+    Np, Nt, M, d = sim_paras()
+    # Find file name to load in
+    sfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/IntStats$(ims)Ims.jld"
+    # Check it actually exists
+    if ~isfile(sfile)
+        error("missing stats file for $(ims) immigrations simulations")
+    end
+    # Now load out the times, and number of trajectories
+    times = load(sfile,"times")
+    no_sims = load(sfile,"no_sims")
+    no_via = load(sfile,"no_via")
+    # Load in averages
+    mn_svt = load(sfile,"mn_svt")
+    mn_tsvt = load(sfile,"mn_tsvt")
+    mn_no_comp = load(sfile,"mn_no_comp")
+    mn_no_facl = load(sfile,"mn_no_facl")
+    mn_no_selff = load(sfile,"mn_no_selff")
+    mn_no_selfc = load(sfile,"mn_no_selfc")
+    mn_via_no_comp = load(sfile,"mn_via_no_comp")
+    mn_via_no_facl = load(sfile,"mn_via_no_facl")
+    mn_via_no_selff = load(sfile,"mn_via_no_selff")
+    mn_via_no_selfc = load(sfile,"mn_via_no_selfc")
+    mn_st_comp = load(sfile,"mn_st_comp")
+    mn_st_facl = load(sfile,"mn_st_facl")
+    mn_st_selfc = load(sfile,"mn_st_selfc")
+    mn_st_selff = load(sfile,"mn_st_selff")
+    # Load in standard deviations
+    sd_svt = load(sfile,"sd_svt")
+    sd_tsvt = load(sfile,"sd_tsvt")
+    sd_no_comp = load(sfile,"sd_no_comp")
+    sd_no_facl = load(sfile,"sd_no_facl")
+    sd_no_selff = load(sfile,"sd_no_selff")
+    sd_no_selfc = load(sfile,"sd_no_selfc")
+    sd_via_no_comp = load(sfile,"sd_via_no_comp")
+    sd_via_no_facl = load(sfile,"sd_via_no_facl")
+    sd_via_no_selff = load(sfile,"sd_via_no_selff")
+    sd_via_no_selfc = load(sfile,"sd_via_no_selfc")
+    sd_st_comp = load(sfile,"sd_st_comp")
+    sd_st_facl = load(sfile,"sd_st_facl")
+    sd_st_selfc = load(sfile,"sd_st_selfc")
+    sd_st_selff = load(sfile,"sd_st_selff")
+    # Calculate standard errors from this
+    se_svt = sd_svt./sqrt.(no_sims)
+    se_tsvt = sd_tsvt./sqrt.(no_sims)
+    se_no_comp = sd_no_comp./sqrt.(no_sims)
+    se_no_facl = sd_no_facl./sqrt.(no_sims)
+    se_no_selff = sd_no_selff./sqrt.(no_sims)
+    se_no_selfc = sd_no_selfc./sqrt.(no_sims)
+    se_st_comp = sd_st_comp./sqrt.(no_sims)
+    se_st_facl = sd_st_facl./sqrt.(no_sims)
+    se_st_selff = sd_st_selff./sqrt.(no_sims)
+    se_st_selfc = sd_st_selfc./sqrt.(no_sims)
+    # Calculation (slightly) different in the viable case
+    se_via_no_comp = sd_via_no_comp./sqrt.(no_via)
+    se_via_no_facl = sd_via_no_facl./sqrt.(no_via)
+    se_via_no_selff = sd_via_no_selff./sqrt.(no_via)
+    se_via_no_selfc = sd_via_no_selfc./sqrt.(no_via)
+    # Setup plotting
+    pyplot(dpi=200)
+    plot(xlabel="Time (s)",ylabel="Number of competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_no_comp,ribbon=se_no_comp,label="")
+    savefig("Output/AvCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of faciliation interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_no_facl,ribbon=se_no_facl,label="")
+    savefig("Output/AvFaclTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of (self) competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_no_selfc,ribbon=se_no_selfc,label="")
+    savefig("Output/AvSelfCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of (self) competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_no_selff,ribbon=se_no_selff,label="")
+    savefig("Output/AvSelfFaclTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of viable competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_via_no_comp,ribbon=se_via_no_comp,label="")
+    savefig("Output/AvViaCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of viable faciliation interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_via_no_facl,ribbon=se_via_no_facl,label="")
+    savefig("Output/AvViaFaclTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of viable (self) competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_via_no_selfc,ribbon=se_via_no_selfc,label="")
+    savefig("Output/AvViaSelfCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Number of viable (self) competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_via_no_selff,ribbon=se_via_no_selff,label="")
+    savefig("Output/AvViaSelfFaclTime.png")
+    plot(xlabel="Time (s)",ylabel="Strength of competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_st_comp,ribbon=se_st_comp,label="")
+    savefig("Output/AvStCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Strength of faciliation interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_st_facl,ribbon=se_st_facl,label="")
+    savefig("Output/AvStFaclTime.png")
+    plot(xlabel="Time (s)",ylabel="Strength of (self) competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_st_selfc,ribbon=se_st_selfc,label="")
+    savefig("Output/AvStSelfCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Strength of (self) competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_st_selff,ribbon=se_st_selff,label="")
+    savefig("Output/AvStSelfFaclTime.png")
+    return(nothing)
+end
+
 # function to plot the averages for just one run
 function plot_run_averages()
     # Check that sufficent arguments have been provided
@@ -461,6 +576,7 @@ function plot_run_averages()
 end
 
 # @time plot_run_averages()
-@time plot_aves()
+# @time plot_aves()
 # @time plot_traj()
 # @time plot_genvsspec()
+@time plot_av_ints()

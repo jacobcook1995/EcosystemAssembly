@@ -6,24 +6,26 @@ using Glob
 # Function to assemble specfic communities
 function assemble()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 1
+    if length(ARGS) < 2
         error("Insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     rps = 0
+    sim_type = 0
     # Check that all arguments can be converted to integers
     try
         rps = parse(Int64,ARGS[1])
+        sim_type = parse(Int64,ARGS[2])
     catch e
-            error("need to provide 1 integer")
+        error("need to provide 2 integers")
     end
     # Starting run assumed to be 1
     Rs = 1
     # Check if run to start from has been provided
-    if length(ARGS) > 1
+    if length(ARGS) > 2
         # Check this argument is an integer
         try
-            Rs = parse(Int64,ARGS[2])
+            Rs = parse(Int64,ARGS[3])
         catch e
             error("intial run number must be integer")
         end
@@ -35,8 +37,12 @@ function assemble()
     if Rs > rps
         error("starting run can't be higher than final run")
     end
+    # Check that a valid simulation type has been provided
+    if sim_type < 1 || sim_type > 4
+        error("only four simulation types defined")
+    end
     # Now read in hard coded simulation parameters
-    Np, Nt, M, d = sim_paras()
+    Np, Nt, M, d, μrange = sim_paras(sim_type)
     # Now start actual script
     println("Compiled and input read in!")
     flush(stdout)
@@ -47,7 +53,7 @@ function assemble()
     # Loop over number of required pools
     for i = 1:Np
         # Find all pools satisfying the condition
-        flnms = glob("Pools/ID=*N=$(Nt)M=$(M)d=$(d).jld")
+        flnms = glob("Pools/ID=*N=$(Nt)M=$(M)d=$(d)u=$(μrange).jld")
         # Loop over valid filenames
         for j = 1:length(flnms)
             # Save first that hasn't already been used
@@ -81,17 +87,17 @@ function assemble()
     # Rate of additional immigrants
     λIm = 0.5
     # Make parameter set
-    ps = initialise(M,O)
+    ps = initialise(M,O,μrange)
     # Check that reaction set is identical to sets the pool was generated with
     if ps.reacs ≠ rs
         error("simulation reaction set does not match pool reaction set")
     end
     # Check if directory exists and if not make it
-    if ~isdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)")
-        mkdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)")
+    if ~isdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)")
+        mkdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)")
     end
     # Save this parameter set
-    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld","w") do file
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld","w") do file
         write(file,"ps",ps)
     end
     # ONLY LOADING ONE POOL AT THE MOMENT, THIS PROBABLY HAS TO CHANGE
@@ -109,7 +115,7 @@ function assemble()
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")
         # Now just save the relevant data
-        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Run$(i)Data$(ims)Ims.jld","w") do file
+        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld","w") do file
             # Save full set of microbe data
             write(file,"micd",micd)
             # Save extinction times

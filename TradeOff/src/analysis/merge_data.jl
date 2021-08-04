@@ -2,13 +2,26 @@
 export merge_data, sim_paras
 
 # Hard code simulation parameters into this function
-function sim_paras()
+function sim_paras(sim_type::Int64)
     # Set the hardcoded variables here
     Np = 1
     Nt = 5000
     M = 25
-    d = 6e-5
-    return(Np,Nt,M,d)
+    # Choose biomass loss rate and
+    if sim_type == 1
+        d = 6e-5
+        μrange = 5e6*(M/25)
+    elseif sim_type == 2
+        d = 6e-5
+        μrange = 1.5e6*(M/25)
+    elseif sim_type == 3
+        d = 6e-4
+        μrange = 5e6*(M/25)
+    elseif sim_type == 4
+        d = 6e-4
+        μrange = 1.5e6*(M/25)
+    end
+    return(Np,Nt,M,d,μrange)
 end
 
 # function to merge my output data into a plotable form

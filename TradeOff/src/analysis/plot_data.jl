@@ -7,28 +7,30 @@ import PyPlot
 # function to plot the trajectories
 function plot_traj()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
+    if length(ARGS) < 3
         error("insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     rN = 0
     ims = 0
+    sim_type = 0
     # Check that all arguments can be converted to integers
     try
         rN = parse(Int64,ARGS[1])
         ims = parse(Int64,ARGS[2])
+        sim_type = parse(Int64,ARGS[3])
     catch e
-            error("need to provide 2 integers")
+            error("need to provide 3 integers")
     end
     println("Compiled")
     # Extract other simulation parameters from the function
-    Np, Nt, M, d = sim_paras()
+    Np, Nt, M, d, μrange = sim_paras(sim_type)
     # Read in appropriate files
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld"
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations run $(rN) is missing a parameter file")
     end
-    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Run$(rN)Data$(ims)Ims.jld"
+    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(rN)Data$(ims)Ims.jld"
     if ~isfile(ofile)
         error("$(ims) immigrations run $(rN) is missing an output file")
     end
@@ -52,13 +54,11 @@ function plot_traj()
     # Plot all the populations
     p1 = plot(yaxis=:log10,ylabel="Population (# cells)",ylims=(1e-5,Inf))
     for i = 1:totN
-        if svr[i] == true
-            # Find and eliminate zeros so that they can be plotted on a log plot
-            inds = (C[:,i] .> 0)
-            plot!(p1,T[inds],C[inds,i],label="")
-        end
+        # Find and eliminate zeros so that they can be plotted on a log plot
+        inds = (C[:,i] .> 0)
+        plot!(p1,T[inds],C[inds,i],label="")
     end
-    savefig(p1,"Output/pops.png")
+    savefig(p1,"Output/all_pops.png")
     # Plot all the concentrations
     p2 = plot(yaxis=:log10,ylabel="Concentration")#,ylims=(1e-15,Inf))
     for i = 1:ps.M
@@ -66,23 +66,45 @@ function plot_traj()
         inds = (C[:,totN+i] .> 0)
         plot!(p2,T[inds],C[inds,totN+i],label="")
     end
-    savefig(p2,"Output/concs.png")
-    # Plot energy concentrat
+    savefig(p2,"Output/all_concs.png")
+    # Plot all the energy concentrations
+    p3 = plot(ylabel="Energy Concentration")
+    for i = 1:totN
+        plot!(p3,T,C[:,totN+ps.M+i],label="")
+    end
+    savefig(p3,"Output/all_as.png")
+    # Plot all the ribosome fractions
+    p4 = plot(ylabel="Ribosome fraction")
+    for i = 1:totN
+        plot!(p4,T,C[:,2*totN+ps.M+i],label="")
+    end
+    savefig(p4,"Output/all_fracs.png")
+    # Plot populations that survive to the end
+    p1 = plot(yaxis=:log10,ylabel="Population (# cells)",ylims=(1e-5,Inf))
+    for i = 1:totN
+        if svr[i] == true
+            # Find and eliminate zeros so that they can be plotted on a log plot
+            inds = (C[:,i] .> 0)
+            plot!(p1,T[inds],C[inds,i],label="")
+        end
+    end
+    savefig(p1,"Output/surv_pops.png")
+    # Plot energy concentrations of populations that survive to the end
     p3 = plot(ylabel="Energy Concentration")
     for i = 1:totN
         if svr[i] == true
             plot!(p3,T,C[:,totN+ps.M+i],label="")
         end
     end
-    savefig(p3,"Output/as.png")
-    # Plot all the ribosome fractions
+    savefig(p3,"Output/surv_as.png")
+    # Plot ribosome fractions of populations that survive to the end
     p4 = plot(ylabel="Ribosome fraction")
     for i = 1:totN
         if svr[i] == true
             plot!(p4,T,C[:,2*totN+ps.M+i],label="")
         end
     end
-    savefig(p4,"Output/fracs.png")
+    savefig(p4,"Output/surv_fracs.png")
     return(nothing)
 end
 

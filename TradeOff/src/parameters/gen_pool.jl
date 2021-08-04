@@ -130,7 +130,7 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
         mics[i] = make_Microbe(MC,γm,Kγ,χl,χu,Pb,d,ϕH,KΩ,fd,ω,R,Reacs,η,kcs,KSs,krs,n,ϕP,i,PID)
     end
     # Write out necessary data
-    jldopen("Pools/ID=$(PID)N=$(Nt)M=$(M)d=$(d).jld","w") do file
+    jldopen("Pools/ID=$(PID)N=$(Nt)M=$(M)d=$(d)u=$(μrange).jld","w") do file
         # Write out species pool
         write(file,"mics",mics)
         # And the metabolic network details for later verification

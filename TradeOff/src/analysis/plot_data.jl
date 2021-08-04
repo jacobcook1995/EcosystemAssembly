@@ -42,19 +42,22 @@ function plot_traj()
     # Find C from a function
     C = merge_data(ps,traj,T,micd,its)
     println("Data merged")
-    # Time snapshots that I'm highlighting
-    times = [5e6,1.5e7,T[end]]
     # Find total number of strains
     totN = length(micd)
+    # Find indices of extinct strains
+    ext = isnan.(C[end,1:totN])
+    # Invert to find survivors
+    svr = .!ext
     pyplot(dpi=200)
     # Plot all the populations
     p1 = plot(yaxis=:log10,ylabel="Population (# cells)",ylims=(1e-5,Inf))
     for i = 1:totN
-        # Find and eliminate zeros so that they can be plotted on a log plot
-        inds = (C[:,i] .> 0)
-        plot!(p1,T[inds],C[inds,i],label="")
+        if svr[i] == true
+            # Find and eliminate zeros so that they can be plotted on a log plot
+            inds = (C[:,i] .> 0)
+            plot!(p1,T[inds],C[inds,i],label="")
+        end
     end
-    vline!(p1,times,color=:red,style=:dash,label="")
     savefig(p1,"Output/pops.png")
     # Plot all the concentrations
     p2 = plot(yaxis=:log10,ylabel="Concentration")#,ylims=(1e-15,Inf))
@@ -64,10 +67,22 @@ function plot_traj()
         plot!(p2,T[inds],C[inds,totN+i],label="")
     end
     savefig(p2,"Output/concs.png")
-    plot(T,C[:,(totN+ps.M+1):(2*totN+ps.M)],label="")
-    savefig("Output/as.png")
-    plot(T,C[:,(2*totN+ps.M+1):end],label="")
-    savefig("Output/fracs.png")
+    # Plot energy concentrat
+    p3 = plot(ylabel="Energy Concentration")
+    for i = 1:totN
+        if svr[i] == true
+            plot!(p3,T,C[:,totN+ps.M+i],label="")
+        end
+    end
+    savefig(p3,"Output/as.png")
+    # Plot all the ribosome fractions
+    p4 = plot(ylabel="Ribosome fraction")
+    for i = 1:totN
+        if svr[i] == true
+            plot!(p4,T,C[:,2*totN+ps.M+i],label="")
+        end
+    end
+    savefig(p4,"Output/fracs.png")
     return(nothing)
 end
 
@@ -489,30 +504,31 @@ function plot_av_ints()
     se_via_no_selff = sd_via_no_selff./sqrt.(no_via)
     se_via_no_selfc = sd_via_no_selfc./sqrt.(no_via)
     # Setup plotting
+    # ALL QUITE MUCKY HERE AT THE MOMENT, CLEAN THESE UP BEFORE I PRESENT THEM
     pyplot(dpi=200)
     plot(xlabel="Time (s)",ylabel="Number of competition interactions",xlim=(-Inf,5e7))
-    plot!(times,mn_no_comp,ribbon=se_no_comp,label="")
+    plot!(times,mn_no_comp./(mn_no_selfc.^2),label="")
     savefig("Output/AvCompTime.png")
     plot(xlabel="Time (s)",ylabel="Number of faciliation interactions",xlim=(-Inf,5e7))
-    plot!(times,mn_no_facl,ribbon=se_no_facl,label="")
+    plot!(times,mn_no_facl./(mn_no_selfc.^2),label="")
     savefig("Output/AvFaclTime.png")
     plot(xlabel="Time (s)",ylabel="Number of (self) competition interactions",xlim=(-Inf,5e7))
-    plot!(times,mn_no_selfc,ribbon=se_no_selfc,label="")
+    plot!(times,mn_no_selfc./mn_no_selfc,label="")
     savefig("Output/AvSelfCompTime.png")
-    plot(xlabel="Time (s)",ylabel="Number of (self) competition interactions",xlim=(-Inf,5e7))
-    plot!(times,mn_no_selff,ribbon=se_no_selff,label="")
+    plot(xlabel="Time (s)",ylabel="Number of (self) faciliation interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_no_selff./mn_no_selfc,label="")
     savefig("Output/AvSelfFaclTime.png")
     plot(xlabel="Time (s)",ylabel="Number of viable competition interactions",xlim=(-Inf,5e7))
-    plot!(times,mn_via_no_comp,ribbon=se_via_no_comp,label="")
+    plot!(times,mn_via_no_comp./(mn_via_no_selfc.^2),label="")
     savefig("Output/AvViaCompTime.png")
     plot(xlabel="Time (s)",ylabel="Number of viable faciliation interactions",xlim=(-Inf,5e7))
-    plot!(times,mn_via_no_facl,ribbon=se_via_no_facl,label="")
+    plot!(times,mn_via_no_facl./(mn_via_no_selfc.^2),label="")
     savefig("Output/AvViaFaclTime.png")
     plot(xlabel="Time (s)",ylabel="Number of viable (self) competition interactions",xlim=(-Inf,5e7))
-    plot!(times,mn_via_no_selfc,ribbon=se_via_no_selfc,label="")
+    plot!(times,mn_via_no_selfc./mn_via_no_selfc,label="")
     savefig("Output/AvViaSelfCompTime.png")
     plot(xlabel="Time (s)",ylabel="Number of viable (self) competition interactions",xlim=(-Inf,5e7))
-    plot!(times,mn_via_no_selff,ribbon=se_via_no_selff,label="")
+    plot!(times,mn_via_no_selff./mn_via_no_selfc,label="")
     savefig("Output/AvViaSelfFaclTime.png")
     plot(xlabel="Time (s)",ylabel="Strength of competition interactions",xlim=(-Inf,5e7))
     plot!(times,mn_st_comp,ribbon=se_st_comp,label="")
@@ -526,6 +542,18 @@ function plot_av_ints()
     plot(xlabel="Time (s)",ylabel="Strength of (self) competition interactions",xlim=(-Inf,5e7))
     plot!(times,mn_st_selff,ribbon=se_st_selff,label="")
     savefig("Output/AvStSelfFaclTime.png")
+    plot(xlabel="Time (s)",ylabel="Mean strength of competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_st_comp./mn_no_comp,label="")
+    savefig("Output/MnStCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Mean strength of faciliation interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_st_facl./mn_no_facl,label="")
+    savefig("Output/MnStFaclTime.png")
+    plot(xlabel="Time (s)",ylabel="Mean strength of (self) competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_st_selfc./mn_no_selfc,label="")
+    savefig("Output/MnStSelfCompTime.png")
+    plot(xlabel="Time (s)",ylabel="Mean strength of (self) competition interactions",xlim=(-Inf,5e7))
+    plot!(times,mn_st_selff./mn_no_selff,label="")
+    savefig("Output/MnStSelfFaclTime.png")
     return(nothing)
 end
 
@@ -577,6 +605,6 @@ end
 
 # @time plot_run_averages()
 # @time plot_aves()
-# @time plot_traj()
+@time plot_traj()
 # @time plot_genvsspec()
-@time plot_av_ints()
+# @time plot_av_ints()

@@ -15,10 +15,10 @@ function sim_paras(sim_type::Int64)
         d = 6e-5
         μrange = 1.5e6*(M/25)
     elseif sim_type == 3
-        d = 6e-4
+        d = 1e-4
         μrange = 5e6*(M/25)
     elseif sim_type == 4
-        d = 6e-4
+        d = 1e-4
         μrange = 1.5e6*(M/25)
     end
     return(Np,Nt,M,d,μrange)

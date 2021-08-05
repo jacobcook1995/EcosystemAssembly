@@ -5,27 +5,29 @@ using JLD
 # Function to read in variables with time and calculate stats over time
 function trjstats()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
+    if length(ARGS) < 3
         error("insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     rps = 0
     ims = 0
+    sim_type = 0
     # Check that all arguments can be converted to integers
     try
         rps = parse(Int64,ARGS[1])
         ims = parse(Int64,ARGS[2])
+        sim_type = parse(Int64,ARGS[3])
     catch e
-            error("need to provide 2 integers")
+            error("need to provide 3 integers")
     end
     println("Compiled")
     flush(stdout)
     # Load in hardcoded simulation parameters
-    Np, Nt, M, d = sim_paras()
+    Np, Nt, M, d, μrange = sim_paras(sim_type)
     # Number of steps to calculate stats for
     NumS = 2500
     # Read in parameter file
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld"
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations run $(rN) is missing a parameter file")
     end
@@ -38,7 +40,7 @@ function trjstats()
     # Loop over number of repeats
     for i = 1:rps
         # Load in relevant output file
-        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/AvRun$(i)Data$(ims)Ims.jld"
+        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
             error("$(ims) immigrations run $(rN) is missing a variables file")
         end
@@ -71,6 +73,8 @@ function trjstats()
     cmb_ωs = zeros(rps,length(times))
     cmb_via_ω = zeros(rps,length(times))
     cmb_fr_ΔG = zeros(rps,length(times))
+    cmb_via_a = zeros(rps,length(times))
+    cmb_via_ϕR = zeros(rps,length(times))
     cmb_kcs = zeros(rps,length(times))
     cmb_KSs = zeros(rps,length(times))
     cmb_krs = zeros(rps,length(times))
@@ -78,7 +82,7 @@ function trjstats()
     # Loop over number of trajectories (to minimise the number of reads in)
     for i = 1:rps
         # Load in relevant output file
-        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/AvRun$(i)Data$(ims)Ims.jld"
+        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
             error("$(ims) immigrations run $(rN) is missing a variables file")
         end
@@ -98,6 +102,8 @@ function trjstats()
         ωs = load(vfile,"ωs")
         via_ω = load(vfile,"via_ω")
         fr_ΔG = load(vfile,"fr_ΔG")
+        via_a = load(vfile,"via_a")
+        via_ϕR = load(vfile,"via_ϕR")
         kcs = load(vfile,"kcs")
         KSs = load(vfile,"KSs")
         krs = load(vfile,"krs")
@@ -138,6 +144,8 @@ function trjstats()
                 cmb_ωs[i,cnt] = ωs[Tind]*(T1x)/Tg + ωs[Tind-1]*(Tx2)/Tg
                 cmb_via_ω[i,cnt] = via_ω[Tind]*(T1x)/Tg + via_ω[Tind-1]*(Tx2)/Tg
                 cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]*(T1x)/Tg + fr_ΔG[Tind-1]*(Tx2)/Tg
+                cmb_via_a[i,cnt] = via_a[Tind]*(T1x)/Tg + via_a[Tind-1]*(Tx2)/Tg
+                cmb_via_ϕR[i,cnt] = via_ϕR[Tind]*(T1x)/Tg + via_ϕR[Tind-1]*(Tx2)/Tg
                 cmb_kcs[i,cnt] = kcs[Tind]*(T1x)/Tg + kcs[Tind-1]*(Tx2)/Tg
                 cmb_KSs[i,cnt] = KSs[Tind]*(T1x)/Tg + KSs[Tind-1]*(Tx2)/Tg
                 cmb_krs[i,cnt] = krs[Tind]*(T1x)/Tg + krs[Tind-1]*(Tx2)/Tg
@@ -161,6 +169,8 @@ function trjstats()
                 cmb_ωs[i,cnt] = ωs[Tind]
                 cmb_via_ω[i,cnt] = via_ω[Tind]
                 cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]
+                cmb_via_a[i,cnt] = via_a[Tind]
+                cmb_via_ϕR[i,cnt] = via_ϕR[Tind]
                 cmb_kcs[i,cnt] = kcs[Tind]
                 cmb_KSs[i,cnt] = KSs[Tind]
                 cmb_krs[i,cnt] = krs[Tind]
@@ -199,6 +209,8 @@ function trjstats()
     tot_ωs = dropdims(sum(cmb_ωs,dims=1),dims=1)
     tot_via_ω = dropdims(sum(cmb_via_ω,dims=1),dims=1)
     tot_fr_ΔG = dropdims(sum(cmb_fr_ΔG,dims=1),dims=1)
+    tot_via_a = dropdims(sum(cmb_via_a,dims=1),dims=1)
+    tot_via_ϕR = dropdims(sum(cmb_via_ϕR,dims=1),dims=1)
     tot_kcs = dropdims(sum(cmb_kcs,dims=1),dims=1)
     tot_KSs = dropdims(sum(cmb_KSs,dims=1),dims=1)
     tot_krs = dropdims(sum(cmb_krs,dims=1),dims=1)
@@ -212,6 +224,8 @@ function trjstats()
     # Calculate means for viable case
     mn_via_ω = tot_via_ω./(no_via)
     mn_via_η = tot_via_η./(no_via)
+    mn_via_a = tot_via_a./(no_via)
+    mn_via_ϕR = tot_via_ϕR./(no_via)
     mn_fr_ΔG = tot_fr_ΔG./(no_via)
     mn_kcs = tot_kcs./(no_via)
     mn_KSs = tot_KSs./(no_via)
@@ -255,6 +269,8 @@ function trjstats()
     sd_ωs = zeros(size(mn_ωs))
     sd_via_ω = zeros(size(mn_via_ω))
     sd_fr_ΔG = zeros(size(mn_fr_ΔG))
+    sd_via_a = zeros(size(mn_via_a))
+    sd_via_ϕR = zeros(size(mn_via_ϕR))
     sd_kcs = zeros(size(mn_kcs))
     sd_KSs = zeros(size(mn_KSs))
     sd_krs = zeros(size(mn_krs))
@@ -276,6 +292,8 @@ function trjstats()
             sd_via_η[i] = sqrt(sum((cmb_via_η[vinds,i] .- mn_via_η[i]).^2)/(no_via[i] - 1))
             sd_via_ω[i] = sqrt(sum((cmb_via_ω[vinds,i] .- mn_via_ω[i]).^2)/(no_via[i] - 1))
             sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[vinds,i] .- mn_fr_ΔG[i]).^2)/(no_via[i] - 1))
+            sd_via_a[i] = sqrt(sum((cmb_via_a[vinds,i] .- mn_via_a[i]).^2)/(no_via[i] - 1))
+            sd_via_ϕR[i] = sqrt(sum((cmb_via_ϕR[vinds,i] .- mn_via_ϕR[i]).^2)/(no_via[i] - 1))
             sd_kcs[i] = sqrt(sum((cmb_kcs[vinds,i] .- mn_kcs[i]).^2)/(no_via[i] - 1))
             sd_KSs[i] = sqrt(sum((cmb_KSs[vinds,i] .- mn_KSs[i]).^2)/(no_via[i] - 1))
             sd_krs[i] = sqrt(sum((cmb_krs[vinds,i] .- mn_krs[i]).^2)/(no_via[i] - 1))
@@ -287,6 +305,8 @@ function trjstats()
             sd_via_η[i] = NaN
             sd_via_ω[i] = NaN
             sd_fr_ΔG[i] = NaN
+            sd_via_a[i] = NaN
+            sd_via_ϕR[i] = NaN
             sd_kcs[i] = NaN
             sd_KSs[i] = NaN
             sd_krs[i] = NaN
@@ -315,7 +335,7 @@ function trjstats()
         end
     end
     # Now want to save means and standard deviations
-    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/RunStats$(ims)Ims.jld","w") do file
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld","w") do file
         # Save times
         write(file,"times",times)
         # Save number of continuing trajectories
@@ -338,6 +358,8 @@ function trjstats()
         write(file,"mn_ωs",mn_ωs)
         write(file,"mn_via_ω",mn_via_ω)
         write(file,"mn_fr_ΔG",mn_fr_ΔG)
+        write(file,"mn_via_a",mn_via_a)
+        write(file,"mn_via_ϕR",mn_via_ϕR)
         write(file,"mn_kcs",mn_kcs)
         write(file,"mn_KSs",mn_KSs)
         write(file,"mn_krs",mn_krs)
@@ -358,6 +380,8 @@ function trjstats()
         write(file,"sd_ωs",sd_ωs)
         write(file,"sd_via_ω",sd_via_ω)
         write(file,"sd_fr_ΔG",sd_fr_ΔG)
+        write(file,"sd_via_a",sd_via_a)
+        write(file,"sd_via_ϕR",sd_via_ϕR)
         write(file,"sd_kcs",sd_kcs)
         write(file,"sd_KSs",sd_KSs)
         write(file,"sd_krs",sd_krs)

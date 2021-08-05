@@ -4,25 +4,27 @@ using JLD
 
 function v_over_t()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
+    if length(ARGS) < 3
         error("insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     rps = 0
     ims = 0
+    sim_type = 0
     # Check that all arguments can be converted to integers
     try
         rps = parse(Int64,ARGS[1])
         ims = parse(Int64,ARGS[2])
+        sim_type = parse(Int64,ARGS[3])
     catch e
-            error("need to provide 2 integers")
+            error("need to provide 3 integers")
     end
     println("Compiled")
     flush(stdout)
     # Load in hardcoded simulation parameters
-    Np, Nt, M, d = sim_paras()
+    Np, Nt, M, d, μrange = sim_paras(sim_type)
     # Read in parameter file
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld"
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations is missing a parameter file")
     end
@@ -37,7 +39,7 @@ function v_over_t()
     # Loop over number of repeats
     for i = 1:rps
         # Load in relevant output file
-        ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Run$(i)Data$(ims)Ims.jld"
+        ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
             error("$(ims) immigrations run $(rN) is missing an output file")
         end
@@ -57,7 +59,7 @@ function v_over_t()
                 # Add new pool ID in
                 pls = cat(pls,micd[j].PID,dims=1)
                 # Find name of pool
-                file = "Pools/ID=$(micd[j].PID)N=$(Nt)M=$(ps.M)d=$(d).jld"
+                file = "Pools/ID=$(micd[j].PID)N=$(Nt)M=$(ps.M)d=$(d)u=$(μrange).jld"
                 # Check if this is the first pool
                 if length(pls) == 1
                     # If so save the pool
@@ -94,6 +96,8 @@ function v_over_t()
         ωs = zeros(length(T))
         via_ω = zeros(length(T))
         fr_ΔG = zeros(length(T))
+        via_a = zeros(length(T))
+        via_ϕR = zeros(length(T))
         ηs_R = zeros(NoR,length(T))
         ωs_R = zeros(NoR,length(T))
         kc_R = zeros(NoR,length(T))
@@ -101,6 +105,9 @@ function v_over_t()
         kr_R = zeros(NoR,length(T))
         # Save total number of strains
         numS = length(micd)
+        # Make vector of indices
+        a_i = collect((numS+ps.M+1):(2*numS+ps.M))
+        ϕ_i = collect((2*numS+ps.M+1):(3*numS+ps.M))
         # Loop over all time points
         for j = 1:length(T)
             # Find indices of surviving strains
@@ -113,6 +120,10 @@ function v_over_t()
             tsvt[j] = length(vinds)
             # Then also number of substrates
             sbs[j] = count(x->x>1e-12,C[j,(numS+1):(numS+ps.M)])
+            # Calculate average energy concentration (a)
+            via_a[j] = sum(C[j,a_i[vinds]])/length(a_i[vinds])
+            # Do the same for the ribosome fraction
+            via_ϕR[j] = sum(C[j,ϕ_i[vinds]])/length(ϕ_i[vinds])
             # Loop over number of reactions
             for k = 1:NoR
                 # Count number of strains with reaction for each case
@@ -189,7 +200,7 @@ function v_over_t()
             end
         end
         # Now just save the relevant data
-        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/AvRun$(i)Data$(ims)Ims.jld","w") do file
+        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld","w") do file
             # Save full timecourse
             write(file,"T",T)
             # Save reaction data
@@ -213,6 +224,8 @@ function v_over_t()
             write(file,"ωs",ωs)
             write(file,"via_ω",via_ω)
             write(file,"fr_ΔG",fr_ΔG)
+            write(file,"via_a",via_a)
+            write(file,"via_ϕR",via_ϕR)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])
         end

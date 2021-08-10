@@ -1,9 +1,9 @@
 # Assembly Package
-Made a package to contain code used for modelling microbial ecosystem assembly with the inclusion of end product inhibition.
+Made a package to contain code used for modelling microbial ecosystem assembly with the inclusion of thermodynamic end product inhibition and proteomic constraints.
 ## Scripts used to produce
 1. Simulation data -> src/analysis/form_comm.jl
 2. Reduced simulation data (steady state survivors only) -> src/analysis/removal.jl
-3. Interaction strengths -> src/analysis/interactions.jl
+3. Interaction strengths (from reduced simulation data) -> src/analysis/interactions.jl
 4. Figure 1 -> src/figures/Fig1.jl
 5. Figure 2 -> src/figures/Fig2.jl
 6. Figure 3 -> src/figures/Fig3.jl
@@ -20,7 +20,7 @@ This script makes use of function from the script analytic.jl (simulate folder).
 The interaction strengths (for the final steady state communities) are then found using the interactions.jl script (analysis folder), these are also saved to the Output folder.
 The plots are then generated using the scripts in the folder figures.
 ## Full summary of the scripts in this repository
-It is important to note that many of this scripts are partly and/or fully redundant and are being retained for long term storage.\
+It is important to note that many of these scripts are partly and/or fully redundant and are being retained for long term storage.\
 The structure of the module is provided in Assembly.jl.
 I have made a script called MyPlots.jl to store functions to assist plotting.\
 The simulate folder contains scripts that run simulations and return results.

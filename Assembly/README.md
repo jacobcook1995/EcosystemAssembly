@@ -1,6 +1,16 @@
 # Assembly Package
 Made a package to contain code used for modelling microbial ecosystem assembly with the inclusion of end product inhibition.
-## Procedure for generating the data for the paper
+## Scripts used to produce
+1. Simulation data -> src/analysis/form_comm.jl
+2. Reduced simulation data (steady state survivors only) -> src/analysis/removal.jl
+3. Interaction strengths -> src/analysis/interactions.jl
+4. Figure 1 -> src/figures/Fig1.jl
+5. Figure 2 -> src/figures/Fig2.jl
+6. Figure 3 -> src/figures/Fig3.jl
+7. Figure 4 -> src/figures/Fig4.jl
+8. Figure 5 -> src/figures/Fig5.jl
+9. Supplementary figures -> src/figures/SI_figures.jl
+## Full procedure for generating the data for the paper
 All simulations are carried out using the form_comm.jl file in the analysis file.
 This file generates a parameter set using the make_full.jl and fullParameters.jl scripts (in the parameters folder).
 Simulations are then run via the full.jl script from the simulate folder.

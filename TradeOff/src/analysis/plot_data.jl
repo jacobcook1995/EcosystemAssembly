@@ -44,6 +44,10 @@ function plot_traj()
     # Find C from a function
     C = merge_data(ps,traj,T,micd,its)
     println("Data merged")
+    # Check if directory exists and if not make it
+    if ~isdir("Output/Plotsd=$(d)u=$(μrange)")
+        mkdir("Output/Plotsd=$(d)u=$(μrange)")
+    end
     # Find total number of strains
     totN = length(micd)
     # Find indices of extinct strains
@@ -58,7 +62,7 @@ function plot_traj()
         inds = (C[:,i] .> 0)
         plot!(p1,T[inds],C[inds,i],label="")
     end
-    savefig(p1,"Output/all_pops.png")
+    savefig(p1,"Output/Plotsd=$(d)u=$(μrange)/all_pops.png")
     # Plot all the concentrations
     p2 = plot(yaxis=:log10,ylabel="Concentration")#,ylims=(1e-15,Inf))
     for i = 1:ps.M
@@ -66,19 +70,19 @@ function plot_traj()
         inds = (C[:,totN+i] .> 0)
         plot!(p2,T[inds],C[inds,totN+i],label="")
     end
-    savefig(p2,"Output/all_concs.png")
+    savefig(p2,"Output/Plotsd=$(d)u=$(μrange)/all_concs.png")
     # Plot all the energy concentrations
     p3 = plot(ylabel="Energy Concentration")
     for i = 1:totN
         plot!(p3,T,C[:,totN+ps.M+i],label="")
     end
-    savefig(p3,"Output/all_as.png")
+    savefig(p3,"Output/Plotsd=$(d)u=$(μrange)/all_as.png")
     # Plot all the ribosome fractions
     p4 = plot(ylabel="Ribosome fraction")
     for i = 1:totN
         plot!(p4,T,C[:,2*totN+ps.M+i],label="")
     end
-    savefig(p4,"Output/all_fracs.png")
+    savefig(p4,"Output/Plotsd=$(d)u=$(μrange)/all_fracs.png")
     # Plot populations that survive to the end
     p1 = plot(yaxis=:log10,ylabel="Population (# cells)",ylims=(1e-5,Inf))
     for i = 1:totN
@@ -88,7 +92,7 @@ function plot_traj()
             plot!(p1,T[inds],C[inds,i],label="")
         end
     end
-    savefig(p1,"Output/surv_pops.png")
+    savefig(p1,"Output/Plotsd=$(d)u=$(μrange)/surv_pops.png")
     # Plot energy concentrations of populations that survive to the end
     p3 = plot(ylabel="Energy Concentration")
     for i = 1:totN
@@ -96,7 +100,7 @@ function plot_traj()
             plot!(p3,T,C[:,totN+ps.M+i],label="")
         end
     end
-    savefig(p3,"Output/surv_as.png")
+    savefig(p3,"Output/Plotsd=$(d)u=$(μrange)/surv_as.png")
     # Plot ribosome fractions of populations that survive to the end
     p4 = plot(ylabel="Ribosome fraction")
     for i = 1:totN
@@ -104,191 +108,31 @@ function plot_traj()
             plot!(p4,T,C[:,2*totN+ps.M+i],label="")
         end
     end
-    savefig(p4,"Output/surv_fracs.png")
-    return(nothing)
-end
-
-# Function to plot the generalist vs specialist trade-off with time
-function plot_genvsspec()
-    # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
-        error("insufficent inputs provided")
-    end
-    # Preallocate the variables I want to extract from the input
-    rps = 0
-    ims = 0
-    # Check that all arguments can be converted to integers
-    try
-        rps = parse(Int64,ARGS[1])
-        ims = parse(Int64,ARGS[2])
-    catch e
-            error("need to provide 2 integers")
-    end
-    println("Compiled")
-    # Load in hardcoded simulation parameters
-    Np, Rls, Rus, Nt, M = sim_paras()
-    # Read in parameter file
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Paras$(ims)Ims.jld"
-    if ~isfile(pfile)
-        error("$(ims) immigrations run $(rN) is missing a parameter file")
-    end
-    # Load parameters
-    ps = load(pfile,"ps")
-    # Define list of times to check
-    times = [0.0,5e6,1e7,1.5e7,2e7]
-    # Preallocate containers for the reaction distributions
-    Rds = zeros(5,length(times)+1)
-    # And corresponding biomass distributions
-    Rbs = zeros(5,length(times)+1)
-    # List of pools already loaded in
-    pls = []
-    # Array of array to store pools
-    pools = Array{Array{Microbe,1},1}(undef,1)
-    # Loop over number of repeats
-    for i = 1:rps
-        # Load in relevant output file
-        ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Species/Run$(i)Data$(ims)Ims.jld"
-        if ~isfile(ofile)
-            error("$(ims) immigrations run $(rN) is missing an output file")
-        end
-        # Load in microbe data, and immigration times
-        T = load(ofile,"T")
-        traj = load(ofile,"traj")
-        micd = load(ofile,"micd")
-        its = load(ofile,"its")
-        # Find final time
-        Tf = T[end]
-        # Check if final time is below for any run
-        if times[end] > Tf
-            println("Run $(i) final time = $(Tf)")
-        end
-        # Make vector of all times to check
-        Ts = cat(times,Tf,dims=1)
-        # Now loop over all times to check
-        for j = 1:length(Ts)
-            # Find initial microbes
-            iis = ((micd.↦:ImT) .<= Ts[j]) .& (((micd.↦:ExT) .> Ts[j]) .| isnan.(micd.↦:ExT))
-            # Extract subset of the data
-            imicd = micd[iis]
-            # Find immigration number that we are interested in
-            imN = findfirst(x->x>=Ts[j],its)
-            # Now extract trajectories we are interested in
-            if !isnothing(imN)
-                trc = traj[imN]
-            else
-                # Find current size
-                sz = (size(traj[end],2) - ps.M)/3
-                sz = convert(Int64,sz)
-                # find indices that don't end in zero
-                inds = (traj[end])[end,1:sz] .> 0.0
-                # Make into the require index form for full traj object
-                tinds = collect(1:sz)[inds]
-                # Extract relvant trajectory here
-                trc = (traj[end])[:,tinds]
-            end
-            # Then loop over the data
-            for k = 1:length(imicd)
-                # check for case where pool hasn't already been loaded in
-                if imicd[k].PID ∉ pls
-                    # Add new pool ID in
-                    pls = cat(pls,imicd[k].PID,dims=1)
-                    # Find name of pool
-                    file = "Pools/ID=$(imicd[k].PID)N=$(Nt)M=$(ps.M)Reacs$(Rls[1])-$(Rus[1]).jld"
-                    # Check if this is the first pool
-                    if length(pls) == 1
-                        # If so save the pool
-                        pools[1] = load(file,"mics")
-                    else
-                        # Otherwise just cat it on existing vector
-                        pool = load(file,"mics")
-                        pools = cat(pools,pool,dims=1)
-                    end
-                end
-                # Find correct pool to read from
-                ind = findfirst(x->x==imicd[k].PID,pls)
-                # Use this index to find the correct microbe
-                mic = (pools[ind])[imicd[k].MID]
-                # Add one to the relevant total
-                Rds[mic.R,j] += 1
-                # Find biomass of this microbe at end of this time
-                if j != 1
-                    bm = trc[end,k]
-                else
-                    # Want starting amounts for inital values
-                    bm = trc[1,k]
-                end
-                # Add biomass to the relevant biomass totals
-                Rbs[mic.R,j] += bm
-            end
-        end
-    end
-    # Extract maximum reaction number from the pool
-    maxR, _ = findmax(pools[1].↦:R)
-    # Preallocate output
-    pRds = zeros(maxR)
-    # Loop of reaction number
-    for i = 1:maxR
-        # Find all microbes with i reactions
-        inds = findall(x->x==i,pools[1].↦:R)
-        # Then store the number
-        pRds[i] = length(inds)
-    end
-    pyplot(dpi=200)
-    # First plot the distribution in the pool
-    plot(ylabel="Number of strains",xlabel="Number of reactions",title="Original pool")
-    bar!(pRds,label="")
-    savefig("Output/ReacsInitialPool.png")
-    for i = 1:length(times)
-        plot(ylabel="Number of strains",xlabel="Number of reactions",title="Ecosystem at time $(times[i])s")
-        bar!(Rds[:,i],label="")
-        savefig("Output/ReacsT=$(i).png")
-    end
-    # Save final time
-    plot(ylabel="Number of strains",xlabel="Number of reactions",title="Final ecosystem")
-    bar!(Rds[:,end],label="")
-    savefig("Output/ReacsT=$(length(times)+1).png")
-    # Same plots for biomass
-    for i = 1:length(times)
-        plot(ylabel="Strain biomass",xlabel="Number of reactions",title="Ecosystem at time $(times[i])s")
-        bar!(Rbs[:,i],label="")
-        savefig("Output/BiomassT=$(i).png")
-    end
-    # Save final time
-    plot(ylabel="Strain biomass",xlabel="Number of reactions",title="Final ecosystem")
-    bar!(Rbs[:,end],label="")
-    savefig("Output/BiomassT=$(length(times)+1).png")
-    # Maybe also want average biomass per strain
-    for i = 1:length(times)
-        plot(ylabel="Average biomass per strain",xlabel="Number of reactions",title="Ecosystem at time $(times[i])s")
-        bar!(Rbs[:,i]./Rds[:,i],label="")
-        savefig("Output/AvBiomT=$(i).png")
-    end
-    # Save final time
-    plot(ylabel="Average biomass per strain",xlabel="Number of reactions",title="Final ecosystem")
-    bar!(Rbs[:,end]./Rds[:,end],label="")
-    savefig("Output/AvBiomT=$(length(times)+1).png")
+    savefig(p4,"Output/Plotsd=$(d)u=$(μrange)/surv_fracs.png")
     return(nothing)
 end
 
 # Function to load in and plot the averages
 function plot_aves()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 1
+    if length(ARGS) < 2
         error("insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     ims = 0
+    sim_type = 0
     # Check that all arguments can be converted to integers
     try
         ims = parse(Int64,ARGS[1])
+        sim_type = parse(Int64,ARGS[2])
     catch e
-        error("need to provide an integer")
+        error("need to provide 2 integers")
     end
     println("Compiled")
     # Load in hardcoded simulation parameters
-    Np, Nt, M, d = sim_paras()
+    Np, Nt, M, d, μrange = sim_paras(sim_type)
     # Find file name to load in
-    sfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/RunStats$(ims)Ims.jld"
+    sfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld"
     # Check it actually exists
     if ~isfile(sfile)
         error("missing stats file for $(ims) immigrations simulations")
@@ -314,6 +158,8 @@ function plot_aves()
     mn_ωs = load(sfile,"mn_ωs")
     mn_via_ω = load(sfile,"mn_via_ω")
     mn_fr_ΔG = load(sfile,"mn_fr_ΔG")
+    mn_via_a = load(sfile,"mn_via_a")
+    mn_via_ϕR = load(sfile,"mn_via_ϕR")
     mn_kcs = load(sfile,"mn_kcs")
     mn_KSs = load(sfile,"mn_KSs")
     mn_krs = load(sfile,"mn_krs")
@@ -334,6 +180,8 @@ function plot_aves()
     sd_ωs = load(sfile,"sd_ωs")
     sd_via_ω = load(sfile,"sd_via_ω")
     sd_fr_ΔG = load(sfile,"sd_fr_ΔG")
+    sd_via_a = load(sfile,"sd_via_a")
+    sd_via_ϕR = load(sfile,"sd_via_ϕR")
     sd_kcs = load(sfile,"sd_kcs")
     sd_KSs = load(sfile,"sd_KSs")
     sd_krs = load(sfile,"sd_krs")
@@ -356,6 +204,8 @@ function plot_aves()
     se_via_η = sd_via_η./sqrt.(no_via)
     se_via_ω = sd_via_ω./sqrt.(no_via)
     se_fr_ΔG = sd_fr_ΔG./sqrt.(no_via)
+    se_via_a = sd_via_a./sqrt.(no_via)
+    se_via_ϕR = sd_via_ϕR./sqrt.(no_via)
     se_kcs = sd_kcs./sqrt.(no_via)
     se_KSs = sd_KSs./sqrt.(no_via)
     se_krs = sd_krs./sqrt.(no_via)
@@ -369,86 +219,105 @@ function plot_aves()
         se_KS_R[i,:] = sd_KS_R[i,:]./sqrt.(no_rs[i,:])
         se_kr_R[i,:] = sd_kr_R[i,:]./sqrt.(no_rs[i,:])
     end
+    # Check if directory exists and if not make it
+    if ~isdir("Output/Plotsd=$(d)u=$(μrange)")
+        mkdir("Output/Plotsd=$(d)u=$(μrange)")
+    end
+    if sim_type == 1
+        tl = "high free-energy low loss"
+    elseif sim_type == 2
+        tl = "low free-energy high loss"
+    elseif sim_type == 3
+        tl = "high free-energy high loss"
+    elseif sim_type == 4
+        tl = "low free-energy high loss"
+    end
     # Setup plotting
-    pyplot(dpi=200)
+    pyplot(dpi=200,title=tl)
     plot(xlabel="Time (s)",ylabel="Number of surviving strains",xlim=(-Inf,5e7))
     plot!(times,mn_svt,ribbon=se_svt,label="")
-    savefig("Output/AvSurvTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvSurvTime.png")
     plot(xlabel="Time (s)",ylabel="Number of viable strains",xlim=(-Inf,5e7))
     plot!(times,mn_tsvt,ribbon=se_tsvt,label="")
-    savefig("Output/AvViaTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvViaTime.png")
     plot(xlabel="Time (s)",ylabel="Number of diversified substrates",xlim=(-Inf,5e7))
     plot!(times,mn_sbs,ribbon=se_sbs,label="")
-    savefig("Output/AvSubTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvSubTime.png")
     plot(xlabel="Time (s)",ylabel="Number of strains",xlim=(-Inf,5e7))
     plot!(times,mn_Rs[1,:],ribbon=se_Rs[1,:],label="R=1")
     plot!(times,mn_Rs[3,:],ribbon=se_Rs[3,:],label="R=3")
     plot!(times,mn_Rs[5,:],ribbon=se_Rs[5,:],label="R=5")
     plot!(times,mn_Rs[7,:],ribbon=se_Rs[7,:],label="R=7")
-    savefig("Output/AvReacsTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvReacsTime.png")
     plot(xlabel="Time (s)",ylabel="Number of strains",xlim=(-Inf,5e7))
     plot!(times,mn_via_R[1,:],ribbon=se_via_R[1,:],label="R=1")
     plot!(times,mn_via_R[3,:],ribbon=se_via_R[3,:],label="R=3")
     plot!(times,mn_via_R[5,:],ribbon=se_via_R[5,:],label="R=5")
     plot!(times,mn_via_R[7,:],ribbon=se_via_R[7,:],label="R=7")
-    savefig("Output/AvViaReacsTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvViaReacsTime.png")
     plot(xlabel="Time (s)",ylabel="Average eta value",xlim=(-Inf,5e7))
     plot!(times,mn_ηs_R[1,:],ribbon=se_ηs_R[1,:],label="R=1")
     plot!(times,mn_ηs_R[3,:],ribbon=se_ηs_R[3,:],label="R=3")
     plot!(times,mn_ηs_R[5,:],ribbon=se_ηs_R[5,:],label="R=5")
     plot!(times,mn_ηs_R[7,:],ribbon=se_ηs_R[7,:],label="R=7")
-    savefig("Output/AvEtaperReacTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvEtaperReacTime.png")
     plot(xlabel="Time (s)",ylabel="Average omega value",xlim=(-Inf,5e7))
     plot!(times,mn_ωs_R[1,:],ribbon=se_ωs_R[1,:],label="R=1")
     plot!(times,mn_ωs_R[3,:],ribbon=se_ωs_R[3,:],label="R=3")
     plot!(times,mn_ωs_R[5,:],ribbon=se_ωs_R[5,:],label="R=5")
     plot!(times,mn_ωs_R[7,:],ribbon=se_ωs_R[7,:],label="R=7")
-    savefig("Output/AvOmegaperReacTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvOmegaperReacTime.png")
     plot(xlabel="Time (s)",ylabel="Average forward rate constant",xlim=(-Inf,5e7))
     plot!(times,mn_kc_R[1,:],ribbon=se_kc_R[1,:],label="R=1")
     plot!(times,mn_kc_R[3,:],ribbon=se_kc_R[3,:],label="R=3")
     plot!(times,mn_kc_R[5,:],ribbon=se_kc_R[5,:],label="R=5")
     plot!(times,mn_kc_R[7,:],ribbon=se_kc_R[7,:],label="R=7")
-    savefig("Output/AvkcperReacTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvkcperReacTime.png")
     plot(xlabel="Time (s)",ylabel="Average half saturation constant",xlim=(-Inf,5e7))
     plot!(times,mn_KS_R[1,:],ribbon=se_KS_R[1,:],label="R=1")
     plot!(times,mn_KS_R[3,:],ribbon=se_KS_R[3,:],label="R=3")
     plot!(times,mn_KS_R[5,:],ribbon=se_KS_R[5,:],label="R=5")
     plot!(times,mn_KS_R[7,:],ribbon=se_KS_R[7,:],label="R=7")
-    savefig("Output/AvKSperReacTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvKSperReacTime.png")
     plot(xlabel="Time (s)",ylabel="Average reversibility factor",xlim=(-Inf,5e7))
     plot!(times,mn_kr_R[1,:],ribbon=se_kr_R[1,:],label="R=1")
     plot!(times,mn_kr_R[3,:],ribbon=se_kr_R[3,:],label="R=3")
     plot!(times,mn_kr_R[5,:],ribbon=se_kr_R[5,:],label="R=5")
     plot!(times,mn_kr_R[7,:],ribbon=se_kr_R[7,:],label="R=7")
-    savefig("Output/AvkrperReacTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvkrperReacTime.png")
     plot(xlabel="Time (s)",ylabel="Average eta value",xlim=(-Inf,5e7))
     plot!(times,mn_ηs,ribbon=se_ηs,label="")
-    savefig("Output/AvEtaTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvEtaTime.png")
     plot(xlabel="Time (s)",ylabel="Average eta value",xlim=(-Inf,5e7))
     plot!(times,mn_via_η,ribbon=se_via_η,label="")
-    savefig("Output/AvViaEtaTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvViaEtaTime.png")
     plot(xlabel="Time (s)",ylabel="Average omega value",xlim=(-Inf,5e7))
     plot!(times,mn_ωs,ribbon=se_ωs,label="")
-    savefig("Output/AvOmegaTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvOmegaTime.png")
     plot(xlabel="Time (s)",ylabel="Average omega value",xlim=(-Inf,5e7))
     plot!(times,mn_via_ω,ribbon=se_via_ω,label="")
-    savefig("Output/AvViaOmegaTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvViaOmegaTime.png")
     plot(xlabel="Time (s)",ylabel="Fraction transduced",xlim=(-Inf,5e7))
     plot!(times,mn_fr_ΔG,ribbon=se_fr_ΔG,label="")
-    savefig("Output/AvFracTransTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvFracTransTime.png")
     plot(xlabel="Time (s)",ylabel="Average forward rate",xlim=(-Inf,5e7))
     plot!(times,mn_kcs,ribbon=se_kcs,label="")
-    savefig("Output/AvkcTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvkcTime.png")
     plot(xlabel="Time (s)",ylabel="Average saturation constant",xlim=(-Inf,5e7))
     plot!(times,mn_KSs,ribbon=se_KSs,label="")
-    savefig("Output/AvKSTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvKSTime.png")
     plot(xlabel="Time (s)",ylabel="Average reversibility factor",xlim=(-Inf,5e7))
     plot!(times,mn_krs,ribbon=se_krs,label="")
-    savefig("Output/AvkrTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvkrTime.png")
     plot(xlabel="Time (s)",ylabel="Average steps in metabolite hierachy",xlim=(-Inf,5e7))
     plot!(times,mn_av_steps,ribbon=se_av_steps,label="")
-    savefig("Output/AvStepsTime.png")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvStepsTime.png")
+    plot(xlabel="Time (s)",ylabel="Average ATP concentration",xlim=(-Inf,5e7))
+    plot!(times,mn_via_a,ribbon=se_via_a,label="")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvATPTime.png")
+    plot(xlabel="Time (s)",ylabel="Average Ribosome fraction",xlim=(-Inf,5e7))
+    plot!(times,mn_via_ϕR,ribbon=se_via_ϕR,label="")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/AvFracTime.png")
     return(nothing)
 end
 
@@ -626,7 +495,6 @@ function plot_run_averages()
 end
 
 # @time plot_run_averages()
-# @time plot_aves()
-@time plot_traj()
-# @time plot_genvsspec()
+@time plot_aves()
+# @time plot_traj()
 # @time plot_av_ints()

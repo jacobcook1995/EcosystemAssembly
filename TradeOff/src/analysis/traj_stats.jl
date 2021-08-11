@@ -29,7 +29,7 @@ function trjstats()
     # Read in parameter file
     pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
-        error("$(ims) immigrations run $(rN) is missing a parameter file")
+        error("$(ims) immigrations run is missing a parameter file")
     end
     # Load parameters
     ps = load(pfile,"ps")

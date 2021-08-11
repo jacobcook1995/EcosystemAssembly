@@ -121,9 +121,13 @@ function v_over_t()
             # Then also number of substrates
             sbs[j] = count(x->x>1e-12,C[j,(numS+1):(numS+ps.M)])
             # Calculate average energy concentration (a)
-            via_a[j] = sum(C[j,a_i[vinds]])/length(a_i[vinds])
+            if length(a_i[vinds]) > 0
+                via_a[j] = sum(C[j,a_i[vinds]])/length(a_i[vinds])
+            end
             # Do the same for the ribosome fraction
-            via_ϕR[j] = sum(C[j,ϕ_i[vinds]])/length(ϕ_i[vinds])
+            if length(ϕ_i[vinds]) > 0
+                via_ϕR[j] = sum(C[j,ϕ_i[vinds]])/length(ϕ_i[vinds])
+            end
             # Loop over number of reactions
             for k = 1:NoR
                 # Count number of strains with reaction for each case

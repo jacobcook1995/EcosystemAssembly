@@ -226,7 +226,7 @@ function plot_aves()
     if sim_type == 1
         tl = "high free-energy low loss"
     elseif sim_type == 2
-        tl = "low free-energy high loss"
+        tl = "low free-energy low loss"
     elseif sim_type == 3
         tl = "high free-energy high loss"
     elseif sim_type == 4

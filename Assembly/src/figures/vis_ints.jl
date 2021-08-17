@@ -48,30 +48,46 @@ function int_vis()
     # First population plot
     p1 = plot(xlabel="Time (s)",ylabel="Population",yaxis=:log10,legend=:bottomright)
     plot!(p1,Tns,Cns[:,1:2],labels=["Species A" "Species B"],title="No syntrophy interaction")
+    # Add annotation
+    annotate!(p1,-4e4,1e13,text("A",17,:black))
     # First concentration plot
     p2 = plot(xlabel="Time (s)",ylabel="Concentration",legend=:right)
     plot!(p2,Tns,Cns[:,4:6],labels=["Metabolite 1" "Metabolite 2" "Metabolite 3"])
+    # Add annotation
+    annotate!(p2,-4e4,5.75e-3,text("B",17,:black))
     # Second population plot
     p3 = plot(xlabel="Time (s)",ylabel="Population",yaxis=:log10,legend=:bottomright)
     plot!(p3,Tws,Cws[:,1:3],labels=["Species A" "Species B" "Species C"],title="Syntrophy interaction")
+    # Add annotation
+    annotate!(p3,-4e4,1e13,text("C",17,:black))
     # Second concentration plot
     p4 = plot(xlabel="Time (s)",ylabel="Concentration",legend=:right)
     plot!(p4,Tws,Cws[:,4:6],labels=["Metabolite 1" "Metabolite 2" "Metabolite 3"])
+    # Add annotation
+    annotate!(p4,-4e4,5.75e-3,text("D",17,:black))
     # Combine all the plots
     pc = plot(p1,p2,p3,p4,layout=4,size=(1200,800),margin=7.5mm)
     savefig(pc,"Output/SI/SynPlot.png")
     # First population plot
     p1 = plot(xlabel="Time (s)",ylabel="Population",yaxis=:log10,legend=:bottomright)
     plot!(p1,Tnp,Cnp[:,1],label="Species A",title="No pollution interaction")
+    # Add annotation
+    annotate!(p1,-4e4,7.5e12,text("A",17,:black))
     # First concentration plot
     p2 = plot(xlabel="Time (s)",ylabel="Concentration",legend=:right)
     plot!(p2,Tnp,Cnp[:,3:5],labels=["Metabolite 1" "Metabolite 2" "Metabolite 3"])
+    # Add annotation
+    annotate!(p2,-4e4,5.75e-3,text("B",17,:black))
     # Second population plot
     p3 = plot(xlabel="Time (s)",ylabel="Population",yaxis=:log10,legend=:bottomright)
     plot!(p3,Twp,Cwp[:,1:2],labels=["Species A" "Species B"],title="Pollution interaction")
+    # Add annotation
+    annotate!(p3,-4e4,2e13,text("C",17,:black))
     # Second concentration plot
     p4 = plot(xlabel="Time (s)",ylabel="Concentration",legend=:right)
     plot!(p4,Twp,Cwp[:,3:5],labels=["Metabolite 1" "Metabolite 2" "Metabolite 3"])
+    # Add annotation
+    annotate!(p4,-4e4,5.75e-3,text("D",17,:black))
     # Combine all the plots
     pc = plot(p1,p2,p3,p4,layout=4,size=(1200,800),margin=7.5mm)
     savefig(pc,"Output/SI/PolPlot.png")

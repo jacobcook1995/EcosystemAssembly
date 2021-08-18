@@ -91,7 +91,6 @@ function interaction_maps()
                 # Loop over all metabolites that the function group can interact via
                 for l = 1:ps.M
                     # Check interaction types (no interaction indicated by 0)
-                    # EFFECT OF k on j
                     if ints[j,k,l] == 1
                         # Add interaction strength to competition container
                         comps[fg_j,fg_k] += in_str[j,k,l]

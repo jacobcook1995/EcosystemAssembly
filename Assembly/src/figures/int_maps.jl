@@ -118,22 +118,22 @@ function interaction_maps()
     rge = 1:12
     # Make competition plot
     p1 = heatmap(rge,rge,comps[12:-1:1,1:12],c=:heat,colorbar_title="Total interaction strength",title="Competiton")
-    plot!(p1,xticks=(2:2:12),yticks=(2:2:12,12:-2:2),xlabel="Functional group",ylabel="Functional group impacted")
+    plot!(p1,xticks=(2:2:12),yticks=(2:2:12,11:-2:1),xlabel="Functional group",ylabel="Functional group impacted")
     # Add annotation
     annotate!(p1,-0.5,13,text("A",17,:black))
     # Make facilitation plot
     p2 = heatmap(rge,rge,facls[12:-1:1,1:12],c=:heat,colorbar_title="Total interaction strength",title="Facilitation")
-    plot!(p2,xticks=(2:2:12),yticks=(2:2:12,12:-2:2),xlabel="Functional group",ylabel="Functional group impacted")
+    plot!(p2,xticks=(2:2:12),yticks=(2:2:12,11:-2:1),xlabel="Functional group",ylabel="Functional group impacted")
     # Add annotation
     annotate!(p2,-0.5,13,text("B",17,:black))
     # Make syntrophy plot
     p3 = heatmap(rge,rge,synps[12:-1:1,1:12],c=:heat,colorbar_title="Total interaction strength",title="Syntrophy")
-    plot!(p3,xticks=(2:2:12),yticks=(2:2:12,12:-2:2),xlabel="Functional group",ylabel="Functional group impacted")
+    plot!(p3,xticks=(2:2:12),yticks=(2:2:12,11:-2:1),xlabel="Functional group",ylabel="Functional group impacted")
     # Add annotation
     annotate!(p3,-0.5,13,text("C",17,:black))
     # Make pollution plot
     p4 = heatmap(rge,rge,polls[12:-1:1,1:12],c=:heat,colorbar_title="Total interaction strength",title="Pollution")
-    plot!(p4,xticks=(2:2:12),yticks=(2:2:12,12:-2:2),xlabel="Functional group",ylabel="Functional group impacted")
+    plot!(p4,xticks=(2:2:12),yticks=(2:2:12,11:-2:1),xlabel="Functional group",ylabel="Functional group impacted")
     # Add annotation
     annotate!(p4,-0.5,13,text("D",17,:black))
     # Combine all figures into one
@@ -141,22 +141,22 @@ function interaction_maps()
     savefig(pc1,"Output/SI/heat_strength.png")
     # Do the same load of heatmaps but for the number of interactions, starting with competition
     p5 = heatmap(rge,rge,no_comps[12:-1:1,1:12],c=:heat,colorbar_title="Total number of interactions",title="Competiton")
-    plot!(p5,xticks=(2:2:12),yticks=(2:2:12,12:-2:2),xlabel="Functional group",ylabel="Functional group impacted")
+    plot!(p5,xticks=(2:2:12),yticks=(2:2:12,11:-2:1),xlabel="Functional group",ylabel="Functional group impacted")
     # Add annotation
     annotate!(p5,-0.5,13,text("A",17,:black))
     # Make facilitation plot
     p6 = heatmap(rge,rge,no_facls[12:-1:1,1:12],c=:heat,colorbar_title="Total number of interactions",title="Facilitation")
-    plot!(p6,xticks=(2:2:12),yticks=(2:2:12,12:-2:2),xlabel="Functional group",ylabel="Functional group impacted")
+    plot!(p6,xticks=(2:2:12),yticks=(2:2:12,11:-2:1),xlabel="Functional group",ylabel="Functional group impacted")
     # Add annotation
     annotate!(p6,-0.5,13,text("B",17,:black))
     # Make syntrophy plot
     p7 = heatmap(rge,rge,no_synps[12:-1:1,1:12],c=:heat,colorbar_title="Total number of interactions",title="Syntrophy")
-    plot!(p7,xticks=(2:2:12),yticks=(2:2:12,12:-2:2),xlabel="Functional group",ylabel="Functional group impacted")
+    plot!(p7,xticks=(2:2:12),yticks=(2:2:12,11:-2:1),xlabel="Functional group",ylabel="Functional group impacted")
     # Add annotation
     annotate!(p7,-0.5,13,text("C",17,:black))
     # Make pollution plot
     p8 = heatmap(rge,rge,no_polls[12:-1:1,1:12],c=:heat,colorbar_title="Total number of interactions",title="Pollution")
-    plot!(p8,xticks=(2:2:12),yticks=(2:2:12,12:-2:2),xlabel="Functional group",ylabel="Functional group impacted")
+    plot!(p8,xticks=(2:2:12),yticks=(2:2:12,11:-2:1),xlabel="Functional group",ylabel="Functional group impacted")
     # Add annotation
     annotate!(p8,-0.5,13,text("D",17,:black))
     # Combine all figures into one

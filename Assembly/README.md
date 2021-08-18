@@ -10,7 +10,8 @@ Made a package to contain code used for modelling microbial ecosystem assembly w
 7. Figure 4 -> src/figures/Fig4.jl
 8. Figure 5 -> src/figures/Fig5.jl
 9. Supplementary figures -> src/figures/SI_figures.jl
-10. Further supplementary figures -> src/figures/vis_ints.jl
+10. Supplementary figures visualising interactions -> src/figures/vis_ints.jl
+11. Supplementary figures heat map of interactions between functional groups -> src/figures/vis_ints.jl
 ## Full procedure for generating the data for the paper
 All simulations are carried out using the form_comm.jl file in the analysis file.
 This file generates a parameter set using the make_full.jl and fullParameters.jl scripts (in the parameters folder).

@@ -76,15 +76,17 @@ function plt_trdff(Rl::Int64,Ru::Int64,syn::Bool,runN::Int64,en::String,Ni::Int6
     as3 = ηs.*rs2
     # Define labels for the plot
     lbs = Array{String,2}(undef,1,2)
-    lbs[1] = "High product concentration"
-    lbs[2] = "Low product concentration"
+    lbs[1] = "High product"
+    lbs[2] = "Low product"
     # make a units label
     uns = L"10^{5}\;s^{-1}"
     # Now calculate and plot syntrophy stuff
     plot(ηs,as3/1e5,xlabel="ATP per reaction event",ylabel="ATP production rate ($(uns))",labels=lbs,lw=2.5)
-    plot!(legendfontsize=14,guidefontsize=16,tickfontsize=10,legend=:bottomleft,xlims=(4.0,6.0))
+    plot!(legendfontsize=18,guidefontsize=18,tickfontsize=10,legend=:bottomleft,xlims=(4.0,6.0))
     # Add arrow between the two lines
     quiver!([5.56],[3e5/1e5],quiver=([-0.145],[0.0]),color=:red,lw=2.5,arrow=1.25)
+    # Change size of the plot so that yaxis label fits
+    plot!(size=(600,450)) # Was 600 400
     savefig("Output/Fig1/SynTrdOff.png")
     # Find indicies of surviving strains
     is = zeros(Int64,ps.N)

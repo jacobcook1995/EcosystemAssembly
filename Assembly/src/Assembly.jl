@@ -12,6 +12,7 @@ using SymPy
 include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available
 include("parameters/make_prot.jl") # Function to make parameters for proteome model
 include("parameters/make_full.jl") # Function to make parameters for full model
+include("parameters/make_full_robust.jl") # Function to make parameters for robustness case
 include("simulate/analytic.jl") # Include analytic functions to assit simulations
 include("simulate/proteome.jl") # Include simulation code for proteome model
 include("simulate/full.jl") # Include simulation code for full model

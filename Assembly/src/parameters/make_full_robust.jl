@@ -1,5 +1,22 @@
 # Script that makes the parameters needed for simulation of the full proteome model
-export initialise_np, initialise_Pb, initialise_ϕH, initialise_sat
+export options_titles, initialise_np, initialise_Pb, initialise_ϕH, initialise_sat
+
+# Function to provide names for each robustness option
+function options_titles(opt::Int64)
+    if opt == 1
+        return("ChangeMetMass")
+    elseif opt == 2
+        return("ChangeBinding")
+    elseif opt == 3
+        return("ChangeHouse")
+    elseif opt == 4
+        return("RaiseGamma")
+    elseif opt == 5
+        return("HighSat")
+    else
+        return("LowSat")
+    end
+end
 
 # function to generate parameter set for the model with inhibition
 function initialise_np(N::Int64,M::Int64,O::Int64,Rl::Int64,Ru::Int64,kc::Float64,KS::Float64,

@@ -123,29 +123,29 @@ function rb_assemble()
         # Make parameter set based on option
         if opt == 1
             # Option 1 changes the average mass of the metabolic protein
-            np = 600 # TEST
+            np = 600
             ps = initialise_np(N,M,O,Rl,Ru,kc,KS,kr,syn,μrange,np)
         elseif opt == 2
             # Option 2 changes the average bound fraction of ribosomes
-            Pb = 0.9 # TEST
+            Pb = 0.9
             ps = initialise_Pb(N,M,O,Rl,Ru,kc,KS,kr,syn,μrange,Pb)
         elseif opt == 3
             # Option 3 changes the size of the houskeeping fraction
-            ϕH = 0.7 # TEST
+            ϕH = 0.7
             ps = initialise_ϕH(N,M,O,Rl,Ru,kc,KS,kr,syn,μrange,ϕH)
         elseif opt == 4
             # Option 4 makes Kγ bigger than KΩ
-            Kγ = 1e9 # TEST
+            Kγ = 1e9
             KΩ = 5e8
             ps = initialise_sat(N,M,O,Rl,Ru,kc,KS,kr,syn,μrange,Kγ,KΩ)
         elseif opt == 5
             # Option 5 makes Kγ and KΩ both bigger
-            Kγ = 5e9 # TEST
+            Kγ = 5e9
             KΩ = 1e10
             ps = initialise_sat(N,M,O,Rl,Ru,kc,KS,kr,syn,μrange,Kγ,KΩ)
         else
             # Option 6 makes Kγ and KΩ both smaller
-            Kγ = 5e7 # TEST
+            Kγ = 5e7
             KΩ = 1e8
             ps = initialise_sat(N,M,O,Rl,Ru,kc,KS,kr,syn,μrange,Kγ,KΩ)
         end
@@ -162,8 +162,8 @@ function rb_assemble()
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")
         flush(stdout)
-        # Establish which microbes are extinct
-        ext = (C[end,1:N] .== 0.0)
+        # Establish which microbes are extinct (below e-10 threshold)
+        ext = (C[end,1:N] .<= 1e-10)
         # Preallocate vector to store extinct microbes
         ded = Array{MicrobeP,1}(undef,sum(ext))
         # Loop over and store microbes in the vector
@@ -212,7 +212,6 @@ function rb_assemble()
         # Print to show that run has been successfully completed
         println("Run $i completed and saved!")
         flush(stdout)
-        return(nothing)
     end
     return(nothing)
 end

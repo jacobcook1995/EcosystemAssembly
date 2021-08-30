@@ -584,7 +584,7 @@ end
 # function I can use to test particular parameter sets
 function test()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 6
+    if length(ARGS) < 7
         error("Insufficent inputs provided (looking for 6)")
     end
     # Preallocate the variables I want to extract from the input
@@ -594,6 +594,7 @@ function test()
     Nr = 0
     Ns = 0
     en = ARGS[6]
+    opt = 0
     # Check that all arguments can be converted to integers
     try
         Rl = parse(Int64,ARGS[1])
@@ -601,8 +602,9 @@ function test()
         syn = parse(Bool,ARGS[3])
         Nr = parse(Int64,ARGS[4])
         Ns = parse(Int64,ARGS[5])
+        opt = parse(Int64,ARGS[7])
     catch e
-            error("need to provide 4 integers and a bool")
+            error("need to provide 5 integers and a bool")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -619,16 +621,18 @@ function test()
         error("number of strains can't be less than 1")
     end
     println("Compiled!")
+    # Find title
+    title_op = options_titles(opt)
     # Read in relevant files
-    pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
+    pfile = "Paras/$(title_op)/$(Rl)-$(Ru)$(syn)$(en)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(pfile)
         error("run $(Nr) is missing a parameter file")
     end
-    ofile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
+    ofile = "Data/$(title_op)/$(Rl)-$(Ru)$(syn)$(en)/OutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(ofile)
         error("run $(Nr) is missing an output file")
     end
-    efile = "Data/$(Rl)-$(Ru)$(syn)$(Ns)$(en)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
+    efile = "Data/$(title_op)/$(Rl)-$(Ru)$(syn)$(en)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ns).jld"
     if ~isfile(efile)
         error("run $(Nr) is missing an extinct file")
     end
@@ -637,6 +641,7 @@ function test()
     T = load(ofile,"T")
     out = load(ofile,"out")
     ded = load(efile,"ded")
+    println(length(ded))
     # ind = findfirst(x->x==out[1],C[end,:])
     # m = ps.mics[1]
     # Now move onto plotting
@@ -654,7 +659,7 @@ function test()
     plot(title="Final populations",yaxis=:log10)
     for i = is
          # Find and eliminate zeros so that they can be plotted on a log plot
-         inds = (C[:,i] .> 0)
+         inds = (C[:,i] .> 1e-20)
          plot!(T[inds],C[inds,i],label="")
     end
     savefig("Output/redpops.png")
@@ -666,7 +671,7 @@ function test()
     plot(title="Full populations",yaxis=:log10)
     for i = 1:N
         # Find and eliminate zeros so that they can be plotted on a log plot
-        inds = (C[:,i] .> 0)
+        inds = (C[:,i] .> 1e-20)
         plot!(T[inds],C[inds,i],label="")
     end
     savefig("Output/fullpops.png")
@@ -1484,10 +1489,12 @@ function plot_survivors()
     return(nothing)
 end
 
-if length(ARGS) == 3
-    @time multi_sets()
-elseif length(ARGS) == 7
-    @time plot_survivors()
-else
-    @time basic_info()
-end
+@time test()
+
+# if length(ARGS) == 3
+#     @time multi_sets()
+# elseif length(ARGS) == 7
+#     @time plot_survivors()
+# else
+#     @time basic_info()
+# end

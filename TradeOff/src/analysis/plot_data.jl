@@ -495,6 +495,6 @@ function plot_run_averages()
 end
 
 # @time plot_run_averages()
-@time plot_aves()
-# @time plot_traj()
+# @time plot_aves()
+@time plot_traj()
 # @time plot_av_ints()

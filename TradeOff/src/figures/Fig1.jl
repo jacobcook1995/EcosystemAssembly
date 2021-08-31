@@ -32,7 +32,7 @@ function efficency_plot()
     # Plot the two things
     plot(ϕRs,effs,label=false,ylims=(0,Inf),xlabel="Ribosome fraction ($(phiR))")
     plot!(ylabel="ATP per translation step ($(chi))")
-    savefig("Output/test.png")
+    savefig("Output/Fig1/efficency.png")
     return(nothing)
 end
 

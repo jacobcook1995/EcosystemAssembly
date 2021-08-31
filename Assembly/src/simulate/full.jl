@@ -96,9 +96,9 @@ function full_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ps::FullParamet
     for i = 1:ps.N
         # Check if strain is effectively extinct
         if x[i] <= 1e-10
-            # If so x should be set to 10^-10 and should not change from that
+            # If so x should be set to zero and should not change from that
             dx[i] = 0.0
-            x[i] = 1e-10
+            x[i] = 0.0
             # In this case the energy concentration should also be fixed to zero
             dx[ps.N+ps.M+i] = 0.0
             x[ps.N+ps.M+i] = 0.0

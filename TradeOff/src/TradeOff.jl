@@ -9,6 +9,7 @@ using JLD
 using Random
 
 # Include scripts that contain other functions
+include("MyPlots.jl") # This means I must always have a version of MyPlots.jl available
 include("parameters/make_paras.jl") # Function to make parameters for full model
 include("parameters/gen_pool.jl") # Function to generate species pools
 include("simulate/sim.jl") # Include simulation code for full model

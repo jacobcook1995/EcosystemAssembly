@@ -56,6 +56,10 @@ function snp_shot()
     # Preallocate data to save
     ns = zeros(length(snps)-1,rps)
     gs = zeros(length(snps)-1,rps)
+    stb = zeros(length(snps)-1,rps)
+    inc = zeros(length(snps)-1,rps)
+    dec = zeros(length(snps)-1,rps)
+    st_r = zeros(length(snps)-1)
     # List of pools already loaded in
     pls = []
     # Array of array to store pools
@@ -114,15 +118,54 @@ function snp_shot()
             # Find indices of the time point before and after the snapshot point
             ind1 = findfirst(x->x>=snps[j],T)
             ind2 = findfirst(x->x>=snps[j+1],T)
-            # Check for new species that entered the system in this time window
-            migs = findall(x->snps[j]<=x<snps[j+1],micd.↦:ImT)
-            # Count number of new immigrants
-            ns[j,i] = length(migs)
-            # Also need to calculate the number that grow (over the snapshot period)
-            for k = 1:length(migs)
-                # Check that population has increased from the initial value
-                if C[ind2,migs[k]] > Ni
-                    gs[j,i] += 1
+            # Check that the simulation is still running at this point
+            if ~isnothing(ind1)
+                st_r[j] += 1
+                # Check for new species that entered the system in this time window
+                migs = findall(x->snps[j]<=x<snps[j+1],micd.↦:ImT)
+                # Count number of new immigrants
+                ns[j,i] = length(migs)
+                # Also need to calculate the number that grow (over the snapshot period)
+                for k = 1:length(migs)
+                    # Check that population has increased from the initial value
+                    if C[ind2,migs[k]] > Ni
+                        gs[j,i] += 1
+                    end
+                end
+                # Find strains that either exist at the start of the snapshot, or immigrate witin it
+                survs = findall(((C[ind1,1:length(micd)] .!== 0.0) .& (.~isnan.(C[ind1,1:length(micd)]))) .| (snps[j].<=(micd.↦:ImT).<snps[j+1]))
+                # Calculate change neccesary to be considered to be growing
+                pchng = exp(0.01*d*t_step) - 1.00
+                # Adjust for the fact that ind2 can be nothing
+                if ~isnothing(ind2)
+                    indf = ind2
+                else
+                    indf = lastindex(T)
+                end
+                # Loop over survivors
+                for k = 1:length(survs)
+                    # catch species that are extinct by the end of the time window
+                    if isnan(C[indf,survs[k]]) || C[indf,survs[k]] == 0.0
+                        dec[j,i] += 1
+                    # Are they a new immigrant
+                    elseif C[ind1,survs[k]] == 0.0 || isnan(C[ind1,survs[k]])
+                        # If so do they increase in value
+                        if C[ind1,survs[k]] >= Ni
+                            inc[j,i] += 1
+                        # Other wise they can be treated as decreasing
+                        else
+                            dec[j,i] += 1
+                        end
+                    # then ones that have declined sufficently
+                    elseif (C[indf,survs[k]] - C[ind1,survs[k]])/abs(C[ind1,survs[k]]) < -pchng
+                        dec[j,i] += 1
+                    # increased sufficently
+                    elseif (C[indf,survs[k]] - C[ind1,survs[k]])/abs(C[ind1,survs[k]]) > pchng
+                        inc[j,i] += 1
+                    # If none of the above true assign to stable
+                    else
+                        stb[j,i] += 1
+                    end
                 end
             end
         end
@@ -133,12 +176,15 @@ function snp_shot()
             # Save whatever I generate here
             write(file,"ns",ns)
             write(file,"gs",gs)
+            write(file,"stb",stb)
+            write(file,"inc",inc)
+            write(file,"dec",dec)
+            write(file,"st_r",st_r)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])
         end
         println("Run $i analysed")
         flush(stdout)
-        return(nothing)
     end
     return(nothing)
 end

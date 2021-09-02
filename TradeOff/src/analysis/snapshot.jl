@@ -38,7 +38,7 @@ function snp_shot()
         # Load in relevant output file
         ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
-            error("$(ims) immigrations run $(rN) is missing an output file")
+            error("$(ims) immigrations run $(i) is missing an output file")
         end
         # Load in microbe data, and immigration times
         T = load(ofile,"T")
@@ -55,6 +55,7 @@ function snp_shot()
     t_step = snps[2] - snps[1]
     # Preallocate data to save
     ns = zeros(length(snps)-1,rps)
+    gs = zeros(length(snps)-1,rps)
     # List of pools already loaded in
     pls = []
     # Array of array to store pools
@@ -66,7 +67,7 @@ function snp_shot()
         # Load in relevant output file
         ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
-            error("$(ims) immigrations run $(rN) is missing an output file")
+            error("$(ims) immigrations run $(i) is missing an output file")
         end
         # Load in microbe data, and immigration times
         T = load(ofile,"T")
@@ -75,6 +76,8 @@ function snp_shot()
         its = load(ofile,"its")
         # Use to construct full trajectory C
         C = merge_data(ps,traj,T,micd,its)
+        # Find and save initial population value for this run
+        Ni = C[1,1]
         # Preallocate vector of microbes
         ms = Array{Microbe,1}(undef,length(micd))
         # Loop over and find each one
@@ -112,23 +115,30 @@ function snp_shot()
             ind1 = findfirst(x->x>=snps[j],T)
             ind2 = findfirst(x->x>=snps[j+1],T)
             # Check for new species that entered the system in this time window
-            ims = findall(x->snps[j]<=x<snps[j+1],micd.↦:ImT)
+            migs = findall(x->snps[j]<=x<snps[j+1],micd.↦:ImT)
             # Count number of new immigrants
-            ns[j,i] = length(ims)
+            ns[j,i] = length(migs)
+            # Also need to calculate the number that grow (over the snapshot period)
+            for k = 1:length(migs)
+                # Check that population has increased from the initial value
+                if C[ind2,migs[k]] > Ni
+                    gs[j,i] += 1
+                end
+            end
         end
-        println(ns[:,1])
-        return(nothing)
         # Now just save the relevant data
         jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapRun$(i)Data$(ims)Ims.jld","w") do file
             # Save times of snapshots
             write(file,"times",snps)
             # Save whatever I generate here
             write(file,"ns",ns)
+            write(file,"gs",gs)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])
         end
         println("Run $i analysed")
         flush(stdout)
+        return(nothing)
     end
     return(nothing)
 end

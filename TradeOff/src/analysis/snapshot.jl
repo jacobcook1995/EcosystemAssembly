@@ -169,22 +169,20 @@ function snp_shot()
                 end
             end
         end
-        # Now just save the relevant data
-        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapRun$(i)Data$(ims)Ims.jld","w") do file
-            # Save times of snapshots
-            write(file,"times",snps)
-            # Save whatever I generate here
-            write(file,"ns",ns)
-            write(file,"gs",gs)
-            write(file,"stb",stb)
-            write(file,"inc",inc)
-            write(file,"dec",dec)
-            write(file,"st_r",st_r)
-            # Finally save final time to help with benchmarking
-            write(file,"Tf",T[end])
-        end
         println("Run $i analysed")
         flush(stdout)
+    end
+    # Now just save the relevant data
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapData$(ims)Ims.jld","w") do file
+        # Save times of snapshots
+        write(file,"times",snps)
+        # Save whatever I generate here
+        write(file,"ns",ns)
+        write(file,"gs",gs)
+        write(file,"stb",stb)
+        write(file,"inc",inc)
+        write(file,"dec",dec)
+        write(file,"st_r",st_r)
     end
     return(nothing)
 end

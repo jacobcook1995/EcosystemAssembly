@@ -390,4 +390,91 @@ function trjstats()
     return(nothing)
 end
 
-@time trjstats()
+# Function to read in snapshot data and calculate stats over time
+function snpstats()
+    # Check that sufficent arguments have been provided
+    if length(ARGS) < 3
+        error("insufficent inputs provided")
+    end
+    # Preallocate the variables I want to extract from the input
+    rps = 0
+    ims = 0
+    sim_type = 0
+    # Check that all arguments can be converted to integers
+    try
+        rps = parse(Int64,ARGS[1])
+        ims = parse(Int64,ARGS[2])
+        sim_type = parse(Int64,ARGS[3])
+    catch e
+            error("need to provide 3 integers")
+    end
+    println("Compiled")
+    flush(stdout)
+    # Load in hardcoded simulation parameters
+    Np, Nt, M, d, μrange = sim_paras(sim_type)
+    # Read in parameter file
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
+    if ~isfile(pfile)
+        error("$(ims) immigrations run is missing a parameter file")
+    end
+    # Load parameters
+    ps = load(pfile,"ps")
+    # Load in 1st output file
+    sfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapData$(ims)Ims.jld"
+    if ~isfile(sfile)
+        error("$(ims) immigrations run 1 is missing a variables file")
+    end
+    # Load in snapshot times
+    times = load(sfile,"times")
+    ns = load(sfile,"ns")
+    gs = load(sfile,"gs")
+    stb = load(sfile,"stb")
+    inc = load(sfile,"inc")
+    dec = load(sfile,"dec")
+    st_r = load(sfile,"st_r")
+    # Connstruct totals here
+    tot_stb = dropdims(sum(stb,dims=2),dims=2)
+    tot_inc = dropdims(sum(inc,dims=2),dims=2)
+    tot_dec = dropdims(sum(dec,dims=2),dims=2)
+    # Now calculate means
+    mn_stb = tot_stb./st_r
+    mn_inc = tot_inc./st_r
+    mn_dec = tot_dec./st_r
+    println("Means found")
+    # Preallocate containers for the standard deviations
+    sd_stb = zeros(size(mn_stb))
+    sd_inc = zeros(size(mn_inc))
+    sd_dec = zeros(size(mn_dec))
+    # Loop over times
+    for i = 1:length(times)-1
+        # Find indices of still progressing trajectories
+        inds = (ns[i,:] .!== 0.0)
+        # Calculate standard deviations
+        sd_stb[i] = sqrt(sum((stb[i,inds] .- mn_stb[i]).^2)/(st_r[i] - 1))
+        sd_inc[i] = sqrt(sum((inc[i,inds] .- mn_inc[i]).^2)/(st_r[i] - 1))
+        sd_dec[i] = sqrt(sum((dec[i,inds] .- mn_dec[i]).^2)/(st_r[i] - 1))
+    end
+    # Find total numbers of new strains and total number that grows
+    tot_ns = dropdims(sum(ns,dims=2),dims=2)
+    tot_gs = dropdims(sum(gs,dims=2),dims=2)
+    # Use to find growth probability
+    gp = tot_gs./tot_ns
+    # Now just save the relevant data
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapDataStats$(ims)Ims.jld","w") do file
+        # Save times of snapshots
+        write(file,"times",times)
+        # Save growth probabilities
+        write(file,"gp",gp)
+        # Save means
+        write(file,"mn_stb",mn_stb)
+        write(file,"mn_inc",mn_inc)
+        write(file,"mn_dec",mn_dec)
+        # Save standard deviations
+        write(file,"sd_stb",sd_stb)
+        write(file,"sd_inc",sd_inc)
+        write(file,"sd_dec",sd_dec)
+    end
+    return(nothing)
+end
+
+@time snpstats()

@@ -48,7 +48,7 @@ function snp_shot()
     # Then find maximum final time
     Tmax = maximum(Tfs)
     # Number of steps to calculate stats for
-    NumS = 2500
+    NumS = 1000
     # Define snap shot times based on this maximum time
     snps = collect(range(0.0,Tmax,length=NumS))
     # Also save the time step for later use

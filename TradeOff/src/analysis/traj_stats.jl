@@ -473,6 +473,8 @@ function snpstats()
         write(file,"sd_stb",sd_stb)
         write(file,"sd_inc",sd_inc)
         write(file,"sd_dec",sd_dec)
+        # Save number of simulations
+        write(file,"st_r",st_r)
     end
     return(nothing)
 end

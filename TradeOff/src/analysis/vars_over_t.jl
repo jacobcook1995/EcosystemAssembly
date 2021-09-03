@@ -118,8 +118,8 @@ function v_over_t()
             vinds = findall(x->x>1e5,C[j,1:numS])
             # Save number of "viable" strains
             tsvt[j] = length(vinds)
-            # Then also number of substrates
-            sbs[j] = count(x->x>1e-12,C[j,(numS+1):(numS+ps.M)])
+            # Then also number of substrates (skipping final waste product)
+            sbs[j] = count(x->x>1e-12,C[j,(numS+1):(numS+ps.M-1)])
             # Calculate average energy concentration (a)
             if length(a_i[vinds]) > 0
                 via_a[j] = sum(C[j,a_i[vinds]])/length(a_i[vinds])

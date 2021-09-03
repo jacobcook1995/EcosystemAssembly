@@ -29,8 +29,8 @@ function early_immigration_dyns(rN::Int64,ims::Int64,sim_type::Int64)
     C = merge_data(ps,traj,T,micd,its)
     println("Data merged")
     # Check if directory exists and if not make it
-    if ~isdir("Output/Plotsd=$(d)u=$(μrange)")
-        mkdir("Output/Plotsd=$(d)u=$(μrange)")
+    if ~isdir("Output/Fig2")
+        mkdir("Output/Fig2")
     end
     # Find total number of strains
     totN = length(micd)

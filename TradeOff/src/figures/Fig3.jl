@@ -1,4 +1,4 @@
-# Script to plot elements needed for figure 1
+# Script to plot figure 3
 using TradeOff
 using Plots
 using JLD
@@ -29,8 +29,8 @@ function figure3(rN::Int64,ims::Int64,sim_type::Int64)
     C = merge_data(ps,traj,T,micd,its)
     println("Data merged")
     # Check if directory exists and if not make it
-    if ~isdir("Output/Plotsd=$(d)u=$(μrange)")
-        mkdir("Output/Plotsd=$(d)u=$(μrange)")
+    if ~isdir("Output/Fig3")
+        mkdir("Output/Fig3")
     end
     # Find total number of strains
     totN = length(micd)
@@ -58,8 +58,6 @@ function figure3(rN::Int64,ims::Int64,sim_type::Int64)
     end
     # Add annotation
     px, py = annpos([0.0;5e7],[1e-5;5e12],0.05,0.0)
-    println(px)
-    println(py)
     annotate!(p2,px,py,text("A",17,:black))
     savefig(p2,"Output/Fig3/surv_pops.png")
     # Plot ribosome fractions of populations that survive to the end
@@ -71,12 +69,10 @@ function figure3(rN::Int64,ims::Int64,sim_type::Int64)
     end
     # Add annotation
     px, py = annpos([0.0;5e7],[0.02;0.215],0.05,0.0)
-    println(px)
-    println(py)
     annotate!(p3,px,py,text("B",17,:black))
     savefig(p3,"Output/Fig3/surv_fracs.png")
-    # Now want to make a plot incorperating all four previous plots
-    pt = plot(p2,p3,layout=(1,2),size=(1400,400),margin=5.0mm)
+    # Now want to make a plot incorperating both previous plots
+    pt = plot(p2,p3,layout=(2,1),size=(700,800),margin=5.0mm)
     savefig(pt,"Output/Fig3/figure3.png")
     return(nothing)
 end

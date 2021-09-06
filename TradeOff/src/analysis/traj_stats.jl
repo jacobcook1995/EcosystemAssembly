@@ -479,4 +479,4 @@ function snpstats()
     return(nothing)
 end
 
-@time snpstats()
+@time trjstats()

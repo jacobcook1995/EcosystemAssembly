@@ -98,6 +98,10 @@ function v_over_t()
         fr_ΔG = zeros(length(T))
         via_a = zeros(length(T))
         via_ϕR = zeros(length(T))
+        η1 = zeros(length(T))
+        η2 = zeros(length(T))
+        fr_ΔG1 = zeros(length(T))
+        fr_ΔG2 = zeros(length(T))
         ηs_R = zeros(NoR,length(T))
         ωs_R = zeros(NoR,length(T))
         kc_R = zeros(NoR,length(T))
@@ -144,6 +148,9 @@ function v_over_t()
                 ηs[j] /= svt[j]
                 ωs[j] /= svt[j]
             end
+            # Set up counters for the number of strains with 1 and 2 gap reactions, respectively
+            c1 = 0
+            c2 = 0
             # Find (weighted) total eta value for viable strains
             for k = 1:length(vinds)
                 via_η[j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
@@ -151,12 +158,38 @@ function v_over_t()
                 kcs[j] += sum(ms[vinds[k]].kc.*ms[vinds[k]].ϕP)
                 KSs[j] += sum(ms[vinds[k]].KS.*ms[vinds[k]].ϕP)
                 krs[j] += sum(ms[vinds[k]].kr.*ms[vinds[k]].ϕP)
+                # Bools to store whether strain has 1 gap and 2 gap reaction, respectively
+                pres1 = false
+                pres2 = false
                 # Loop over all reactions this strain has
                 for l = 1:ms[vinds[k]].R
                     # Find reaction number
                     Rn = ms[vinds[k]].Reacs[l]
-                    # Find step size and weight by 1
-                    av_steps[j] += (ps.reacs[Rn].Prd - ps.reacs[Rn].Rct)*ms[vinds[k]].ϕP[l]
+                    # Find relevant reaction
+                    r = ps.reacs[Rn]
+                    # Then calculate frac transduced
+                    fr_ΔG[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
+                    # Find step size
+                    s_size = (r.Prd - r.Rct)
+                    # weight this step size to 1 and add to total
+                    av_steps[j] += (s_size)*ms[vinds[k]].ϕP[l]
+                    # use step size to choose which eta value to add to
+                    if s_size == 1
+                        pres1 = true
+                        η1[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]
+                        fr_ΔG1[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
+                    elseif s_size == 2
+                        pres2 = true
+                        η2[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]
+                        fr_ΔG2[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
+                    end
+                end
+                # If they are present them increment the counters
+                if pres1 == true
+                    c1 += 1
+                end
+                if pres2 == true
+                    c2 += 1
                 end
             end
             # Average over number of strains
@@ -167,6 +200,16 @@ function v_over_t()
                 KSs[j] /= tsvt[j]
                 krs[j] /= tsvt[j]
                 av_steps[j] /= tsvt[j]
+                fr_ΔG[j] /= tsvt[j]
+                # Divide by number of strains that possess reactions
+                if c1 > 0
+                    η1[j] /= c1
+                    fr_ΔG1[j] /= c1
+                end
+                if c2 > 0
+                    η2[j] /= c2
+                    fr_ΔG2[j] /= c2
+                end
             end
             # Break down eta and omega value by R
             for k = 1:length(vinds)
@@ -188,19 +231,6 @@ function v_over_t()
                     KS_R[k,j] /= via_R[k,j]
                     kr_R[k,j] /= via_R[k,j]
                 end
-            end
-            # Find fraction of free energy transduced
-            for k = 1:length(vinds)
-                for l = 1:ms[vinds[k]].R
-                    # Find relevant reaction
-                    r = ps.reacs[ms[vinds[k]].Reacs[l]]
-                    # Then calculate frac
-                    fr_ΔG[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
-                end
-            end
-            # Average over number of viable strains
-            if tsvt[j] > 0
-                fr_ΔG[j] /= tsvt[j]
             end
         end
         # Now just save the relevant data
@@ -230,6 +260,10 @@ function v_over_t()
             write(file,"fr_ΔG",fr_ΔG)
             write(file,"via_a",via_a)
             write(file,"via_ϕR",via_ϕR)
+            write(file,"η1",η1)
+            write(file,"η2",η2)
+            write(file,"fr_ΔG1",fr_ΔG1)
+            write(file,"fr_ΔG2",fr_ΔG2)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])
         end

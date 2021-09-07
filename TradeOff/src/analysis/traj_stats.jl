@@ -502,7 +502,15 @@ function snpstats()
     tot_ns = dropdims(sum(ns,dims=2),dims=2)
     tot_gs = dropdims(sum(gs,dims=2),dims=2)
     # Use to find growth probability
-    gp = tot_gs./tot_ns
+    gp = zeros(size(tot_gs))
+    for i = 1:length(gp)
+        # Check that value isn't zero
+        if tot_ns[i] != 0
+            gp[i] = tot_gs[i]/tot_ns[i]
+        else
+            gp[i] = 0.0
+        end
+    end
     # Now just save the relevant data
     jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapDataStats$(ims)Ims.jld","w") do file
         # Save times of snapshots
@@ -523,4 +531,4 @@ function snpstats()
     return(nothing)
 end
 
-@time trjstats()
+@time snpstats()

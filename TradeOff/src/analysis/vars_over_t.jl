@@ -161,6 +161,14 @@ function v_over_t()
                 # Bools to store whether strain has 1 gap and 2 gap reaction, respectively
                 pres1 = false
                 pres2 = false
+                # Set temporary values for the variables
+                η1t = 0.0
+                η2t = 0.0
+                fr_ΔG1t = 0.0
+                fr_ΔG1t = 0.0
+                # Counters to track amount of protein allocated to each reaction type
+                ϕP1 = 0.0
+                ϕP2 = 0.0
                 # Loop over all reactions this strain has
                 for l = 1:ms[vinds[k]].R
                     # Find reaction number
@@ -176,20 +184,28 @@ function v_over_t()
                     # use step size to choose which eta value to add to
                     if s_size == 1
                         pres1 = true
-                        η1[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]
-                        fr_ΔG1[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
+                        ϕP1 += ms[vinds[k]].ϕP[l]
+                        η1t += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]
+                        fr_ΔG1t += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
                     elseif s_size == 2
                         pres2 = true
-                        η2[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]
-                        fr_ΔG2[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
+                        ϕP2 += ms[vinds[k]].ϕP[l]
+                        η2t += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]
+                        fr_ΔG2t += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
                     end
                 end
                 # If they are present them increment the counters
                 if pres1 == true
                     c1 += 1
+                    # Add temporary eta and fr_ΔG values to weighted total
+                    η1[j] += η1t/ϕP1
+                    fr_ΔG1[j] += fr_ΔG1t/ϕP1
                 end
                 if pres2 == true
                     c2 += 1
+                    # Add temporary eta and fr_ΔG values to weighted total
+                    η2[j] += η2t/ϕP2
+                    fr_ΔG2[j] += fr_ΔG2t/ϕP2
                 end
             end
             # Average over number of strains

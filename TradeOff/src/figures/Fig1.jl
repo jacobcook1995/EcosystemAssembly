@@ -18,20 +18,28 @@ function efficency_plot()
     mic = new_mic(M,Rs,d,μrange,mratio)
     # Preallocate a ribsome fractions to calculate this for
     ϕRs = collect(0.0:0.01:(1-mic.ϕH))
+    # Preallocate vector of maximum growth rates
+    max_λ = zeros(length(ϕRs))
+    # Loop over ribosome fractions
+    for i = 1:length(ϕRs)
+        # Find maximum growth rate (energy saturated)
+        max_λ[i] = (mic.γm*mic.Pb/mic.n[1])*ϕRs[i]
+    end
     # Preallicate container to store the efficencies
     effs = zeros(length(ϕRs))
     # Find efficency for each step
     for i = 1:length(ϕRs)
-        effs[i] = χs(ϕRs[i],mic)
+        effs[i] = 1/χs(ϕRs[i],mic)
     end
     # Setup plotting
     pyplot(dpi=200,guidefontsize=18,tickfontsize=10)
     # Define latex labels
     phiR = L"\phi_R"
     chi = L"\chi"
+    m1 = L"^{-1}"
     # Plot the two things
-    plot(ϕRs,effs,label=false,ylims=(0,Inf),xlabel="Ribosome fraction ($(phiR))")
-    plot!(ylabel="ATP per translation step ($(chi))")
+    plot(max_λ,effs,label=false,ylims=(0,Inf),xlabel="Max growth rate (s$(m1))",linewidth=2.5)
+    plot!(ylabel="Efficency (aa ATP$(m1))")
     savefig("Output/Fig1/efficency.png")
     return(nothing)
 end

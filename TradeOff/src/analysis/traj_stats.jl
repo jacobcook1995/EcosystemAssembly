@@ -60,6 +60,8 @@ function trjstats()
     no_rs = zeros(NoR,length(times))
     cmb_svt = zeros(rps,length(times))
     cmb_tsvt = zeros(rps,length(times))
+    cmb_pop = zeros(rps,length(times))
+    cmb_shD = zeros(rps,length(times))
     cmb_sbs = zeros(rps,length(times))
     cmb_Rs = zeros(rps,NoR,length(times))
     cmb_via_R = zeros(rps,NoR,length(times))
@@ -83,6 +85,7 @@ function trjstats()
     cmb_η2 = zeros(rps,length(times))
     cmb_fr_ΔG1 = zeros(rps,length(times))
     cmb_fr_ΔG2 = zeros(rps,length(times))
+    all_fin_ϕRs = Float64[]
     # Loop over number of trajectories (to minimise the number of reads in)
     for i = 1:rps
         # Load in relevant output file
@@ -93,6 +96,8 @@ function trjstats()
         T = load(vfile,"T")
         svt = load(vfile,"svt")
         tsvt = load(vfile,"tsvt")
+        pop = load(vfile,"pop")
+        shD = load(vfile,"shD")
         sbs = load(vfile,"sbs")
         Rs = load(vfile,"Rs")
         via_R = load(vfile,"via_R")
@@ -116,6 +121,8 @@ function trjstats()
         η2 = load(vfile,"η2")
         fr_ΔG1 = load(vfile,"fr_ΔG1")
         fr_ΔG2 = load(vfile,"fr_ΔG2")
+        fin_ϕR = load(vfile,"fin_ϕR")
+        all_fin_ϕRs = cat(all_fin_ϕRs,fin_ϕR,dims=1)
         # Bool to indicate end of the run
         Rn_end = false
         cnt = 0
@@ -146,6 +153,8 @@ function trjstats()
                 # And use to find appropriate averages
                 cmb_svt[i,cnt] = svt[Tind]*(T1x)/Tg + svt[Tind-1]*(Tx2)/Tg
                 cmb_tsvt[i,cnt] = tsvt[Tind]*(T1x)/Tg + tsvt[Tind-1]*(Tx2)/Tg
+                cmb_pop[i,cnt] = pop[Tind]*(T1x)/Tg + pop[Tind-1]*(Tx2)/Tg
+                cmb_shD[i,cnt] = shD[Tind]*(T1x)/Tg + shD[Tind-1]*(Tx2)/Tg
                 cmb_sbs[i,cnt] = sbs[Tind]*(T1x)/Tg + sbs[Tind-1]*(Tx2)/Tg
                 cmb_ηs[i,cnt] = ηs[Tind]*(T1x)/Tg + ηs[Tind-1]*(Tx2)/Tg
                 cmb_via_η[i,cnt] = via_η[Tind]*(T1x)/Tg + via_η[Tind-1]*(Tx2)/Tg
@@ -175,6 +184,8 @@ function trjstats()
                 # In the one case just add the value at time = 0
                 cmb_svt[i,cnt] = svt[Tind]
                 cmb_tsvt[i,cnt] = tsvt[Tind]
+                cmb_pop[i,cnt] = pop[Tind]
+                cmb_shD[i,cnt] = shD[Tind]
                 cmb_sbs[i,cnt] = sbs[Tind]
                 cmb_ηs[i,cnt] = ηs[Tind]
                 cmb_via_η[i,cnt] = via_η[Tind]
@@ -212,6 +223,8 @@ function trjstats()
     # Sum to find totals
     tot_svt = dropdims(sum(cmb_svt,dims=1),dims=1)
     tot_tsvt = dropdims(sum(cmb_tsvt,dims=1),dims=1)
+    tot_pop = dropdims(sum(cmb_pop,dims=1),dims=1)
+    tot_shD = dropdims(sum(cmb_shD,dims=1),dims=1)
     tot_sbs = dropdims(sum(cmb_sbs,dims=1),dims=1)
     tot_Rs = dropdims(sum(cmb_Rs,dims=1),dims=1)
     tot_via_R = dropdims(sum(cmb_via_R,dims=1),dims=1)
@@ -238,6 +251,8 @@ function trjstats()
     # Now calculate means
     mn_svt = tot_svt./no_sims
     mn_tsvt = tot_tsvt./no_sims
+    mn_pop = tot_pop./no_sims
+    mn_shD = tot_shD./no_sims
     mn_sbs = tot_sbs./no_sims
     mn_ηs = tot_ηs./no_sims
     mn_ωs = tot_ωs./no_sims
@@ -280,6 +295,8 @@ function trjstats()
     # Preallocate containers for the standard deviations
     sd_svt = zeros(size(mn_svt))
     sd_tsvt = zeros(size(mn_tsvt))
+    sd_pop = zeros(size(mn_pop))
+    sd_shD = zeros(size(mn_shD))
     sd_sbs = zeros(size(mn_sbs))
     sd_Rs = zeros(size(mn_Rs))
     sd_via_R = zeros(size(mn_via_R))
@@ -312,6 +329,8 @@ function trjstats()
         # Calculate standard deviations
         sd_svt[i] = sqrt(sum((cmb_svt[inds,i] .- mn_svt[i]).^2)/(no_sims[i] - 1))
         sd_tsvt[i] = sqrt(sum((cmb_tsvt[inds,i] .- mn_tsvt[i]).^2)/(no_sims[i] - 1))
+        sd_pop[i] = sqrt(sum((cmb_pop[inds,i] .- mn_pop[i]).^2)/(no_sims[i] - 1))
+        sd_shD[i] = sqrt(sum((cmb_shD[inds,i] .- mn_shD[i]).^2)/(no_sims[i] - 1))
         sd_sbs[i] = sqrt(sum((cmb_sbs[inds,i] .- mn_sbs[i]).^2)/(no_sims[i] - 1))
         sd_ηs[i] = sqrt(sum((cmb_ηs[inds,i] .- mn_ηs[i]).^2)/(no_sims[i] - 1))
         sd_ωs[i] = sqrt(sum((cmb_ωs[inds,i] .- mn_ωs[i]).^2)/(no_sims[i] - 1))
@@ -381,6 +400,8 @@ function trjstats()
         # Save averages
         write(file,"mn_svt",mn_svt)
         write(file,"mn_tsvt",mn_tsvt)
+        write(file,"mn_pop",mn_pop)
+        write(file,"mn_shD",mn_shD)
         write(file,"mn_sbs",mn_sbs)
         write(file,"mn_Rs",mn_Rs)
         write(file,"mn_via_R",mn_via_R)
@@ -407,6 +428,8 @@ function trjstats()
         # Save standard deviations
         write(file,"sd_svt",sd_svt)
         write(file,"sd_tsvt",sd_tsvt)
+        write(file,"sd_pop",sd_pop)
+        write(file,"sd_shD",sd_shD)
         write(file,"sd_sbs",sd_sbs)
         write(file,"sd_Rs",sd_Rs)
         write(file,"sd_via_R",sd_via_R)
@@ -430,6 +453,8 @@ function trjstats()
         write(file,"sd_η2",sd_η2)
         write(file,"sd_fr_ΔG1",sd_fr_ΔG1)
         write(file,"sd_fr_ΔG2",sd_fr_ΔG2)
+        # Write all of the ϕ values out
+        write(file,"all_fin_ϕRs",all_fin_ϕRs)
     end
     return(nothing)
 end
@@ -531,4 +556,4 @@ function snpstats()
     return(nothing)
 end
 
-@time snpstats()
+@time trjstats()

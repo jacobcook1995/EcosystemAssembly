@@ -2,6 +2,20 @@
 using TradeOff
 using JLD
 
+# Function to calculate Shannon diversity from a vector of populations
+function shan(pops::Array{Float64,1})
+    # Set initial value
+    H = 0.0
+    # Make vector of relative abundances
+    prbs = pops./sum(pops)
+    # Loop over relative abundances
+    for i = 1:length(prbs)
+        # Calculate Shannon entropy for each point
+        H -= prbs[i]*log(prbs[i])
+    end
+    return(H)
+end
+
 function v_over_t()
     # Check that sufficent arguments have been provided
     if length(ARGS) < 3
@@ -84,6 +98,8 @@ function v_over_t()
         # Preallocate containers to store number of survivors with time
         svt = Array{Int64,1}(undef,length(T))
         tsvt = Array{Int64,1}(undef,length(T))
+        pop = zeros(length(T))
+        shD = zeros(length(T))
         sbs = Array{Int64,1}(undef,length(T))
         Rs = Array{Int64,2}(undef,NoR,length(T))
         via_R = Array{Int64,2}(undef,NoR,length(T))
@@ -118,6 +134,13 @@ function v_over_t()
             inds = findall(x->x>1e-5,C[j,1:numS])
             # Save number of surviving strains at each time point
             svt[j] = length(inds)
+            # Check if multiple species survive
+            if svt[j] > 0
+                # Save the total population at this point
+                pop[j] = sum(C[j,inds])
+                # Find diversity of this point
+                shD[j] = shan(C[j,inds])
+            end
             # Find indices of "viable" strains
             vinds = findall(x->x>1e5,C[j,1:numS])
             # Save number of "viable" strains
@@ -165,7 +188,7 @@ function v_over_t()
                 η1t = 0.0
                 η2t = 0.0
                 fr_ΔG1t = 0.0
-                fr_ΔG1t = 0.0
+                fr_ΔG2t = 0.0
                 # Counters to track amount of protein allocated to each reaction type
                 ϕP1 = 0.0
                 ϕP2 = 0.0
@@ -249,6 +272,15 @@ function v_over_t()
                 end
             end
         end
+        # Preallocate final ϕR values
+        fin_ϕR = zeros(svt[end])
+        # Find indices of all surviving species
+        inds = findall(x->x>1e-5,C[end,1:numS])
+        # Loop over number of survivors
+        for j = 1:svt[end]
+            # Store corresponding final ϕR value
+            fin_ϕR[j] = C[end,ϕ_i[inds[j]]]
+        end
         # Now just save the relevant data
         jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld","w") do file
             # Save full timecourse
@@ -264,6 +296,8 @@ function v_over_t()
             # Save the other quantities
             write(file,"svt",svt)
             write(file,"tsvt",tsvt)
+            write(file,"pop",pop)
+            write(file,"shD",shD)
             write(file,"sbs",sbs)
             write(file,"ηs",ηs)
             write(file,"via_η",via_η)
@@ -280,6 +314,7 @@ function v_over_t()
             write(file,"η2",η2)
             write(file,"fr_ΔG1",fr_ΔG1)
             write(file,"fr_ΔG2",fr_ΔG2)
+            write(file,"fin_ϕR",fin_ϕR)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])
         end

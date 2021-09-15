@@ -87,12 +87,10 @@ function figure8(rps::Int64,ims::Int64)
     # Add annotations
     px, py = annpos([0.0;5e7],[0.0,1.0],0.075,0.0)
     annotate!(p1,px,py,text("A",17,:black))
-    # 32 over shoots
     px, py = annpos([0.0;5e7],[0.0;0.305],0.075,0.0)
     annotate!(p2,px,py,text("B",17,:black))
     px, py = annpos([0.0;5e7],[0.0;5.75],0.075,0.0)
     annotate!(p3,px,py,text("C",17,:black))
-    # 1.0 is too low
     px, py = annpos([0.0;5e7],[0.0;1.04],0.075,0.0)
     annotate!(p4,px,py,text("D",17,:black))
     # Plot all graphs as a single figure

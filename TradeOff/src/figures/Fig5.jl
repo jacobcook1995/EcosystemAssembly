@@ -6,21 +6,6 @@ using ColorSchemes
 using Plots.PlotMeasures
 import PyPlot
 
-function sub_prob(M::Int64,R::Int64,subs::Float64)
-    # Check that final waste product hasn't been generated
-    if subs >= M - 1
-        no_sub = M - 1
-    # Also check that it hasn't somehow gone negative
-    elseif subs <= 0.0
-        no_sub = 0.0
-    else
-        no_sub = subs
-    end
-    # Calculate probability
-    P = 1 - (1-(no_sub)/(M-1))^R
-    return(P)
-end
-
 function figure5(rps::Int64,ims::Int64,sim_type::Int64)
     println("Compiled")
     # Extract other simulation parameters from the function

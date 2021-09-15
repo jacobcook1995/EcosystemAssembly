@@ -4,118 +4,122 @@ using Plots
 using JLD
 using ColorSchemes
 using Plots.PlotMeasures
+using LaTeXStrings
 import PyPlot
 
-function figure5(rps::Int64,ims::Int64,sim_type::Int64)
+# Function to auto generate labels
+function find_label(sim_type::Int64,class::Int64)
+    # Assign label based on simulation type
+    if sim_type == 1
+        # Check whether we are comparing free energy or maintenance
+        if class == 1
+            lb = "high free-energy"
+        else
+            lb = "low maintenance"
+        end
+    elseif sim_type == 2
+        if class == 1
+            lb = "low free-energy"
+        else
+            lb = "low maintenance"
+        end
+    elseif sim_type == 3
+        if class == 1
+            lb = "high free-energy"
+        else
+            lb = "high maintenance"
+        end
+    else
+        if class == 1
+            lb = "low free-energy"
+        else
+            lb = "high maintenance"
+        end
+    end
+    return(lb)
+end
+
+function figure5(rps::Int64,ims::Int64)
     println("Compiled")
-    # Extract other simulation parameters from the function
-    Np, Nt, M, d, μrange = sim_paras(sim_type)
-    # Read in appropriate files
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
-    if ~isfile(pfile)
-        error("$(ims) immigrations run $(rN) is missing a parameter file")
-    end
-    # Find file name to load in
-    sfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld"
-    # Check it actually exists
-    if ~isfile(sfile)
-        error("missing stats file for $(ims) immigrations simulations")
-    end
-    # Read in relevant data
-    ps = load(pfile,"ps")
-    # Now load out the times, and number of trajectories
-    times = load(sfile,"times")
-    no_sims = load(sfile,"no_sims")
-    no_via = load(sfile,"no_via")
-    no_rs = load(sfile,"no_rs")
-    # Load in averages
-    mn_sbs = load(sfile,"mn_sbs")
-    mn_via_R = load(sfile,"mn_via_R")
-    mn_ηs_R = load(sfile,"mn_ηs_R")
-    mn_KS_R = load(sfile,"mn_KS_R")
-    # Load in standard deviations
-    sd_sbs = load(sfile,"sd_sbs")
-    sd_via_R = load(sfile,"sd_via_R")
-    sd_ηs_R = load(sfile,"sd_ηs_R")
-    sd_KS_R = load(sfile,"sd_KS_R")
-    # Preallocate standard errors
-    se_via_R = zeros(size(sd_via_R))
-    se_ηs_R = zeros(size(sd_ηs_R))
-    se_KS_R = zeros(size(sd_KS_R))
-    # Calculate standard errors from this
-    se_sbs = sd_sbs./sqrt.(no_sims)
-    # Calculation (slightly) different in the viable case
-    for i = 1:size(sd_via_R,1)
-        se_via_R[i,:] = sd_via_R[i,:]./sqrt.(no_via)
-        se_ηs_R[i,:] = sd_ηs_R[i,:]./sqrt.(no_rs[i,:])
-        se_KS_R[i,:] = sd_KS_R[i,:]./sqrt.(no_rs[i,:])
-    end
-    # Preallocate probabilites
-    mn_Ps = zeros(size(mn_via_R))
-    up_Ps = zeros(size(mn_via_R))
-    dw_Ps = zeros(size(mn_via_R))
-    # Loop over, calculating the probability at each step
-    for i = 1:size(mn_Ps,1)
-        for j = 1:size(mn_Ps,2)
-            # Calculate mean probability
-            mn_Ps[i,j] = sub_prob(M,i,mn_sbs[j])
-            # And also upper and lower bound
-            up_Ps[i,j] = sub_prob(M,i,mn_sbs[j]+se_sbs[j]) .- mn_Ps[i,j]
-            dw_Ps[i,j] = mn_Ps[i,j] .- sub_prob(M,i,mn_sbs[j]-se_sbs[j])
+    # Initialise plotting
+    pyplot(dpi=200)
+    # Load in color scheme
+    a = ColorSchemes.Dark2_4.colors
+    # Make box for the subplots
+    box = (1,bbox(0.5,0.65,0.4,0.3,:bottom,:left))
+    # Define reused latex strings
+    e6 = L"10^6"
+    # Make plot objects
+    p1 = plot(xlabel="Time (s)",xlim=(-Inf,5e7),ylim=(0.5,0.65),legend=:topleft)
+    plot!(p1,title="Variation with free energy",ylabel="Maximum ribsome fraction factor ($(L"\omega"))")
+    # Add inset box to plot other trade-off into
+    plot!(p1,xlabel="Time ($(e6) s)",ylabel=L"\phi_R",inset_subplots=box,subplot=2,grid=false,legend=false)
+    plot!(p1,subplot=2,xlim=(-Inf,10.0),ylim=(0.05,0.3),legend=false)
+    # Now make second plot
+    p2 = plot(xlabel="Time (s)",xlim=(-Inf,5e7),ylim=(0.5,0.65),legend=:topleft)
+    plot!(p2,title="Variation with maintenance cost",ylabel="Maximum ribsome fraction factor ($(L"\omega"))")
+    # Add the same inset box, to plot the other trade-off into
+    plot!(p2,xlabel="Time ($(e6) s)",ylabel=L"\phi_R",inset_subplots=box,subplot=2,grid=false)
+    plot!(p2,subplot=2,xlim=(-Inf,10.0),ylim=(0.05,0.3),legend=false)
+    # Loop over the 3 conditions
+    for i = 1:3
+        # Extract other simulation parameters from the function
+        Np, Nt, M, d, μrange = sim_paras(i)
+        # Read in appropriate files
+        pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
+        if ~isfile(pfile)
+            error("$(ims) immigrations run $(rN) is missing a parameter file")
+        end
+        # Find file name to load in
+        tfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld"
+        # Check it actually exists
+        if ~isfile(tfile)
+            error("missing stats file for $(ims) immigrations simulations")
+        end
+        # Read in relevant data
+        ps = load(pfile,"ps")
+        # Now load out the times, and number of trajectories
+        times = load(tfile,"times")
+        no_via = load(tfile,"no_via")
+        # Load in averages
+        mn_via_ω = load(tfile,"mn_via_ω")
+        mn_via_ϕR = load(tfile,"mn_via_ϕR")
+        # Load in standard deviations
+        sd_via_ω = load(tfile,"sd_via_ω")
+        sd_via_ϕR = load(tfile,"sd_via_ϕR")
+        # Calculate relevant standard errors
+        se_via_ω = sd_via_ω./sqrt.(no_via)
+        se_via_ϕR = sd_via_ϕR./sqrt.(no_via)
+        # Plot the data to the relevant plot objects
+        if i == 1 || i == 2
+            # Find appropriate label
+            lb = find_label(i,1)
+            plot!(p1,times,mn_via_ω,ribbon=se_via_ω,label=lb,color=a[i])
+            plot!(p1,times/1e6,mn_via_ϕR,ribbon=se_via_ϕR,color=a[i],subplot=2)
+        end
+        if i == 1 || i == 3
+            # Find appropriate label
+            lb = find_label(i,2)
+            plot!(p2,times,mn_via_ω,ribbon=se_via_ω,label=lb,color=a[i])
+            plot!(p2,times/1e6,mn_via_ϕR,ribbon=se_via_ϕR,color=a[i],subplot=2)
         end
     end
     # Check if directory exists and if not make it
     if ~isdir("Output/Fig5")
         mkdir("Output/Fig5")
     end
-    # Setup plotting
-    pyplot(dpi=200)
-    # Load in color scheme
-    a = ColorSchemes.sunset.colors
-    # Plot basic trade-off first
-    p1 = plot(xlabel="Time (s)",ylabel="Number of strains",xlim=(-Inf,5e7),legend=:bottomright)
-    plot!(p1,times,mn_via_R[1,:],ribbon=se_via_R[1,:],label="R=1",color=a[1])
-    plot!(p1,times,mn_via_R[3,:],ribbon=se_via_R[3,:],label="R=3",color=a[2])
-    plot!(p1,times,mn_via_R[5,:],ribbon=se_via_R[5,:],label="R=5",color=a[3])
-    plot!(p1,times,mn_via_R[7,:],ribbon=se_via_R[7,:],label="R=7",color=a[4])
-    # Add annotation
-    px, py = annpos([0.0;5e7],[0.0;7.0],0.05,0.0)
+    # Save figures to this directory
+    savefig(p1,"Output/Fig5/omega_with_DG.png")
+    savefig(p2,"Output/Fig5/omega_with_d.png")
+    # Add annotations
+    px, py = annpos([0.0;5e7],[0.5;0.66],0.075,0.0)
     annotate!(p1,px,py,text("A",17,:black))
-    savefig(p1,"Output/Fig5/AvViaReacsTime.png")
-    # Now do probability plot
-    p2 = plot(xlabel="Time (s)",ylabel="Probability of usable substrate",xlim=(-Inf,5e7),legend=false)
-    plot!(p2,times,mn_Ps[1,:],ribbon=(dw_Ps[1,:],up_Ps[1,:]),label="R=1",color=a[1])
-    plot!(p2,times,mn_Ps[3,:],ribbon=(dw_Ps[3,:],up_Ps[3,:]),label="R=3",color=a[2])
-    plot!(p2,times,mn_Ps[5,:],ribbon=(dw_Ps[5,:],up_Ps[5,:]),label="R=5",color=a[3])
-    plot!(p2,times,mn_Ps[7,:],ribbon=(dw_Ps[7,:],up_Ps[7,:]),label="R=7",color=a[4])
-    # Add annotation
-    px, py = annpos([0.0;5e7],[0.0;1.1],0.05,0.0)
+    px, py = annpos([0.0;5e7],[0.5;0.66],0.075,0.0)
     annotate!(p2,px,py,text("B",17,:black))
-    savefig(p2,"Output/Fig5/ProbSubTime.png")
-    # Plot trade-off for η
-    p3 = plot(xlabel="Time (s)",ylabel="Average eta value",xlim=(-Inf,5e7),legend=false)
-    plot!(p3,times,mn_ηs_R[1,:],ribbon=se_ηs_R[1,:],label="R=1",color=a[1])
-    plot!(p3,times,mn_ηs_R[3,:],ribbon=se_ηs_R[3,:],label="R=3",color=a[2])
-    plot!(p3,times,mn_ηs_R[5,:],ribbon=se_ηs_R[5,:],label="R=5",color=a[3])
-    plot!(p3,times,mn_ηs_R[7,:],ribbon=se_ηs_R[7,:],label="R=7",color=a[4])
-    # Add annotation
-    px, py = annpos([0.0;5e7],[1.2;3.75],0.05,0.0)
-    annotate!(p3,px,py,text("C",17,:black))
-    savefig(p3,"Output/Fig5/AvEtaperReacTime.png")
-    # Plot trade-off for the saturation constant
-    p4 = plot(xlabel="Time (s)",ylabel="Average half saturation constant",xlim=(-Inf,5e7),legend=false)
-    plot!(p4,times,mn_KS_R[1,:],ribbon=se_KS_R[1,:],label="R=1",color=a[1])
-    plot!(p4,times,mn_KS_R[3,:],ribbon=se_KS_R[3,:],label="R=3",color=a[2])
-    plot!(p4,times,mn_KS_R[5,:],ribbon=se_KS_R[5,:],label="R=5",color=a[3])
-    plot!(p4,times,mn_KS_R[7,:],ribbon=se_KS_R[7,:],label="R=7",color=a[4])
-    # Add annotation
-    px, py = annpos([0.0;5e7],[0.0005;0.00215],0.05,0.0)
-    annotate!(p4,px,py,text("D",17,:black))
-    savefig(p4,"Output/Fig5/AvKSperReacTime.png")
     # Plot all graphs as a single figure
-    pt = plot(p1,p3,p2,p4,layout=4,size=(1200,800),margin=5.0mm)
+    pt = plot(p1,p2,layout=(2,1),size=(600,800),margin=5.0mm)
     savefig(pt,"Output/Fig5/figure5.png")
     return(nothing)
 end
 
-@time figure5(250,500,1)
+@time figure5(250,500)

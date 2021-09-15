@@ -90,7 +90,7 @@ function figure4(rps::Int64,ims::Int64,sim_type::Int64,sim_type2::Int64)
     # Load in color scheme
     a = ColorSchemes.sunset.colors
     # Plot basic trade-off first
-    p1 = plot(xlabel="Time (s)",ylabel="Number of strains",xlim=(-Inf,5e7))
+    p1 = plot(xlabel="Time (s)",ylabel="Number of species",xlim=(-Inf,5e7))
     plot!(p1,title="High substrate free-energy case",legend=:bottomright)
     plot!(p1,times,mn_via_R[1,:],ribbon=se_via_R[1,:],label="R=1",color=a[1])
     plot!(p1,times,mn_via_R[3,:],ribbon=se_via_R[3,:],label="R=3",color=a[2])
@@ -154,7 +154,7 @@ function figure4(rps::Int64,ims::Int64,sim_type::Int64,sim_type2::Int64)
     for i = 1:size(sd_via_R,1)
         se_via_R[i,:] = sd_via_R[i,:]./sqrt.(no_via)
     end
-    p4 = plot(xlabel="Time (s)",ylabel="Number of strains",xlim=(-Inf,5e7))
+    p4 = plot(xlabel="Time (s)",ylabel="Number of species",xlim=(-Inf,5e7))
     plot!(p4,title="Low substrate free-energy case",legend=false)
     plot!(p4,times,mn_via_R[1,:],ribbon=se_via_R[1,:],label="R=1",color=a[1])
     plot!(p4,times,mn_via_R[3,:],ribbon=se_via_R[3,:],label="R=3",color=a[2])

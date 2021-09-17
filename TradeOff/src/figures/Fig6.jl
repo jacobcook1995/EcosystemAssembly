@@ -10,13 +10,9 @@ import PyPlot
 function find_label(sim_type::Int64)
     # Assign label based on simulation type
     if sim_type == 1
-        lb = "high free energy + low loss"
-    elseif sim_type == 2
-        lb = "low free energy + low loss"
-    elseif sim_type == 3
-        lb = "high free energy + high loss"
+        lb = "high free-energy"
     else
-        lb = "low free energy + high loss"
+        lb = "low free-energy"
     end
     return(lb)
 end
@@ -25,15 +21,21 @@ function figure6(rps::Int64,ims::Int64)
     println("Compiled")
     # Initialise plotting
     pyplot(dpi=200)
-    # Load in color scheme
+    # Load in color schemes
     a = ColorSchemes.Dark2_4.colors
+    # Extract specific 4 colors from a color scheme
+    bt = ColorSchemes.tab10.colors
+    b = [bt[10];bt[9];bt[7];bt[5]]
     # Make plot objects
-    p1 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),legend=:topright,ylabel=L"\omega")
-    p2 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),legend=false,ylabel=L"\phi_R")
-    p3 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),legend=false,ylabel=L"\eta")
-    p4 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),legend=false,ylabel="Fraction transduced")
+    p1 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),legend=:right,ylabel=L"\eta",title="ATP yield")
+    p2 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.55,Inf),legend=false)
+    plot!(p2,ylabel="Fraction of free-energy transduced",title="Average reaction efficency")
+    p3 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.5,Inf),legend=:bottomright)
+    plot!(p3,ylabel="Fraction of free-energy transduced",title="Reaction efficency by reaction type")
+    p4 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.4,Inf),legend=false)
+    plot!(p4,ylabel="Proportion of 2-step reactions",title="Relative frequency of reaction types")
     # Loop over the 4 conditions
-    for i = 1:4
+    for i = 1:2
         # Extract other simulation parameters from the function
         Np, Nt, M, d, μrange = sim_paras(i)
         # Read in appropriate files
@@ -53,45 +55,49 @@ function figure6(rps::Int64,ims::Int64)
         times = load(tfile,"times")
         no_via = load(tfile,"no_via")
         # Load in averages
-        mn_via_ω = load(tfile,"mn_via_ω")
-        mn_via_ϕR = load(tfile,"mn_via_ϕR")
         mn_via_η = load(tfile,"mn_via_η")
         mn_fr_ΔG = load(tfile,"mn_fr_ΔG")
+        mn_fr_ΔG1 = load(tfile,"mn_fr_ΔG1")
+        mn_fr_ΔG2 = load(tfile,"mn_fr_ΔG2")
+        mn_av_steps = load(tfile,"mn_av_steps")
         # Load in standard deviations
-        sd_via_ω = load(tfile,"sd_via_ω")
-        sd_via_ϕR = load(tfile,"sd_via_ϕR")
         sd_via_η = load(tfile,"sd_via_η")
         sd_fr_ΔG = load(tfile,"sd_fr_ΔG")
+        sd_fr_ΔG1 = load(tfile,"sd_fr_ΔG1")
+        sd_fr_ΔG2 = load(tfile,"sd_fr_ΔG2")
+        sd_av_steps = load(tfile,"sd_av_steps")
         # Calculate relevant standard errors
-        se_via_ω = sd_via_ω./sqrt.(no_via)
-        se_via_ϕR = sd_via_ϕR./sqrt.(no_via)
         se_via_η = sd_via_η./sqrt.(no_via)
         se_fr_ΔG = sd_fr_ΔG./sqrt.(no_via)
+        se_fr_ΔG1 = sd_fr_ΔG1./sqrt.(no_via)
+        se_fr_ΔG2 = sd_fr_ΔG2./sqrt.(no_via)
+        se_av_steps = sd_av_steps./sqrt.(no_via)
         # Find appropriate label
         lb = find_label(i)
         # Plot the data to the relevant plot objects
-        plot!(p1,times,mn_via_ω,ribbon=se_via_ω,label=lb,color=a[i])
-        plot!(p2,times,mn_via_ϕR,ribbon=se_via_ϕR,color=a[i])
-        plot!(p3,times,mn_via_η,ribbon=se_via_η,color=a[i])
-        plot!(p4,times,mn_fr_ΔG,ribbon=se_fr_ΔG,color=a[i])
+        plot!(p1,times,mn_via_η,ribbon=se_via_η,color=a[i],label=lb)
+        plot!(p2,times,mn_fr_ΔG,ribbon=se_fr_ΔG,color=a[i])
+        plot!(p3,times,mn_fr_ΔG1,ribbon=se_fr_ΔG1,color=b[i],label="$(lb) 1-step")
+        plot!(p3,times,mn_fr_ΔG2,ribbon=se_fr_ΔG2,color=b[2+i],label="$(lb) 2-step")
+        plot!(p4,times,mn_av_steps.-1,ribbon=se_av_steps,color=a[i])
     end
     # Check if directory exists and if not make it
     if ~isdir("Output/Fig6")
         mkdir("Output/Fig6")
     end
     # Save figures to this directory
-    savefig(p1,"Output/Fig6/omegas.png")
-    savefig(p2,"Output/Fig6/Rfracs.png")
-    savefig(p3,"Output/Fig6/Eta.png")
-    savefig(p4,"Output/Fig6/Efficency.png")
+    savefig(p1,"Output/Fig6/Eta.png")
+    savefig(p2,"Output/Fig6/Efficency.png")
+    savefig(p3,"Output/Fig6/CompEfficencies.png")
+    savefig(p4,"Output/Fig6/Steps.png")
     # Add annotations
-    px, py = annpos([0.0;5e7],[0.0,1.0],0.075,0.0)
+    px, py = annpos([0.0;5e7],[0.0;3.5],0.075,0.0)
     annotate!(p1,px,py,text("A",17,:black))
-    px, py = annpos([0.0;5e7],[0.0;0.305],0.075,0.0)
+    px, py = annpos([0.0;5e7],[0.0;0.81],0.075,0.0)
     annotate!(p2,px,py,text("B",17,:black))
-    px, py = annpos([0.0;5e7],[0.0;5.75],0.075,0.0)
+    px, py = annpos([0.0;5e7],[0.0;0.85],0.075,0.0)
     annotate!(p3,px,py,text("C",17,:black))
-    px, py = annpos([0.0;5e7],[0.0;1.04],0.075,0.0)
+    px, py = annpos([0.0;5e7],[0.0;0.745],0.075,0.0)
     annotate!(p4,px,py,text("D",17,:black))
     # Plot all graphs as a single figure
     pt = plot(p1,p2,p3,p4,layout=(2,2),size=(1200,800),margin=5.0mm)

@@ -386,18 +386,18 @@ function rob_figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1
                         ind = findfirst(x->x>=Ts[k],T)
                         # If time points are equal just save number of survivors
                         if T[ind] == Ts[k]
-                            svs[k,i,(j-1)*le+l] = count(x->x>0.0,C[ind,1:Ni])
+                            svs[k,i,(j-1)*le+l] = count(x->x>1e-10,C[ind,1:Ni])
                             via[k,i,(j-1)*le+l] = count(x->x>=popt,C[ind,1:Ni])
-                            dv[k,i,(j-1)*le+l] = count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)])
+                            dv[k,i,(j-1)*le+l] = count(x->x>1e-10,C[ind,(Ni+1):(Ni+ps.M-1)])
                             tab[k,i,(j-1)*le+l] = sum(C[ind,1:Ni])
                             efs[k,i,(j-1)*le+l] = av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
                             λts[k,i,(j-1)*le+l] = av_λ(C[ind,1:Ni],C[ind,(Ni+ps.M+1):(2*Ni+ps.M)],C[ind,(2*Ni+ps.M+1):end],ms)
                         else
                             # Otherwise need to (linearly) interpolate
                             dT = (T[ind]-Ts[k])/(T[ind]-T[ind-1])
-                            svs[k,i,(j-1)*le+l] = (1-dT)*count(x->x>0.0,C[ind,1:Ni]) + dT*count(x->x>0.0,C[ind-1,1:Ni])
+                            svs[k,i,(j-1)*le+l] = (1-dT)*count(x->x>1e-10,C[ind,1:Ni]) + dT*count(x->x>1e-10,C[ind-1,1:Ni])
                             via[k,i,(j-1)*le+l] = (1-dT)*count(x->x>=popt,C[ind,1:Ni]) + dT*count(x->x>=popt,C[ind-1,1:Ni])
-                            dv[k,i,(j-1)*le+l] = (1-dT)*count(x->x>0.0,C[ind,(Ni+1):(Ni+ps.M-1)]) + dT*count(x->x>0.0,C[ind-1,(Ni+1):(Ni+ps.M-1)])
+                            dv[k,i,(j-1)*le+l] = (1-dT)*count(x->x>1e-10,C[ind,(Ni+1):(Ni+ps.M-1)]) + dT*count(x->x>1e-10,C[ind-1,(Ni+1):(Ni+ps.M-1)])
                             tab[k,i,(j-1)*le+l] = (1-dT)*sum(C[ind,1:Ni]) + dT*sum(C[ind,1:Ni])
                             efs[k,i,(j-1)*le+l] = (1-dT)*av_eff(C[ind,1:Ni],C[ind,(Ni+1):(Ni+ps.M)],ms,ps)
                             efs[k,i,(j-1)*le+l] += dT*av_eff(C[ind-1,1:Ni],C[ind-1,(Ni+1):(Ni+ps.M)],ms,ps)
@@ -544,6 +544,6 @@ u = [5,5,5,5]
 s = [true,true,false,false]
 e = ["l","h","l","h"]
 
-@time rob_figure3(l,u,s,e,250,50)
+@time rob_figure3(l,u,s,e,250,50,1)
 
 @time rob_figure4(1,5,[true,false],["l","h"],50,250,1e-2,0.0,1)

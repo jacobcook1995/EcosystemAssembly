@@ -29,7 +29,7 @@ function figure6(rps::Int64,ims::Int64)
     # Make plot objects
     p1 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),legend=:right,ylabel=L"\eta",title="ATP yield")
     p2 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.55,Inf),legend=false)
-    plot!(p2,ylabel="Fraction of free-energy transduced",title="Average reaction efficency")
+    plot!(p2,ylabel="Fraction of free-energy transduced",title="Average reaction efficiency")
     p3 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.5,Inf),legend=:bottomright)
     plot!(p3,ylabel="Fraction of free-energy transduced",title="Reaction efficency by reaction type")
     p4 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.4,Inf),legend=false)

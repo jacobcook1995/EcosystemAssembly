@@ -47,11 +47,11 @@ function rb_assemble()
     if Ru < Rl
         error("upper bound on the number of reactions can't be smaller than the lower")
     end
-    # Check that number of strains is greater than 0
+    # Check that number of species is greater than 0
     if N < 1
-        error("number of strains should be greater than zero")
+        error("number of species should be greater than zero")
     end
-    # Check that number of strains is greater than 0
+    # Check that number of species is greater than 0
     if rps < 1
         error("need to do at least 1 simulation")
     end
@@ -174,7 +174,7 @@ function rb_assemble()
                 ded[k] = ps.mics[j]
             end
         end
-        # Remove extinct strains from parameter set
+        # Remove extinct species from parameter set
         ps = extinction(ps,ext)
         # Preallocate final concentrations (etc) for output
         out = Array{Float64,1}(undef,3*ps.N+M)
@@ -193,7 +193,7 @@ function rb_assemble()
                 out[M+2*ps.N+k] = C[end,M+2*N+j]
             end
         end
-        # Save extinct strains
+        # Save extinct species
         jldopen("Data/$(title_op)/$(Rl)-$(Ru)$(syn)$(en)/ExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(N).jld","w") do file
             write(file,"ded",ded)
         end

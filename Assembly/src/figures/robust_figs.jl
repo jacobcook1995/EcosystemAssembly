@@ -42,7 +42,7 @@ function av_λ(pop::Array{Float64,1},as::Array{Float64,1},ϕRs::Array{Float64,1}
     λT = 0.0
     # Loop over survivors
     for i = inds
-        # Find growth rate for this particular strain
+        # Find growth rate for this particular species
         λt = λs(as[i],ϕRs[i],ms[i])
         # Weight by population and add to total
         λT += pop[i]*λt
@@ -120,15 +120,25 @@ function rob_figs(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},en
         end
     end
     # Make first figure
-    p1 = plot(ylabel="Number of surviving strains",xlim=(0.5,3.5),xlabel="Energy supply")
-    plot!(p1,xticks=([1.25,2.75],["high","low"]),title="Original case")
+    p1 = plot(ylabel="Number of surviving species",xlim=(0.5,3.5),xlabel="Energy supply")
+    plot!(p1,xticks=([1.25,2.75],["high","low"]),title="Original case",legend=:right)
     # Plot means
     for i = 1:Ns
         # Calculate mean
         mn = mean(svs_1[i,:])
         # Calculate 99% confidence interval
         sdn = sem(svs_1[i,:])*2.576
-        scatter!(p1,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
+        # Label empty
+        lb = ""
+        # Unless energy is high
+        if ens[i] == "h"
+            if syns[i] == true
+                lb = "Reversible"
+            else
+                lb = "M–M"
+            end
+        end
+        scatter!(p1,[pos[i]],[mn],yerror=[sdn],label=lb,color=c[i],ms=6,msc=c[i])
     end
     # Add bracket for significance plot
     plot!(p1,[2.5,3.0],[5.0,5.0],linecolor=:black,label="")
@@ -187,12 +197,12 @@ function rob_figs(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},en
             plot!(p[l],[3.0,3.0],[4.6,5.01],linecolor=:black,label="")
             # Then add star above the bracket
             scatter!(p[l],[2.75],[5.25],color=:black,shape=:star6,label="")
-            # Now set ylims
-            if l <= 3
-                p[l] = plot!(p[l],ylim=(0.0,14.0))
-            else
-                p[l] = plot!(p[l],ylim=(2.0,17.0))
-            end
+        end
+        # Now set ylims
+        if l <= 3
+            p[l] = plot!(p[l],ylim=(0.0,14.0))
+        else
+            p[l] = plot!(p[l],ylim=(2.0,17.0))
         end
     end
     # Combine plots so that comparions can be performed
@@ -404,7 +414,7 @@ function rob_figure4(Rl::Int64,Ru::Int64,syns::Array{Bool,1},ens::Array{String,1
     # Make labels
     lb = ["low energy + reversible" "low energy + M-M" "high energy + reversible" "high energy + M-M"]
     # Plot survivors
-    p1 = plot(title="Strain diversity",ylabel="Number of surviving strains")
+    p1 = plot(title="Strain diversity",ylabel="Number of surviving species")
     vline!(p1,vTs/1e6,linestyle=:dash,color=:black,label="")
     for i = 1:L
         plot!(p1,Ts/1e6,msvs[:,i],ribbon=sdsvs[:,i],label=lb[i],legend=:right,color=pl[i],lw=wdt)

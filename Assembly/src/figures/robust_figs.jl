@@ -11,47 +11,6 @@ using ColorSchemes
 using KernelDensity
 import PyPlot
 
-# function to calculate the dissipation for an assembled ecosystem
-function dissipation(ps::FullParameters,ms::Array{MicrobeP,1},out::Array{Float64,1})
-    # Set all elements of out less than zero to zero
-    out[out.<0.0] .= 0.0
-    # Define number of strains
-    N = length(ms)
-    # check that parameter set is sensible given the output
-    if length(out) != ps.M + 3*N
-        error("parameter set doesn't match output")
-    end
-    # Set dissipation to zero
-    dsp = 0
-    # Loop over number of strains
-    for i = 1:N
-        # Isolate this strain
-        mic = ms[i]
-        # Loop over reactions of this strain
-        for j = 1:mic.R
-            # Find appropriate reaction
-            r = ps.reacs[mic.Reacs[j]]
-            # If there's no product Gibbs free energy becomes infinite. Justified to ignore
-            # this as if product hasn't built up reaction can't be happening to a sigificant degree
-            if out[N+r.Prd] != 0.0
-                # Find amount of energy that this reaction dissipates
-                Fd = -(r.ΔG0 + Rgas*ps.T*log(out[N+r.Prd]/out[N+r.Rct]) + mic.η[j]*ΔGATP)
-                # Find amount of enzyme E
-                E = Eα(out[2*N+ps.M+i],mic,j)
-                # Then find the rate that this reaction proceeds at
-                q = qs(out[N+r.Rct],out[N+r.Prd],E,j,mic,ps.T,r)
-                # Check if reaction actually occurs
-                if q != 0.0
-                    dsp += q*Fd*out[i]
-                end
-            end
-        end
-    end
-    # Convert from molecule units to moles
-    dsp /= NA
-    return(dsp)
-end
-
 # function to find average efficency
 function av_eff(pop::Array{Float64,1},conc::Array{Float64,1},ms::Array{MicrobeP,1},ps::FullParameters)
     # Define mimimum product to substrate ratio (to calculate) the efficency
@@ -93,82 +52,18 @@ function av_λ(pop::Array{Float64,1},as::Array{Float64,1},ϕRs::Array{Float64,1}
     return(λT)
 end
 
-function rob_figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens::Array{String,1},
-                Ni::Int64,Nr::Int64,opt::Int64)
+function rob_figs(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1},ens::Array{String,1},
+                Ni::Int64,Nr::Int64,Nr_1::Int64)
     # Check if all these vectors are the same length
     if length(Rls) != length(Rus) || length(Rls) != length(syns) || length(Rls) != length(ens)
         error("length of vectors doesn't match")
     end
     println("Compiled!")
-    # Count number of parameter sets
+    # Count number of parameter sets (for each condition)
     Ns = length(Rls)
-    # Container to store number of survivors
+    # Containers to store number of survivors
     svs = zeros(Int64,Ns,Nr)
-    # Container to store metabolite diversity
-    mbs = zeros(Int64,Ns,Nr)
-    # Container to store dissipation
-    dsp = zeros(Float64,Ns,Nr)
-    # Container to store functional diversities
-    fdv = zeros(Int64,Ns,Nr)
-    # Find title of option
-    title_op = options_titles(opt)
-    # Loop over parameter sets
-    for i = 1:Ns
-        for j = 1:Nr
-            # Read in relevant files
-            pfile = "Paras/$(title_op)/$(Rls[i])-$(Rus[i])$(syns[i])$(ens[i])/RedParasReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
-            if ~isfile(pfile)
-                error("parameter set $(i) run $(j) is missing a parameter file")
-            end
-            ofile = "Data/$(title_op)/$(Rls[i])-$(Rus[i])$(syns[i])$(ens[i])/RedOutputReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
-            if ~isfile(ofile)
-                error("parameter set $(i) run $(j) is missing an output file")
-            end
-            # Only want final parameter set
-            ps = load(pfile,"ps")
-            inf_out = load(ofile,"inf_out")
-            # Save number of survivors
-            svs[i,j] = ps.N
-            # Loop over metabolites to find those with non-zero concentrations
-            cm = 0 # Set up counter
-            mm = 0 # Lowest metabolite
-            for k = 2:ps.M
-                if inf_out[ps.N+k] > 0.0
-                    # Increment counter
-                    cm += 1
-                    # And save new minimum metabolite
-                    mm = k
-                end
-            end
-            # Save results to vector
-            mbs[i,j] = cm
-            # Find and save dissipation
-            dsp[i,j] = dissipation(ps,ps.mics,inf_out)
-            # Preallocate vector to store if function is present
-            fnc = fill(false,ps.M)
-            # Loop over every surviving microbe
-            for k = 1:ps.N
-                # Find index of main reaction
-                _, ind = findmax(ps.mics[k].ϕP)
-                # Find corresponding reactant number
-                Rn = ps.reacs[ps.mics[k].Reacs[ind]].Rct
-                # Update vector to show that function Rn is present
-                if fnc[Rn] == false
-                    fnc[Rn] = true
-                end
-            end
-            # Count number of functions
-            fdv[i,j] = count(fnc)
-        end
-    end
-    # Check if directory exists and if not make it
-    if ~isdir("Output/$(title_op)")
-        mkdir("Output/$(title_op)")
-    end
-    # Check if sub-directory exists and if not make it
-    if ~isdir("Output/$(title_op)/Fig3")
-        mkdir("Output/$(title_op)/Fig3")
-    end
+    svs_1 = zeros(Int64,Ns,Nr_1)
     # Setup plotting
     pyplot()
     theme(:wong2,dpi=300)
@@ -192,93 +87,119 @@ function rob_figure3(Rls::Array{Int64,1},Rus::Array{Int64,1},syns::Array{Bool,1}
         end
         pos[i] = p
     end
-    # Make latex label
-    JKs = L"JK^{-1}s^{-1}"
-    # Container to store mean + sd for each case
-    msd = zeros(Ns)
-    # Want to do the plotting here
+    # Set titles for the six new conditions
+    ttls = fill("",6)
+    ttls[1] = "Increase $(L"n_P")"
+    ttls[2] = "Increase $(L"f_b")"
+    ttls[3] = "Increase $(L"\phi_Q")"
+    ttls[4] = "Increase $(L"\gamma_{\frac{1}{2}}")"
+    ttls[5] = "High saturation"
+    ttls[6] = "Low saturation"
+    # Set whether the six new conditions show significant differences (aside the obvious one)
+    sig_dif = fill(false,6)
+    sig_dif[1] = true
+    sig_dif[3] = true
+    sig_dif[5] = true
+    # Load in data for the first figure by looping over parameter sets
+    for i = 1:Ns
+        for j = 1:Nr_1
+            # Read in relevant files
+            pfile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)$(ens[i])/RedParasReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
+            if ~isfile(pfile)
+                error("parameter set $(i) run $(j) is missing a parameter file")
+            end
+            ofile = "Data/$(Rls[i])-$(Rus[i])$(syns[i])$(Ni)$(ens[i])/RedOutputReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
+            if ~isfile(ofile)
+                error("parameter set $(i) run $(j) is missing an output file")
+            end
+            # Only want final parameter set
+            ps = load(pfile,"ps")
+            inf_out = load(ofile,"inf_out")
+            # Save number of survivors
+            svs_1[i,j] = ps.N
+        end
+    end
+    # Make first figure
     p1 = plot(ylabel="Number of surviving strains",xlim=(0.5,3.5),xlabel="Energy supply")
-    plot!(p1,xticks=([1.25,2.75],["high","low"]))
+    plot!(p1,xticks=([1.25,2.75],["high","low"]),title="Original case")
     # Plot means
     for i = 1:Ns
         # Calculate mean
-        mn = mean(svs[i,:])
+        mn = mean(svs_1[i,:])
         # Calculate 99% confidence interval
-        sdn = sem(svs[i,:])*2.576
+        sdn = sem(svs_1[i,:])*2.576
         scatter!(p1,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
     end
     # Add bracket for significance plot
-    plot!(p1,[2.5,3.0],[5.0,5.0],color=:black,label="")
-    plot!(p1,[2.5,2.5],[4.6,5.01],color=:black,label="")
-    plot!(p1,[3.0,3.0],[4.6,5.01],color=:black,label="")
+    plot!(p1,[2.5,3.0],[5.0,5.0],linecolor=:black,label="")
+    plot!(p1,[2.5,2.5],[4.6,5.01],linecolor=:black,label="")
+    plot!(p1,[3.0,3.0],[4.6,5.01],linecolor=:black,label="")
     # Then add star above the bracket
     scatter!(p1,[2.75],[5.25],color=:black,shape=:star6,label="")
-    savefig(p1,"Output/$(title_op)/Fig3/Diversity.png")
-    p3 = plot(ylabel="Entropy production rate ($(JKs))",yaxis=:log10)
-    plot!(p3,xlim=(0.5,3.5),xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
-    # Plot means
-    for i = 1:Ns
-        # Calculate mean
-        mn = mean(dsp[i,:])
-        # Calculate 99% confidence interval
-        sdn = sem(dsp[i,:])*2.576
-        scatter!(p3,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
+    # Split into two plots by changing limits
+    p1a = plot!(p1,ylim=(0.0,14.0))
+    p1b = plot!(deepcopy(p1),ylim=(2.0,17.0))
+    # Preallocate vector of subplots
+    p = Array{Plots.Plot,1}(undef,6)
+    # Assign basic plot features for each subplot
+    for i = 1:6
+        p[i] = plot(xlim=(0.5,3.5),xlabel="Energy supply")
     end
-    # Add bracket for significance plot
-    plot!(p3,[2.5,3.0],[6.25e-2,6.25e-2],color=:black,label="")
-    plot!(p3,[2.5,2.5],[5.4e-2,6.26e-2],color=:black,label="")
-    plot!(p3,[3.0,3.0],[5.4e-2,6.26e-2],color=:black,label="")
-    # Then add star above the bracket
-    scatter!(p3,[2.75],[6.9e-2],color=:black,shape=:star6,label="")
-    savefig(p3,"Output/$(title_op)/Fig3/EntropyProduction.png")
-    # Want to do the plotting here
-    p2 = plot(ylabel="Survivors per substrate",xlim=(0.5,3.5))
-    plot!(p2,xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply")
-    # Plot means
-    for i = 1:Ns
-        # Calculate mean
-        mn = mean(svs[i,:]./mbs[i,:])
-        # Calculate 99% confidence interval
-        sdn = sem(svs[i,:]./mbs[i,:])*2.576
-        scatter!(p2,[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
-    end
-    savefig(p2,"Output/$(title_op)/Fig3/Ratio.png")
-    # Want to do the plotting here
-    p4 = plot(ylabel="Number of surviving functional groups",xlim=(0.5,3.5))
-    plot!(p4,xticks=([1.25,2.75],["high","low"]),xlabel="Energy supply",legend=:right)
-    # Plot means
-    for i = 1:Ns
-        # Calculate mean
-        mn = mean(fdv[i,:])
-        # Calculate 99% confidence interval
-        sdn = sem(fdv[i,:])*2.576
-        # Save for annotation
-        msd[i] = mn + sdn
-        # Label empty
-        lb = ""
-        # Unless energy is high
-        if ens[i] == "h"
-            if syns[i] == true
-                lb = "Reversible"
-            else
-                lb = "M–M"
+    # Loop over the 6 different conditions
+    for l = 1:6
+        # Find title of option
+        title_op = options_titles(l)
+        # Loop over parameter sets
+        for i = 1:Ns
+            for j = 1:Nr
+                # Read in relevant files
+                pfile = "Paras/$(title_op)/$(Rls[i])-$(Rus[i])$(syns[i])$(ens[i])/RedParasReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
+                if ~isfile(pfile)
+                    error("parameter set $(i) run $(j) is missing a parameter file")
+                end
+                ofile = "Data/$(title_op)/$(Rls[i])-$(Rus[i])$(syns[i])$(ens[i])/RedOutputReacs$(Rls[i])-$(Rus[i])Syn$(syns[i])Run$(j)Ns$(Ni).jld"
+                if ~isfile(ofile)
+                    error("parameter set $(i) run $(j) is missing an output file")
+                end
+                # Only want final parameter set
+                ps = load(pfile,"ps")
+                inf_out = load(ofile,"inf_out")
+                # Save number of survivors
+                svs[i,j] = ps.N
             end
         end
-        scatter!(p4,[pos[i]],[mn],yerror=[sdn],label=lb,color=c[i],ms=6,msc=c[i])
+        # Container to store mean + sd for each case
+        msd = zeros(Ns)
+        plot!(p[l],xticks=([1.25,2.75],["high","low"]),title=ttls[l])
+        # Plot means
+        for i = 1:Ns
+            # Calculate mean
+            mn = mean(svs[i,:])
+            # Calculate 99% confidence interval
+            sdn = sem(svs[i,:])*2.576
+            scatter!(p[l],[pos[i]],[mn],yerror=[sdn],label="",color=c[i],ms=6,msc=c[i])
+        end
+        # Check if there's a significant difference between the two low free-energy conditions
+        if sig_dif[l] == true
+            # If so add bracket for significance plot
+            plot!(p[l],[2.5,3.0],[5.0,5.0],linecolor=:black,label="")
+            plot!(p[l],[2.5,2.5],[4.6,5.01],linecolor=:black,label="")
+            plot!(p[l],[3.0,3.0],[4.6,5.01],linecolor=:black,label="")
+            # Then add star above the bracket
+            scatter!(p[l],[2.75],[5.25],color=:black,shape=:star6,label="")
+            # Now set ylims
+            if l <= 3
+                p[l] = plot!(p[l],ylim=(0.0,14.0))
+            else
+                p[l] = plot!(p[l],ylim=(2.0,17.0))
+            end
+        end
     end
-    # Add annotation
-    px, py = annpos([0.5;3.5],msd,0.5,-0.01)
-    annotate!(px,py,text("B",17,:black))
-    # Add bracket for significance plot
-    plot!(p4,[2.5,3.0],[4.0,4.0],color=:black,label="")
-    plot!(p4,[2.5,2.5],[3.7,4.01],color=:black,label="")
-    plot!(p4,[3.0,3.0],[3.7,4.01],color=:black,label="")
-    # Then add star above the bracket
-    scatter!(p4,[2.75],[4.2],color=:black,shape=:star6,label="")
-    savefig(p4,"Output/$(title_op)/Fig3/FuncDiv.png")
-    # Combine all three plots into a single one
-    pc = plot(p4,p1,p2,p3,layout=(1,4),size=(800,400),guidefontsize=13,legendfontsize=8,tickfontsize=11)
-    savefig(pc,"Output/$(title_op)/Fig3/figure3.png")
+    # Combine plots so that comparions can be performed
+    pc1 = plot(p1a,p[1],p[2],p[3],layout=(1,4),size=(800,400),guidefontsize=13,legendfontsize=8,tickfontsize=11)
+    savefig(pc1,"Output/SI/Surv_comp_1.png")
+    pc2 = plot(p1b,p[4],p[5],p[6],layout=(1,4),size=(800,400),guidefontsize=13,legendfontsize=8,tickfontsize=11)
+    savefig(pc2,"Output/SI/Surv_comp_2.png")
     return(nothing)
 end
 
@@ -544,6 +465,6 @@ u = [5,5,5,5]
 s = [true,true,false,false]
 e = ["l","h","l","h"]
 
-@time rob_figure3(l,u,s,e,250,50,1)
+@time rob_figs(l,u,s,e,250,50,250)
 
-@time rob_figure4(1,5,[true,false],["l","h"],50,250,1e-2,0.0,1)
+# @time rob_figure4(1,5,[true,false],["l","h"],50,250,1e-2,0.0,1)

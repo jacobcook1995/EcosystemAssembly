@@ -38,8 +38,8 @@ function assemble()
         error("starting run can't be higher than final run")
     end
     # Check that a valid simulation type has been provided
-    if sim_type < 1 || sim_type > 4
-        error("only four simulation types defined")
+    if sim_type < 1 || sim_type > 5
+        error("only five simulation types defined")
     end
     # Now read in hard coded simulation parameters
     Np, Nt, M, d, μrange = sim_paras(sim_type)
@@ -80,10 +80,18 @@ function assemble()
     ϕs = ϕR0
     # Starting with 10 strains for now
     Ni = 10
+    # Overwrite initial number of strains for no immigration case
+    if sim_type == 5
+        Ni = 250
+    end
     # Mean immigration time assumed to be 1*10^5 seconds
     mT = 1e5
     # Small number of immigration events for inital testing
     ims = 500
+    # Turn off immigration events for no immigration case
+    if sim_type == 5
+        ims = 0
+    end
     # Rate of additional immigrants
     λIm = 0.5
     # Make parameter set
@@ -92,12 +100,18 @@ function assemble()
     if ps.reacs ≠ rs
         error("simulation reaction set does not match pool reaction set")
     end
+    # Token to insert into filenames
+    tk = ""
+    # Overwritten for no immigration case
+    if sim_type == 5
+        tk = "NoImm"
+    end
     # Check if directory exists and if not make it
-    if ~isdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)")
-        mkdir("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)")
+    if ~isdir("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)")
+        mkdir("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)")
     end
     # Save this parameter set
-    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld","w") do file
+    jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld","w") do file
         write(file,"ps",ps)
     end
     # ONLY LOADING ONE POOL AT THE MOMENT, THIS PROBABLY HAS TO CHANGE
@@ -115,7 +129,7 @@ function assemble()
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")
         # Now just save the relevant data
-        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld","w") do file
+        jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld","w") do file
             # Save full set of microbe data
             write(file,"micd",micd)
             # Save extinction times

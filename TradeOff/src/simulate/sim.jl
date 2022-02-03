@@ -168,7 +168,7 @@ end
 # Simulation code to run one instatnce of the simulation with a user defined starting condition
 # ps is parameter set, Tmax is the time to integrate to, pop, conc, as and ϕs are the intial conditions
 # mpl is a pool of microbes, mT is mean immigration time, ims is the number of immigrations
-# λIm controls rate of additonal immigratants
+# λIm controls rate of additonal immigrants
 function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::Float64,
                         mpl::Array{Microbe,1},Ni::Int64,mT::Float64,ims::Int64,λIm::Float64)
     # Preallocate immigration times
@@ -219,10 +219,16 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
     td = Exponential(mT)
     # Make distribution to sample random number of invading species from
     sd = Poisson(λIm)
-    # Choose a random time for the initial step
-    ti = rand(td)
-    # Save this as the first immigration time
-    its[1] = ti
+    # Check if this is a no-immigration simulation
+    if ims == 0
+        # In this case integrate for five times the average time, so that dynamics settle
+        ti = 25*mT
+    else
+        # Otherwise choose a random time for the initial step
+        ti = rand(td)
+        # Save this as the first immigration time
+        its[1] = ti
+    end
     # Define intial step
     tspan = (0,ti)
     # Then setup and solve the inital problem
@@ -241,7 +247,7 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
     for i = 1:Ni
         if inds[i] == false
             # Mark extinction time in the microbe data
-            micd[i] = make_MicData(micd[i].MID,micd[i].PID,micd[i].ImT,its[1])
+            micd[i] = make_MicData(micd[i].MID,micd[i].PID,micd[i].ImT,ti)
             # Mark species for deletion
             dls = cat(dls,i,dims=1)
             # Set extinct species values as NaN in the output data
@@ -251,6 +257,10 @@ function full_simulate(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,�
             # Reduce number of surviving strains counter by 1
             Ns -= 1
         end
+    end
+    # If no immigration events are considered then ensure that changes to C are retained
+    if ims == 0
+        traj[1] = C[:,:]
     end
     # Delete extinct species
     ms = deleteat!(ms,dls)

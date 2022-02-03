@@ -8,7 +8,7 @@ function sim_paras(sim_type::Int64)
     Nt = 5000
     M = 25
     # Choose biomass loss rate and
-    if sim_type == 1
+    if sim_type == 1 || sim_type == 5
         d = 6e-5
         μrange = 5e6*(M/25)
     elseif sim_type == 2

@@ -25,12 +25,18 @@ function plot_traj()
     println("Compiled")
     # Extract other simulation parameters from the function
     Np, Nt, M, d, μrange = sim_paras(sim_type)
+    # Token to insert into filenames
+    tk = ""
+    # Overwritten for no immigration case
+    if sim_type == 5
+        tk = "NoImm"
+    end
     # Read in appropriate files
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
+    pfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations run $(rN) is missing a parameter file")
     end
-    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(rN)Data$(ims)Ims.jld"
+    ofile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(rN)Data$(ims)Ims.jld"
     if ~isfile(ofile)
         error("$(ims) immigrations run $(rN) is missing an output file")
     end
@@ -45,8 +51,8 @@ function plot_traj()
     C = merge_data(ps,traj,T,micd,its)
     println("Data merged")
     # Check if directory exists and if not make it
-    if ~isdir("Output/Plotsd=$(d)u=$(μrange)")
-        mkdir("Output/Plotsd=$(d)u=$(μrange)")
+    if ~isdir("Output/$(tk)Plotsd=$(d)u=$(μrange)")
+        mkdir("Output/$(tk)Plotsd=$(d)u=$(μrange)")
     end
     # Find total number of strains
     totN = length(micd)
@@ -62,7 +68,7 @@ function plot_traj()
         inds = (C[:,i] .> 0)
         plot!(p1,T[inds],C[inds,i],label="")
     end
-    savefig(p1,"Output/Plotsd=$(d)u=$(μrange)/all_pops.png")
+    savefig(p1,"Output/$(tk)Plotsd=$(d)u=$(μrange)/all_pops.png")
     # Plot all the concentrations
     p2 = plot(yaxis=:log10,ylabel="Concentration")#,ylims=(1e-15,Inf))
     for i = 1:ps.M
@@ -70,19 +76,19 @@ function plot_traj()
         inds = (C[:,totN+i] .> 0)
         plot!(p2,T[inds],C[inds,totN+i],label="")
     end
-    savefig(p2,"Output/Plotsd=$(d)u=$(μrange)/all_concs.png")
+    savefig(p2,"Output/$(tk)Plotsd=$(d)u=$(μrange)/all_concs.png")
     # Plot all the energy concentrations
     p3 = plot(ylabel="Energy Concentration")
     for i = 1:totN
         plot!(p3,T,C[:,totN+ps.M+i],label="")
     end
-    savefig(p3,"Output/Plotsd=$(d)u=$(μrange)/all_as.png")
+    savefig(p3,"Output/$(tk)Plotsd=$(d)u=$(μrange)/all_as.png")
     # Plot all the ribosome fractions
     p4 = plot(ylabel="Ribosome fraction")
     for i = 1:totN
         plot!(p4,T,C[:,2*totN+ps.M+i],label="")
     end
-    savefig(p4,"Output/Plotsd=$(d)u=$(μrange)/all_fracs.png")
+    savefig(p4,"Output/$(tk)Plotsd=$(d)u=$(μrange)/all_fracs.png")
     # Plot populations that survive to the end
     p1 = plot(yaxis=:log10,ylabel="Population (# cells)",ylims=(1e-5,Inf))
     for i = 1:totN
@@ -92,7 +98,7 @@ function plot_traj()
             plot!(p1,T[inds],C[inds,i],label="")
         end
     end
-    savefig(p1,"Output/Plotsd=$(d)u=$(μrange)/surv_pops.png")
+    savefig(p1,"Output/$(tk)Plotsd=$(d)u=$(μrange)/surv_pops.png")
     # Plot energy concentrations of populations that survive to the end
     p3 = plot(ylabel="Energy Concentration")
     for i = 1:totN
@@ -100,7 +106,7 @@ function plot_traj()
             plot!(p3,T,C[:,totN+ps.M+i],label="")
         end
     end
-    savefig(p3,"Output/Plotsd=$(d)u=$(μrange)/surv_as.png")
+    savefig(p3,"Output/$(tk)Plotsd=$(d)u=$(μrange)/surv_as.png")
     # Plot ribosome fractions of populations that survive to the end
     p4 = plot(ylabel="Ribosome fraction")
     for i = 1:totN
@@ -108,7 +114,7 @@ function plot_traj()
             plot!(p4,T,C[:,2*totN+ps.M+i],label="")
         end
     end
-    savefig(p4,"Output/Plotsd=$(d)u=$(μrange)/surv_fracs.png")
+    savefig(p4,"Output/$(tk)Plotsd=$(d)u=$(μrange)/surv_fracs.png")
     return(nothing)
 end
 

@@ -37,8 +37,14 @@ function v_over_t()
     flush(stdout)
     # Load in hardcoded simulation parameters
     Np, Nt, M, d, μrange = sim_paras(sim_type)
+    # Token to insert into filenames
+    tk = ""
+    # Overwritten for no immigration case
+    if sim_type == 5
+        tk = "NoImm"
+    end
     # Read in parameter file
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
+    pfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations is missing a parameter file")
     end
@@ -53,7 +59,7 @@ function v_over_t()
     # Loop over number of repeats
     for i = 1:rps
         # Load in relevant output file
-        ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld"
+        ofile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
             error("$(ims) immigrations run $(rN) is missing an output file")
         end
@@ -282,7 +288,7 @@ function v_over_t()
             fin_ϕR[j] = C[end,ϕ_i[inds[j]]]
         end
         # Now just save the relevant data
-        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld","w") do file
+        jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld","w") do file
             # Save full timecourse
             write(file,"T",T)
             # Save reaction data

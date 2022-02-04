@@ -22,12 +22,18 @@ function trjstats()
     end
     println("Compiled")
     flush(stdout)
+    # Token to insert into filenames
+    tk = ""
+    # Overwritten for no immigration case
+    if sim_type == 5
+        tk = "NoImm"
+    end
     # Load in hardcoded simulation parameters
     Np, Nt, M, d, μrange = sim_paras(sim_type)
     # Number of steps to calculate stats for
     NumS = 2500
     # Read in parameter file
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
+    pfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations run is missing a parameter file")
     end
@@ -40,7 +46,7 @@ function trjstats()
     # Loop over number of repeats
     for i = 1:rps
         # Load in relevant output file
-        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld"
+        vfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
             error("$(ims) immigrations run $(rN) is missing a variables file")
         end
@@ -89,7 +95,7 @@ function trjstats()
     # Loop over number of trajectories (to minimise the number of reads in)
     for i = 1:rps
         # Load in relevant output file
-        vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld"
+        vfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
             error("$(ims) immigrations run $(rN) is missing a variables file")
         end
@@ -390,7 +396,7 @@ function trjstats()
         end
     end
     # Now want to save means and standard deviations
-    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld","w") do file
+    jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld","w") do file
         # Save times
         write(file,"times",times)
         # Save number of continuing trajectories

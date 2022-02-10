@@ -122,24 +122,25 @@ function figure8()
     ylb = "Maximum $(Φm)"
     # And a latex label for the title
     Ω12 = L"\Omega_{\frac{1}{2}}"
-    # EDIT PLOTS TO LOOK NICER
+    # Latex label for subscripted ω
+    ωi = L"\omega_i"
     # First plot fixed case
-    p1 = plot(ylim=(0.0,0.5),xlabel="Energy availability",ylabel=ylb)
+    p1 = plot(ylim=(0.0,0.5),xlabel="Energy availability (η)",ylabel=ylb)
     plot!(p1,title="Fixed $(Ω12)")
-    plot!(p1,ηs,maxϕf[:,1],label="ω = $(ωs[1])",color=a[1])
-    plot!(p1,ηs,maxϕf[:,2],label="ω = $(ωs[2])",color=a[2])
-    plot!(p1,ηs,maxϕf[:,3],label="ω = $(ωs[3])",color=a[3])
-    plot!(p1,ηs,maxϕf[:,4],label="ω = $(ωs[4])",color=a[4])
-    plot!(p1,ηs,maxϕf[:,5],label="ω = $(ωs[5])",color=a[5])
+    plot!(p1,ηs,maxϕf[:,1],label="$(ωi) = $(ωs[1])",color=a[1])
+    plot!(p1,ηs,maxϕf[:,2],label="$(ωi) = $(ωs[2])",color=a[2])
+    plot!(p1,ηs,maxϕf[:,3],label="$(ωi) = $(ωs[3])",color=a[3])
+    plot!(p1,ηs,maxϕf[:,4],label="$(ωi) = $(ωs[4])",color=a[4])
+    plot!(p1,ηs,maxϕf[:,5],label="$(ωi) = $(ωs[5])",color=a[5])
     savefig(p1,"Output/Fig8/fixcomp.png")
     # Then plot corresponding variable case
-    p2 = plot(ylim=(0.0,0.5),legend=false,xlabel="Energy availability")
+    p2 = plot(ylim=(0.0,0.5),legend=false,xlabel="Energy availability (η)")
     plot!(p2,ylabel=ylb,title="Variable $(Ω12)")
-    plot!(p2,ηs,maxϕv[:,1],label="ω = $(ωs[1])",color=a[1])
-    plot!(p2,ηs,maxϕv[:,2],label="ω = $(ωs[2])",color=a[2])
-    plot!(p2,ηs,maxϕv[:,3],label="ω = $(ωs[3])",color=a[3])
-    plot!(p2,ηs,maxϕv[:,4],label="ω = $(ωs[4])",color=a[4])
-    plot!(p2,ηs,maxϕv[:,5],label="ω = $(ωs[5])",color=a[5])
+    plot!(p2,ηs,maxϕv[:,1],label="$(ωi) = $(ωs[1])",color=a[1])
+    plot!(p2,ηs,maxϕv[:,2],label="$(ωi) = $(ωs[2])",color=a[2])
+    plot!(p2,ηs,maxϕv[:,3],label="$(ωi) = $(ωs[3])",color=a[3])
+    plot!(p2,ηs,maxϕv[:,4],label="$(ωi) = $(ωs[4])",color=a[4])
+    plot!(p2,ηs,maxϕv[:,5],label="$(ωi) = $(ωs[5])",color=a[5])
     savefig(p2,"Output/Fig8/varcomp.png")
     # Add annotations
     px, py = annpos([0.5;20],[0.0;0.5],0.075,0.0)

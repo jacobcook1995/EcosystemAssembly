@@ -5,4 +5,4 @@ Potentially these sub-repositories will be made into separate repositories as an
 The sub-repositories are as follows:
 1) Assembly: work relating to implementing ecosystem assembly models from literature and developing novel ones.
 2) Syntrophy: an investigation into the thermodynamic constraints on syntrophic cross-feeding.
-3) TradeOff: work building about the model developed in Syntrophy, applying it to study trade-offs during microbial ecosystem assembly.
+3) TradeOff: work building about the model developed in Assembly, applying it to study trade-offs during microbial ecosystem assembly.

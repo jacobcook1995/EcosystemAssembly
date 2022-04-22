@@ -128,7 +128,7 @@ function make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χl::Float64,χu::Floa
     @assert all(KS .>= 0.0) "Saturation constants cannot be negative"
     @assert all(kr .>= 0.0) "Cannot have negative values for the reversibility"
     @assert all(Reacs .> 0) "All reactions are supposed to be indicated by a positive numbers"
-    @assert length(n) == 3 "Only considering 3 protein types"
+    @assert length(n) == 2+R "Only considering $(2+R) protein types"
     @assert all(n .> 0) "All proteins must have positive mass"
     @assert all(ϕP .>= 0.0) "All metabolic fractions must be non-negative"
     @assert sum(ϕP) ≈ 1.0 "Metabolic fractions should sum to 1"

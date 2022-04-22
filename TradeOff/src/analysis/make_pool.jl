@@ -16,7 +16,7 @@ function make_spool()
         Ru = parse(Int64,ARGS[2])
         sim_type = parse(Int64,ARGS[3])
     catch e
-            error("need to provide 5 integers")
+            error("need to provide 3 integers")
     end
     # Check that simulation type is valid
     if Rl < 1

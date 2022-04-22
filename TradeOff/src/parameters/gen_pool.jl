@@ -70,12 +70,10 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
     MC = 10^8
     # Elongation rate also taken from Bremer (1996), convert from minutes to seconds
     γm = 1260.0/60.0
-    # Now preallocate protein masses
-    n = zeros(Int64,3)
     # ribosome mass taken from Keseler IM, et al. (2011)
-    n[1] = 7459
-    # Other protein mass averaged from Brandt F, et al. (2009)
-    n[2:3] .= 300
+    nr = 7459
+    # Standard protein mass averaged from Brandt F, et al. (2009)
+    ns = 300
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
     # Number of doublings required to dilute to 1%
@@ -114,6 +112,16 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
     for i = 1:Nt
         # For each microbe generate random set of reactions
         R, Reacs = choose_reactions(O,Rs)
+        # Now preallocate protein masses
+        n = zeros(Int64,2+R)
+        # First element is ribsome mass
+        n[1] = nr
+        # Second is houskeeping
+        n[2] = ns
+        # Determine the others based on reactions
+        for j = 1:R
+            n[2+j] = ns*(reacs[Reacs[j]].Prd-reacs[Reacs[j]].Rct)
+        end
         # Roller et al suggest a factor of 10 variation in max growth rate
         # So varies between 0.1 and 1.0
         ω = 0.1 + 0.9*rand()

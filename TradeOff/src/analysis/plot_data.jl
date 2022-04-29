@@ -457,28 +457,30 @@ end
 # function to plot the averages for just one run
 function plot_run_averages()
     # Check that sufficent arguments have been provided
-    if length(ARGS) < 2
+    if length(ARGS) < 3
         error("insufficent inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     ims = 0
     rN = 0
+    sim_type = 0
     # Check that all arguments can be converted to integers
     try
         ims = parse(Int64,ARGS[1])
         rN = parse(Int64,ARGS[2])
+        sim_type = parse(Int64,ARGS[3])
     catch e
-            error("need to provide two integers")
+            error("need to provide three integers")
     end
     println("Compiled")
     # Load in hardcoded simulation parameters
-    Np, Nt, M, d = sim_paras()
+    Np, Nt, M, d, μrange = sim_paras(sim_type)
     # Read in appropriate files
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Paras$(ims)Ims.jld"
+    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
     if ~isfile(pfile)
         error("$(ims) immigrations run $(rN) is missing a parameter file")
     end
-    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/AvRun$(rN)Data$(ims)Ims.jld"
+    ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(rN)Data$(ims)Ims.jld"
     if ~isfile(ofile)
         error("$(ims) immigrations run $(rN) is missing an output file")
     end
@@ -500,7 +502,7 @@ function plot_run_averages()
     return(nothing)
 end
 
-# @time plot_run_averages()
+@time plot_run_averages()
 # @time plot_aves()
-@time plot_traj()
+# @time plot_traj()
 # @time plot_av_ints()

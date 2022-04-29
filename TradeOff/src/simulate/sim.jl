@@ -50,7 +50,7 @@ end
 
 # function to calculate the amount of a partcular enzyme a strain has
 function Eα(ϕR::Float64,ps::Microbe,i::Int64)
-    E = ps.MC*(1-ϕR-ps.ϕH)*ps.ϕP[i]/(ps.n[2])
+    E = ps.MC*(1-ϕR-ps.ϕH)*ps.ϕP[i]/(ps.n[2+i])
     return(E)
 end
 

@@ -19,9 +19,9 @@ function new_mic_gl(M::Int64,Rs::Array{Int64,1},d::Float64,ω::Float64,μrange::
     # Now preallocate protein masses
     n = zeros(Int64,3)
     # ribosome mass taken from Keseler IM, et al. (2011)
-    n[1] = 7459
+    nr = 7459
     # Other protein mass averaged from Brandt F, et al. (2009)
-    n[2:3] .= 300
+    ns = 300
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
     # Number of doublings required to dilute to 1%
@@ -38,7 +38,7 @@ function new_mic_gl(M::Int64,Rs::Array{Int64,1},d::Float64,ω::Float64,μrange::
     # Set mimumum KΩ value
     KΩm = 1e9
     # Use formula to calculate how many reactions are implied
-    O = 2*M - 3
+    O = floor(Int64,M*(M - 1)/2)
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Generate fixed set of reactions
@@ -59,6 +59,16 @@ function new_mic_gl(M::Int64,Rs::Array{Int64,1},d::Float64,ω::Float64,μrange::
     # Each strain should just have the one available reaction
     R = 1
     Reacs = [1]
+    # Now preallocate protein masses
+    n = zeros(Int64,2+R)
+    # First element is ribosome mass
+    n[1] = nr
+    # Second is housekeeping
+    n[2] = ns
+    # Determine the others based on reactions
+    for j = 1:R
+        n[2+j] = ns*(reacs[Reacs[j]].Prd-reacs[Reacs[j]].Rct)
+    end
     # Make vectors of the (fixed) kinetic parameters
     kcs = kc*ones(R)
     KSs = KS*ones(R)

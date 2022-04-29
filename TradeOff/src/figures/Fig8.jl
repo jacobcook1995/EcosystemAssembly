@@ -23,9 +23,8 @@ function figure8()
     # Define all the other fixed parameters
     PID = randstring(['0':'9'; 'a':'f'])
     MC = 10^8
-    n = zeros(Int64,3)
-    n[1] = 7459
-    n[2:3] .= 300
+    nr = 7459
+    ns = 300
     γm = 1260.0/60.0
     Kγ = 5e8
     χl = 29.0
@@ -37,7 +36,7 @@ function figure8()
     kc = 10.0
     kr = 10.0
     # Use formula to calculate how many reactions are implied
-    O = 2*M - 3
+    O = floor(Int64,M*(M - 1)/2)
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Make parameter set
@@ -52,6 +51,16 @@ function figure8()
     # Only one reaction, which all species possess
     R = 1
     Reacs = [1]
+    # Now preallocate protein masses
+    n = zeros(Int64,2+R)
+    # First element is ribosome mass
+    n[1] = nr
+    # Second is housekeeping
+    n[2] = ns
+    # Determine the others based on reactions
+    for j = 1:R
+        n[2+j] = ns*(reacs[Reacs[j]].Prd-reacs[Reacs[j]].Rct)
+    end
     # Preallocate array of fixed microbes
     fix = Array{Microbe,2}(undef,length(ηs),length(ωs))
     # Generate one species for each energy avaliabilities

@@ -3,25 +3,31 @@
 export new_pool, new_mic, fix_reactions
 
 # function to generate fix set of reaction for our model. Each metabolite can be broken
-# down into metabolites 1 or 2 steps down. The steps between metabolites are fixed.
+# into any metabolite below it. The steps between metabolites are fixed.
 function fix_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
-    @assert O == 2*M - 3 "Miscalulated the number of reactions expected"
+    @assert O == M*(M - 1)/2 "Miscalulated the number of reactions expected"
     # preallocate output
     RP = zeros(Int64,O,2)
     ΔG = zeros(O)
     # find ΔG for a single step
     dG = -μrange/(M-1)
+    # Setup things required for counter
+    j = 0
+    jm = j
+    Mi = M - 1
     # loop over all reactions
     for i = 1:O
-        # find odd numbers
-        if i % 2 != 0
-            RP[i,1] = ceil(i/2)
-            RP[i,2] = ceil(i/2) + 1
-            ΔG[i] = dG
-        else
-            RP[i,1] = ceil(i/2)
-            RP[i,2] = ceil(i/2) + 2
-            ΔG[i] = 2*dG
+        # Increment j counter
+        j += 1
+        # Then assign all the values
+        RP[i,1] = Mi
+        RP[i,2] = Mi + j
+        ΔG[i] = j*dG
+        # decrease metabolite by one, increase number of possible steps (jm)
+        if j > jm
+            jm = j
+            j = 0
+            Mi -= 1
         end
     end
     return(RP,ΔG)
@@ -90,7 +96,7 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
     # Set mimumum KΩ value
     KΩm = 1e9
     # Use formula to calculate how many reactions are implied
-    O = 2*M - 3
+    O = floor(Int64,M*(M - 1)/2)
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Generate fixed set of reactions
@@ -183,7 +189,7 @@ function new_mic(M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Float64,mratio:
     # Set mimumum KΩ value
     KΩm = 1e9
     # Use formula to calculate how many reactions are implied
-    O = 2*M - 3
+    O = floor(Int64,M*(M - 1)/2)
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Generate fixed set of reactions

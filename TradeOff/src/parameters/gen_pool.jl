@@ -114,9 +114,9 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
         R, Reacs = choose_reactions(O,Rs)
         # Now preallocate protein masses
         n = zeros(Int64,2+R)
-        # First element is ribsome mass
+        # First element is ribosome mass
         n[1] = nr
-        # Second is houskeeping
+        # Second is housekeeping
         n[2] = ns
         # Determine the others based on reactions
         for j = 1:R
@@ -164,9 +164,9 @@ function new_mic(M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Float64,mratio:
     # Now preallocate protein masses
     n = zeros(Int64,3)
     # ribosome mass taken from Keseler IM, et al. (2011)
-    n[1] = 7459
+    nr = 7459
     # Other protein mass averaged from Brandt F, et al. (2009)
-    n[2:3] .= 300
+    ns = 300
     # The proportion of ribosomes bound is taken from Underwood et al to be 70%
     Pb = 0.7
     # Number of doublings required to dilute to 1%
@@ -201,6 +201,16 @@ function new_mic(M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Float64,mratio:
     kr = 10.0
     # Generate random set of reactions
     R, Reacs = choose_reactions(O,Rs)
+    # Now preallocate protein masses
+    n = zeros(Int64,2+R)
+    # First element is ribosome mass
+    n[1] = nr
+    # Second is housekeeping
+    n[2] = ns
+    # Determine the others based on reactions
+    for j = 1:R
+        n[2+j] = ns*(reacs[Reacs[j]].Prd-reacs[Reacs[j]].Rct)
+    end
     # Roller et al suggest a factor of 10 variation in max growth rate
     # So varies between 0.1 and 1.0
     ω = 0.1 + 0.9*rand()

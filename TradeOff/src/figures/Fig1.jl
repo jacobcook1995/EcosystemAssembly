@@ -33,6 +33,10 @@ function efficency_plot()
     end
     # Setup plotting
     pyplot(dpi=200,guidefontsize=18,tickfontsize=10)
+    # Check if directory exists and if not make it
+    if ~isdir("Output/Fig1")
+        mkdir("Output/Fig1")
+    end
     # Define latex labels
     phiR = L"\phi_R"
     chi = L"\chi"

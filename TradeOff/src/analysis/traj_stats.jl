@@ -48,7 +48,7 @@ function trjstats()
         # Load in relevant output file
         vfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
-            error("$(ims) immigrations run $(rN) is missing a variables file")
+            error("$(ims) immigrations run $(i) is missing a variables file")
         end
         # Just want to save final times for now
         Tfs[i] = load(vfile,"Tf")
@@ -92,6 +92,7 @@ function trjstats()
     cmb_fr_ΔG1 = zeros(rps,length(times))
     cmb_fr_ΔG2 = zeros(rps,length(times))
     all_fin_ϕRs = Float64[]
+    all_l_sb = zeros(rps)
     # Loop over number of trajectories (to minimise the number of reads in)
     for i = 1:rps
         # Load in relevant output file
@@ -129,6 +130,7 @@ function trjstats()
         fr_ΔG2 = load(vfile,"fr_ΔG2")
         fin_ϕR = load(vfile,"fin_ϕR")
         all_fin_ϕRs = cat(all_fin_ϕRs,fin_ϕR,dims=1)
+        all_l_sb[i] = load(vfile,"l_sb")
         # Bool to indicate end of the run
         Rn_end = false
         cnt = 0
@@ -461,6 +463,7 @@ function trjstats()
         write(file,"sd_fr_ΔG2",sd_fr_ΔG2)
         # Write all of the ϕ values out
         write(file,"all_fin_ϕRs",all_fin_ϕRs)
+        write(file,"all_l_sb",all_l_sb)
     end
     return(nothing)
 end

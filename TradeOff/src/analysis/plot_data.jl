@@ -192,6 +192,7 @@ function plot_aves()
     sd_KSs = load(sfile,"sd_KSs")
     sd_krs = load(sfile,"sd_krs")
     sd_av_steps = load(sfile,"sd_av_steps")
+    all_l_sb = load(sfile,"all_l_sb")
     # Preallocate standard errors
     se_Rs = zeros(size(sd_Rs))
     se_via_R = zeros(size(sd_via_R))
@@ -324,6 +325,9 @@ function plot_aves()
     plot(xlabel="Time (s)",ylabel="Average Ribosome fraction",xlim=(-Inf,5e7))
     plot!(times,mn_via_ϕR,ribbon=se_via_ϕR,label="")
     savefig("Output/Plotsd=$(d)u=$(μrange)/AvFracTime.png")
+    histogram(all_l_sb,bins=range(0.5,stop=25.5,length=26),label="")
+    plot!(xlabel="Final metabolite",ylabel="Number of simulations")
+    savefig("Output/Plotsd=$(d)u=$(μrange)/LowestMetaHist.png")
     return(nothing)
 end
 
@@ -502,7 +506,7 @@ function plot_run_averages()
     return(nothing)
 end
 
-@time plot_run_averages()
-# @time plot_aves()
+# @time plot_run_averages()
+@time plot_aves()
 # @time plot_traj()
 # @time plot_av_ints()

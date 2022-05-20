@@ -287,6 +287,9 @@ function v_over_t()
             # Store corresponding final ϕR value
             fin_ϕR[j] = C[end,ϕ_i[inds[j]]]
         end
+        # Store the identity of the lowest substrate with a significant concentration
+        vld_sb = findall(>(1e-10), C[end,(numS+1):(numS+ps.M)])
+        l_sb = vld_sb[end]
         # Now just save the relevant data
         jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld","w") do file
             # Save full timecourse
@@ -321,6 +324,7 @@ function v_over_t()
             write(file,"fr_ΔG1",fr_ΔG1)
             write(file,"fr_ΔG2",fr_ΔG2)
             write(file,"fin_ϕR",fin_ϕR)
+            write(file,"l_sb",l_sb)
             # Finally save final time to help with benchmarking
             write(file,"Tf",T[end])
         end

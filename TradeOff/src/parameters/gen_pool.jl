@@ -5,29 +5,34 @@ export new_pool, new_mic, fix_reactions
 # function to generate fix set of reaction for our model. Each metabolite can be broken
 # into any metabolite below it. The steps between metabolites are fixed.
 function fix_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
-    @assert O == M*(M - 1)/2 "Miscalulated the number of reactions expected"
+    if M < 5
+        @assert O == M*(M - 1)/2 "Miscalulated the number of reactions expected"
+    else
+        @assert O == 5*M - 15 "Miscalulated the number of reactions expected"
+    end
     # preallocate output
     RP = zeros(Int64,O,2)
     ΔG = zeros(O)
     # find ΔG for a single step
     dG = -μrange/(M-1)
-    # Setup things required for counter
-    j = 0
-    jm = j
-    Mi = M - 1
-    # loop over all reactions
-    for i = 1:O
-        # Increment j counter
-        j += 1
-        # Then assign all the values
-        RP[i,1] = Mi
-        RP[i,2] = Mi + j
-        ΔG[i] = j*dG
-        # decrease metabolite by one, increase number of possible steps (jm)
-        if j > jm
-            jm = j
-            j = 0
-            Mi -= 1
+    c = 0 # counter for number of reactions
+    # Loop till last but one metabolite
+    for i = 1:(M-1)
+        # Set up while loop to catch all valid reactions
+        j = 0
+        vld_rcs = true
+        while vld_rcs == true
+            # Increment j and c counter
+            j += 1
+            c += 1
+            # Then assign all the values
+            RP[c,1] = i
+            RP[c,2] = i + j
+            ΔG[c] = j*dG
+            # Check for case when all valid reactions have been exhausted
+            if j == 5 || i + j == M
+                vld_rcs = false
+            end
         end
     end
     return(RP,ΔG)
@@ -96,7 +101,11 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
     # Set mimumum KΩ value
     KΩm = 1e9
     # Use formula to calculate how many reactions are implied
-    O = floor(Int64,M*(M - 1)/2)
+    if M < 5
+        O = floor(Int64,M*(M - 1)/2)
+    else
+        O = 5*M - 15
+    end
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Generate fixed set of reactions
@@ -189,7 +198,11 @@ function new_mic(M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Float64,mratio:
     # Set mimumum KΩ value
     KΩm = 1e9
     # Use formula to calculate how many reactions are implied
-    O = floor(Int64,M*(M - 1)/2)
+    if M < 5
+        O = floor(Int64,M*(M - 1)/2)
+    else
+        O = 5*M - 15
+    end
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Generate fixed set of reactions

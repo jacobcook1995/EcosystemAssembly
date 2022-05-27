@@ -47,10 +47,10 @@ function assemble()
     println("Compiled and input read in!")
     flush(stdout)
     # Use formula to find how many reactions number of metabolites implies
-    if M < 5
+    if M < 4
         O = floor(Int64,M*(M - 1)/2)
     else
-        O = 5*M - 15
+        O = 4*M - 10
     end
     # Preallocate container for filenames
     pls = fill("",Np)

@@ -5,10 +5,10 @@ export new_pool, new_mic, fix_reactions
 # function to generate fix set of reaction for our model. Each metabolite can be broken
 # into any metabolite below it. The steps between metabolites are fixed.
 function fix_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
-    if M < 5
+    if M < 4
         @assert O == M*(M - 1)/2 "Miscalulated the number of reactions expected"
     else
-        @assert O == 5*M - 15 "Miscalulated the number of reactions expected"
+        @assert O == 4*M - 10 "Miscalulated the number of reactions expected"
     end
     # preallocate output
     RP = zeros(Int64,O,2)
@@ -30,7 +30,7 @@ function fix_reactions(O::Int64,M::Int64,μrange::Float64,T::Float64)
             RP[c,2] = i + j
             ΔG[c] = j*dG
             # Check for case when all valid reactions have been exhausted
-            if j == 5 || i + j == M
+            if j == 4 || i + j == M
                 vld_rcs = false
             end
         end
@@ -101,10 +101,10 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
     # Set mimumum KΩ value
     KΩm = 1e9
     # Use formula to calculate how many reactions are implied
-    if M < 5
+    if M < 4
         O = floor(Int64,M*(M - 1)/2)
     else
-        O = 5*M - 15
+        O = 4*M - 10
     end
     # Assume that temperature T is constant at 20°C
     T = 293.15
@@ -198,10 +198,10 @@ function new_mic(M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Float64,mratio:
     # Set mimumum KΩ value
     KΩm = 1e9
     # Use formula to calculate how many reactions are implied
-    if M < 5
+    if M < 4
         O = floor(Int64,M*(M - 1)/2)
     else
-        O = 5*M - 15
+        O = 4*M - 10
     end
     # Assume that temperature T is constant at 20°C
     T = 293.15

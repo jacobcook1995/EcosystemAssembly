@@ -120,10 +120,8 @@ function v_over_t()
         fr_ΔG = zeros(length(T))
         via_a = zeros(length(T))
         via_ϕR = zeros(length(T))
-        η1 = zeros(length(T))
-        η2 = zeros(length(T))
-        fr_ΔG1 = zeros(length(T))
-        fr_ΔG2 = zeros(length(T))
+        η_stp = zeros(length(T),M-1)
+        fr_ΔG_stp = zeros(length(T),M-1)
         ηs_R = zeros(NoR,length(T))
         ωs_R = zeros(NoR,length(T))
         kc_R = zeros(NoR,length(T))
@@ -177,9 +175,8 @@ function v_over_t()
                 ηs[j] /= svt[j]
                 ωs[j] /= svt[j]
             end
-            # Set up counters for the number of strains with 1 and 2 gap reactions, respectively
-            c1 = 0
-            c2 = 0
+            # Set up counters for the number of strains with each reaction gap
+            c = zeros(M-1)
             # Find (weighted) total eta value for viable strains
             for k = 1:length(vinds)
                 via_η[j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
@@ -188,16 +185,12 @@ function v_over_t()
                 KSs[j] += sum(ms[vinds[k]].KS.*ms[vinds[k]].ϕP)
                 krs[j] += sum(ms[vinds[k]].kr.*ms[vinds[k]].ϕP)
                 # Bools to store whether strain has 1 gap and 2 gap reaction, respectively
-                pres1 = false
-                pres2 = false
+                pres = fill(false,length(c))
                 # Set temporary values for the variables
-                η1t = 0.0
-                η2t = 0.0
-                fr_ΔG1t = 0.0
-                fr_ΔG2t = 0.0
+                ηt = fill(0.0,length(c))
+                fr_ΔGt = fill(0.0,length(c))
                 # Counters to track amount of protein allocated to each reaction type
-                ϕP1 = 0.0
-                ϕP2 = 0.0
+                ϕPt = fill(0.0,length(c))
                 # Loop over all reactions this strain has
                 for l = 1:ms[vinds[k]].R
                     # Find reaction number
@@ -211,30 +204,19 @@ function v_over_t()
                     # weight this step size to 1 and add to total
                     av_steps[j] += (s_size)*ms[vinds[k]].ϕP[l]
                     # use step size to choose which eta value to add to
-                    if s_size == 1
-                        pres1 = true
-                        ϕP1 += ms[vinds[k]].ϕP[l]
-                        η1t += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]
-                        fr_ΔG1t += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
-                    elseif s_size == 2
-                        pres2 = true
-                        ϕP2 += ms[vinds[k]].ϕP[l]
-                        η2t += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]
-                        fr_ΔG2t += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
-                    end
+                    pres[s_size] = true
+                    ϕPt[s_size] += ms[vinds[k]].ϕP[l]
+                    ηt[s_size] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]
+                    fr_ΔGt[s_size] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
                 end
                 # If they are present them increment the counters
-                if pres1 == true
-                    c1 += 1
-                    # Add temporary eta and fr_ΔG values to weighted total
-                    η1[j] += η1t/ϕP1
-                    fr_ΔG1[j] += fr_ΔG1t/ϕP1
-                end
-                if pres2 == true
-                    c2 += 1
-                    # Add temporary eta and fr_ΔG values to weighted total
-                    η2[j] += η2t/ϕP2
-                    fr_ΔG2[j] += fr_ΔG2t/ϕP2
+                for l = 1:length(c)
+                    if pres[l] == true
+                        c[l] += 1
+                        # Add temporary eta and fr_ΔG values to weighted total
+                        η_stp[j,l] += ηt[l]/ϕPt[l]
+                        fr_ΔG_stp[j,l] += fr_ΔGt[l]/ϕPt[l]
+                    end
                 end
             end
             # Average over number of strains
@@ -247,13 +229,11 @@ function v_over_t()
                 av_steps[j] /= tsvt[j]
                 fr_ΔG[j] /= tsvt[j]
                 # Divide by number of strains that possess reactions
-                if c1 > 0
-                    η1[j] /= c1
-                    fr_ΔG1[j] /= c1
-                end
-                if c2 > 0
-                    η2[j] /= c2
-                    fr_ΔG2[j] /= c2
+                for k = 1:length(c)
+                    if c[k] > 0
+                        η_stp[j,k] /= c[k]
+                        fr_ΔG_stp[j,k] /= c[k]
+                    end
                 end
             end
             # Break down eta and omega value by R
@@ -319,10 +299,8 @@ function v_over_t()
             write(file,"fr_ΔG",fr_ΔG)
             write(file,"via_a",via_a)
             write(file,"via_ϕR",via_ϕR)
-            write(file,"η1",η1)
-            write(file,"η2",η2)
-            write(file,"fr_ΔG1",fr_ΔG1)
-            write(file,"fr_ΔG2",fr_ΔG2)
+            write(file,"η_stp",η_stp)
+            write(file,"fr_ΔG_stp",fr_ΔG_stp)
             write(file,"fin_ϕR",fin_ϕR)
             write(file,"l_sb",l_sb)
             # Finally save final time to help with benchmarking

@@ -107,7 +107,7 @@ function figure3(rps::Int64,ims::Int64,sim_type::Int64)
     # Now look at snapshot data
     sfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapDataStats$(ims)Ims.jld"
     if ~isfile(sfile)
-        error("$(ims) immigrations simulation is missing an output file")
+        error("$(ims) immigrations simulation is missing an snapshot stats file")
     end
     # Save growth probabilities
     gp = load(sfile,"gp")

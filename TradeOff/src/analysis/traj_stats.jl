@@ -500,7 +500,7 @@ function snpstats()
     # Load in 1st output file
     sfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapData$(ims)Ims.jld"
     if ~isfile(sfile)
-        error("$(ims) immigrations run 1 is missing a variables file")
+        error("$(ims) immigrations run 1 is missing a snapshot data file")
     end
     # Load in snapshot times
     times = load(sfile,"times")

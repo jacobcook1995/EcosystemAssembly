@@ -89,6 +89,7 @@ function trjstats()
     cmb_av_steps = zeros(rps,length(times))
     cmb_η_stp = zeros(rps,length(times),M-1)
     cmb_fr_ΔG_stp = zeros(rps,length(times),M-1)
+    cmb_ϕP_stp = zeros(rps,length(times),M-1)
     all_fin_ϕRs = Float64[]
     all_l_sb = zeros(rps)
     # Loop over number of trajectories (to minimise the number of reads in)
@@ -124,6 +125,7 @@ function trjstats()
         av_steps = load(vfile,"av_steps")
         η_stp = load(vfile,"η_stp")
         fr_ΔG_stp = load(vfile,"fr_ΔG_stp")
+        ϕP_stp = load(vfile,"ϕP_stp")
         fin_ϕR = load(vfile,"fin_ϕR")
         all_fin_ϕRs = cat(all_fin_ϕRs,fin_ϕR,dims=1)
         all_l_sb[i] = load(vfile,"l_sb")
@@ -173,6 +175,7 @@ function trjstats()
                 cmb_av_steps[i,cnt] = av_steps[Tind]*(T1x)/Tg + av_steps[Tind-1]*(Tx2)/Tg
                 cmb_η_stp[i,cnt,:] = η_stp[Tind,:]*(T1x)/Tg .+ η_stp[Tind-1,:]*(Tx2)/Tg
                 cmb_fr_ΔG_stp[i,cnt,:] = fr_ΔG_stp[Tind,:]*(T1x)/Tg .+ fr_ΔG_stp[Tind-1,:]*(Tx2)/Tg
+                cmb_ϕP_stp[i,cnt,:] = ϕP_stp[Tind,:]*(T1x)/Tg .+ ϕP_stp[Tind-1,:]*(Tx2)/Tg
                 for j = 1:NoR
                     cmb_Rs[i,j,cnt] = Rs[j,Tind]*(T1x)/Tg + Rs[j,Tind-1]*(Tx2)/Tg
                     cmb_via_R[i,j,cnt] = via_R[j,Tind]*(T1x)/Tg + via_R[j,Tind-1]*(Tx2)/Tg
@@ -202,6 +205,7 @@ function trjstats()
                 cmb_av_steps[i,cnt] = av_steps[Tind]
                 cmb_η_stp[i,cnt,:] = η_stp[Tind,:]
                 cmb_fr_ΔG_stp[i,cnt,:] = fr_ΔG_stp[Tind,:]
+                cmb_ϕP_stp[i,cnt,:] = ϕP_stp[Tind,:]
                 for j = 1:NoR
                     cmb_Rs[i,j,cnt] = Rs[j,Tind]
                     cmb_via_R[i,j,cnt] = via_R[j,Tind]
@@ -246,6 +250,7 @@ function trjstats()
     tot_av_steps = dropdims(sum(cmb_av_steps,dims=1),dims=1)
     tot_η_stp = dropdims(sum(cmb_η_stp,dims=1),dims=1)
     tot_fr_ΔG_stp = dropdims(sum(cmb_fr_ΔG_stp,dims=1),dims=1)
+    tot_ϕP_stp = dropdims(sum(cmb_ϕP_stp,dims=1),dims=1)
     # Now calculate means
     mn_svt = tot_svt./no_sims
     mn_tsvt = tot_tsvt./no_sims
@@ -266,6 +271,7 @@ function trjstats()
     mn_av_steps = tot_av_steps./(no_via)
     mn_η_stp = tot_η_stp./(no_via)
     mn_fr_ΔG_stp = tot_fr_ΔG_stp./(no_via)
+    mn_ϕP_stp = tot_ϕP_stp./(no_via)
     # Preallocate 2D array
     mn_via_R = zeros(NoR,length(times))
     for i = 1:NoR
@@ -314,6 +320,7 @@ function trjstats()
     sd_av_steps = zeros(size(mn_av_steps))
     sd_η_stp = zeros(size(mn_η_stp))
     sd_fr_ΔG_stp = zeros(size(mn_fr_ΔG_stp))
+    sd_ϕP_stp = zeros(size(mn_ϕP_stp))
     # Loop over times
     for i = 1:length(times)
         # Find indices of still progressing trajectories
@@ -342,6 +349,7 @@ function trjstats()
             for j = 1:(M-1)
                 sd_η_stp[i,j] = sqrt(sum((cmb_η_stp[vinds,i,j] .- mn_η_stp[i,j]).^2)/(no_via[i] - 1))
                 sd_fr_ΔG_stp[i,j] = sqrt(sum((cmb_fr_ΔG_stp[vinds,i,j] .- mn_fr_ΔG_stp[i,j]).^2)/(no_via[i] - 1))
+                sd_ϕP_stp[i,j] = sqrt(sum((cmb_ϕP_stp[vinds,i,j] .- mn_ϕP_stp[i,j]).^2)/(no_via[i] - 1))
             end
             for j = 1:NoR
                 sd_via_R[j,i] = sqrt(sum((cmb_via_R[vinds,j,i] .- mn_via_R[j,i]).^2)/(no_via[i] - 1))
@@ -358,6 +366,7 @@ function trjstats()
             sd_av_steps[i] = NaN
             sd_η_stp[i,:] .= NaN
             sd_fr_ΔG_stp[i,:] .= NaN
+            sd_ϕP_stp[i,:] .= NaN
             sd_via_R[:,i] .= NaN
         end
         # Calculate standard deviations for reactions
@@ -415,6 +424,7 @@ function trjstats()
         write(file,"mn_av_steps",mn_av_steps)
         write(file,"mn_η_stp",mn_η_stp)
         write(file,"mn_fr_ΔG_stp",mn_fr_ΔG_stp)
+        write(file,"mn_ϕP_stp",mn_ϕP_stp)
         # Save standard deviations
         write(file,"sd_svt",sd_svt)
         write(file,"sd_tsvt",sd_tsvt)
@@ -441,6 +451,7 @@ function trjstats()
         write(file,"sd_av_steps",sd_av_steps)
         write(file,"sd_η_stp",sd_η_stp)
         write(file,"sd_fr_ΔG_stp",sd_fr_ΔG_stp)
+        write(file,"sd_ϕP_stp",sd_ϕP_stp)
         # Write all of the ϕ values out
         write(file,"all_fin_ϕRs",all_fin_ϕRs)
         write(file,"all_l_sb",all_l_sb)

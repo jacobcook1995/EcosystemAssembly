@@ -238,10 +238,9 @@ function v_over_t()
                         fr_ΔG_stp[j,k] /= c[k]
                     end
                 end
-            end
-            # Average over population
-            if pop[j] > 0
-                ϕP_stp[j,:] = ϕP_stp[j,:]/pop[j]
+                # Find total population of viable strains, and use to find average
+                v_pop = sum(C[j,vinds])
+                ϕP_stp[j,:] = ϕP_stp[j,:]/v_pop
             end
             # Break down eta and omega value by R
             for k = 1:length(vinds)

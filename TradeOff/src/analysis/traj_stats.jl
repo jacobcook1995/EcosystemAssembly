@@ -171,7 +171,6 @@ function trjstats()
                 cmb_KSs[i,cnt] = KSs[Tind]*(T1x)/Tg + KSs[Tind-1]*(Tx2)/Tg
                 cmb_krs[i,cnt] = krs[Tind]*(T1x)/Tg + krs[Tind-1]*(Tx2)/Tg
                 cmb_av_steps[i,cnt] = av_steps[Tind]*(T1x)/Tg + av_steps[Tind-1]*(Tx2)/Tg
-                # AHHH SHIT WORK OUT THE INDEXING
                 cmb_η_stp[i,cnt,:] = η_stp[Tind,:]*(T1x)/Tg .+ η_stp[Tind-1,:]*(Tx2)/Tg
                 cmb_fr_ΔG_stp[i,cnt,:] = fr_ΔG_stp[Tind,:]*(T1x)/Tg .+ fr_ΔG_stp[Tind-1,:]*(Tx2)/Tg
                 for j = 1:NoR

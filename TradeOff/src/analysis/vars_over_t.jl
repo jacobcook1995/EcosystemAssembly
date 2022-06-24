@@ -122,6 +122,7 @@ function v_over_t()
         via_ϕR = zeros(length(T))
         η_stp = zeros(length(T),M-1)
         fr_ΔG_stp = zeros(length(T),M-1)
+        ϕP_stp = zeros(length(T),M-1)
         ηs_R = zeros(NoR,length(T))
         ωs_R = zeros(NoR,length(T))
         kc_R = zeros(NoR,length(T))
@@ -203,6 +204,8 @@ function v_over_t()
                     s_size = (r.Prd - r.Rct)
                     # weight this step size to 1 and add to total
                     av_steps[j] += (s_size)*ms[vinds[k]].ϕP[l]
+                    # Store (population) weighted expression of the reaction
+                    ϕP_stp[j,s_size] += ms[vinds[k]].ϕP[l]*C[j,vinds[k]]
                     # use step size to choose which eta value to add to
                     pres[s_size] = true
                     ϕPt[s_size] += ms[vinds[k]].ϕP[l]
@@ -235,6 +238,10 @@ function v_over_t()
                         fr_ΔG_stp[j,k] /= c[k]
                     end
                 end
+            end
+            # Average over population
+            if pop[j] > 0
+                ϕP_stp[j,:] = ϕP_stp[j,:]/pop[j]
             end
             # Break down eta and omega value by R
             for k = 1:length(vinds)
@@ -301,6 +308,7 @@ function v_over_t()
             write(file,"via_ϕR",via_ϕR)
             write(file,"η_stp",η_stp)
             write(file,"fr_ΔG_stp",fr_ΔG_stp)
+            write(file,"ϕP_stp",ϕP_stp)
             write(file,"fin_ϕR",fin_ϕR)
             write(file,"l_sb",l_sb)
             # Finally save final time to help with benchmarking

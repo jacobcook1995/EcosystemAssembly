@@ -113,9 +113,9 @@ function figure5(rps::Int64,ims::Int64)
     savefig(p2,"Output/Fig5/omega_with_d.png")
     # Add annotations
     px, py = annpos([0.0;5e7],[0.5;0.66],0.075,0.0)
-    annotate!(p1,px,py,text("A",17,:black))
+    annotate!(p1,[px,py,text("A",17,:black)])
     px, py = annpos([0.0;5e7],[0.5;0.66],0.075,0.0)
-    annotate!(p2,px,py,text("B",17,:black))
+    annotate!(p2,[px,py,text("B",17,:black)])
     # Plot all graphs as a single figure
     pt = plot(p1,p2,layout=(2,1),size=(600,800),margin=5.0mm)
     savefig(pt,"Output/Fig5/figure5.png")

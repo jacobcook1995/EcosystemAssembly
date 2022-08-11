@@ -103,7 +103,7 @@ function figure7(rps::Int64)
     plot!(p1,times,mn_via_R[7,:],ribbon=se_via_R[7,:],label="R=7",color=a[4])
     # Add annotation
     px, py = annpos([0.0;2.5e6],[0.0;10.0],0.05,0.0)
-    annotate!(p1,px,py,text("A",17,:black))
+    annotate!(p1,[px,py,text("A",17,:black)])
     savefig(p1,"Output/Fig7/AvViaReacsTime.png")
     # Now do probability plot
     p2 = plot(xlabel="Time (s)",ylabel="Probability of no usable substrate",xlim=(-Inf,2.5e6))
@@ -114,7 +114,7 @@ function figure7(rps::Int64)
     plot!(p2,times,1 .-mn_Ps[7,:],ribbon=(up_Ps[7,:],dw_Ps[7,:]),label="R=7",color=a[4])
     # Add annotation
     px, py = annpos([0.0;2.5e6],[0.0;1.1],0.05,0.0)
-    annotate!(p2,px,py,text("B",17,:black))
+    annotate!(p2,[px,py,text("B",17,:black)])
     savefig(p2,"Output/Fig7/ProbSubTime.png")
     # Load in color scheme
     a = ColorSchemes.Dark2_4.colors
@@ -133,7 +133,7 @@ function figure7(rps::Int64)
     plot!(p3,times/1e6,mn_via_ϕR,ribbon=se_via_ϕR,color=a[1],subplot=2)
     # Add annotation
     px, py = annpos([0.0;2.5e6],[0.0;0.654],0.1,0.0)
-    annotate!(p3,px,py,text("C",17,:black))
+    annotate!(p3,[px,py,text("C",17,:black)])
     savefig(p3,"Output/Fig7/omega_with_t.png")
     # Make plot objects
     p4 = plot(xlabel="Times (s)",xlim=(-Inf,2.5e6),legend=:right,ylabel=L"\eta",title="ATP yield with time")
@@ -141,7 +141,7 @@ function figure7(rps::Int64)
     plot!(p4,times,mn_via_η,ribbon=se_via_η,color=a[1],label="")
     # Add annotation
     px, py = annpos([0.0;2.5e6],[0.0;3.385],0.05,0.0)
-    annotate!(p4,px,py,text("D",17,:black))
+    annotate!(p4,[px,py,text("D",17,:black)])
     # Save figures to this directory
     savefig(p4,"Output/Fig7/Eta.png")
     # Plot all graphs as a single figure

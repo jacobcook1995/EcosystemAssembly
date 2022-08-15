@@ -67,6 +67,7 @@ function trjstats()
     cmb_svt = zeros(rps,length(times))
     cmb_tsvt = zeros(rps,length(times))
     cmb_pop = zeros(rps,length(times))
+    cmb_via_bm = zeros(rps,length(times))
     cmb_shD = zeros(rps,length(times))
     cmb_sbs = zeros(rps,length(times))
     cmb_Rs = zeros(rps,NoR,length(times))
@@ -78,15 +79,18 @@ function trjstats()
     cmb_kr_R = zeros(rps,NoR,length(times))
     cmb_ηs = zeros(rps,length(times))
     cmb_via_η = zeros(rps,length(times))
+    cmb_via_η_bw = zeros(rps,length(times))
     cmb_ωs = zeros(rps,length(times))
     cmb_via_ω = zeros(rps,length(times))
     cmb_fr_ΔG = zeros(rps,length(times))
+    cmb_fr_ΔG_bw = zeros(rps,length(times))
     cmb_via_a = zeros(rps,length(times))
     cmb_via_ϕR = zeros(rps,length(times))
     cmb_kcs = zeros(rps,length(times))
     cmb_KSs = zeros(rps,length(times))
     cmb_krs = zeros(rps,length(times))
     cmb_av_steps = zeros(rps,length(times))
+    cmb_av_steps_bw = zeros(rps,length(times))
     cmb_η_stp = zeros(rps,length(times),M-1)
     cmb_fr_ΔG_stp = zeros(rps,length(times),M-1)
     cmb_ϕP_stp = zeros(rps,length(times),M-1)
@@ -103,6 +107,7 @@ function trjstats()
         svt = load(vfile,"svt")
         tsvt = load(vfile,"tsvt")
         pop = load(vfile,"pop")
+        via_bm = load(vfile,"via_bm")
         shD = load(vfile,"shD")
         sbs = load(vfile,"sbs")
         Rs = load(vfile,"Rs")
@@ -114,15 +119,18 @@ function trjstats()
         kr_R = load(vfile,"kr_R")
         ηs = load(vfile,"ηs")
         via_η = load(vfile,"via_η")
+        via_η_bw = load(vfile,"via_η_bw")
         ωs = load(vfile,"ωs")
         via_ω = load(vfile,"via_ω")
         fr_ΔG = load(vfile,"fr_ΔG")
+        fr_ΔG_bw = load(vfile,"fr_ΔG_bw")
         via_a = load(vfile,"via_a")
         via_ϕR = load(vfile,"via_ϕR")
         kcs = load(vfile,"kcs")
         KSs = load(vfile,"KSs")
         krs = load(vfile,"krs")
         av_steps = load(vfile,"av_steps")
+        av_steps_bw = load(vfile,"av_steps_bw")
         η_stp = load(vfile,"η_stp")
         fr_ΔG_stp = load(vfile,"fr_ΔG_stp")
         ϕP_stp = load(vfile,"ϕP_stp")
@@ -160,19 +168,23 @@ function trjstats()
                 cmb_svt[i,cnt] = svt[Tind]*(T1x)/Tg + svt[Tind-1]*(Tx2)/Tg
                 cmb_tsvt[i,cnt] = tsvt[Tind]*(T1x)/Tg + tsvt[Tind-1]*(Tx2)/Tg
                 cmb_pop[i,cnt] = pop[Tind]*(T1x)/Tg + pop[Tind-1]*(Tx2)/Tg
+                cmb_via_bm[i,cnt] = via_bm[Tind]*(T1x)/Tg + via_bm[Tind-1]*(Tx2)/Tg
                 cmb_shD[i,cnt] = shD[Tind]*(T1x)/Tg + shD[Tind-1]*(Tx2)/Tg
                 cmb_sbs[i,cnt] = sbs[Tind]*(T1x)/Tg + sbs[Tind-1]*(Tx2)/Tg
                 cmb_ηs[i,cnt] = ηs[Tind]*(T1x)/Tg + ηs[Tind-1]*(Tx2)/Tg
                 cmb_via_η[i,cnt] = via_η[Tind]*(T1x)/Tg + via_η[Tind-1]*(Tx2)/Tg
+                cmb_via_η_bw[i,cnt] = via_η_bw[Tind]*(T1x)/Tg + via_η_bw[Tind-1]*(Tx2)/Tg
                 cmb_ωs[i,cnt] = ωs[Tind]*(T1x)/Tg + ωs[Tind-1]*(Tx2)/Tg
                 cmb_via_ω[i,cnt] = via_ω[Tind]*(T1x)/Tg + via_ω[Tind-1]*(Tx2)/Tg
                 cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]*(T1x)/Tg + fr_ΔG[Tind-1]*(Tx2)/Tg
+                cmb_fr_ΔG_bw[i,cnt] = fr_ΔG_bw[Tind]*(T1x)/Tg + fr_ΔG_bw[Tind-1]*(Tx2)/Tg
                 cmb_via_a[i,cnt] = via_a[Tind]*(T1x)/Tg + via_a[Tind-1]*(Tx2)/Tg
                 cmb_via_ϕR[i,cnt] = via_ϕR[Tind]*(T1x)/Tg + via_ϕR[Tind-1]*(Tx2)/Tg
                 cmb_kcs[i,cnt] = kcs[Tind]*(T1x)/Tg + kcs[Tind-1]*(Tx2)/Tg
                 cmb_KSs[i,cnt] = KSs[Tind]*(T1x)/Tg + KSs[Tind-1]*(Tx2)/Tg
                 cmb_krs[i,cnt] = krs[Tind]*(T1x)/Tg + krs[Tind-1]*(Tx2)/Tg
                 cmb_av_steps[i,cnt] = av_steps[Tind]*(T1x)/Tg + av_steps[Tind-1]*(Tx2)/Tg
+                cmb_av_steps_bw[i,cnt] = av_steps_bw[Tind]*(T1x)/Tg + av_steps_bw[Tind-1]*(Tx2)/Tg
                 cmb_η_stp[i,cnt,:] = η_stp[Tind,:]*(T1x)/Tg .+ η_stp[Tind-1,:]*(Tx2)/Tg
                 cmb_fr_ΔG_stp[i,cnt,:] = fr_ΔG_stp[Tind,:]*(T1x)/Tg .+ fr_ΔG_stp[Tind-1,:]*(Tx2)/Tg
                 cmb_ϕP_stp[i,cnt,:] = ϕP_stp[Tind,:]*(T1x)/Tg .+ ϕP_stp[Tind-1,:]*(Tx2)/Tg
@@ -190,19 +202,23 @@ function trjstats()
                 cmb_svt[i,cnt] = svt[Tind]
                 cmb_tsvt[i,cnt] = tsvt[Tind]
                 cmb_pop[i,cnt] = pop[Tind]
+                cmb_via_bm[i,cnt] = via_bm[i,cnt]
                 cmb_shD[i,cnt] = shD[Tind]
                 cmb_sbs[i,cnt] = sbs[Tind]
                 cmb_ηs[i,cnt] = ηs[Tind]
                 cmb_via_η[i,cnt] = via_η[Tind]
+                cmb_via_η_bw[i,cnt] = via_η_bw[Tind]
                 cmb_ωs[i,cnt] = ωs[Tind]
                 cmb_via_ω[i,cnt] = via_ω[Tind]
                 cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]
+                cmb_fr_ΔG_bw[i,cnt] = fr_ΔG_bw[Tind]
                 cmb_via_a[i,cnt] = via_a[Tind]
                 cmb_via_ϕR[i,cnt] = via_ϕR[Tind]
                 cmb_kcs[i,cnt] = kcs[Tind]
                 cmb_KSs[i,cnt] = KSs[Tind]
                 cmb_krs[i,cnt] = krs[Tind]
                 cmb_av_steps[i,cnt] = av_steps[Tind]
+                cmb_av_steps_bw[i,cnt] = av_steps_bw[Tind]
                 cmb_η_stp[i,cnt,:] = η_stp[Tind,:]
                 cmb_fr_ΔG_stp[i,cnt,:] = fr_ΔG_stp[Tind,:]
                 cmb_ϕP_stp[i,cnt,:] = ϕP_stp[Tind,:]
@@ -228,6 +244,7 @@ function trjstats()
     tot_svt = dropdims(sum(cmb_svt,dims=1),dims=1)
     tot_tsvt = dropdims(sum(cmb_tsvt,dims=1),dims=1)
     tot_pop = dropdims(sum(cmb_pop,dims=1),dims=1)
+    tot_via_bm = dropdims(sum(cmb_via_bm,dims=1),dims=1)
     tot_shD = dropdims(sum(cmb_shD,dims=1),dims=1)
     tot_sbs = dropdims(sum(cmb_sbs,dims=1),dims=1)
     tot_Rs = dropdims(sum(cmb_Rs,dims=1),dims=1)
@@ -239,15 +256,18 @@ function trjstats()
     tot_kr_R = dropdims(sum(cmb_kr_R,dims=1),dims=1)
     tot_ηs = dropdims(sum(cmb_ηs,dims=1),dims=1)
     tot_via_η = dropdims(sum(cmb_via_η,dims=1),dims=1)
+    tot_via_η_bw = dropdims(sum(cmb_via_η_bw,dims=1),dims=1)
     tot_ωs = dropdims(sum(cmb_ωs,dims=1),dims=1)
     tot_via_ω = dropdims(sum(cmb_via_ω,dims=1),dims=1)
     tot_fr_ΔG = dropdims(sum(cmb_fr_ΔG,dims=1),dims=1)
+    tot_fr_ΔG_bw = dropdims(sum(cmb_fr_ΔG_bw,dims=1),dims=1)
     tot_via_a = dropdims(sum(cmb_via_a,dims=1),dims=1)
     tot_via_ϕR = dropdims(sum(cmb_via_ϕR,dims=1),dims=1)
     tot_kcs = dropdims(sum(cmb_kcs,dims=1),dims=1)
     tot_KSs = dropdims(sum(cmb_KSs,dims=1),dims=1)
     tot_krs = dropdims(sum(cmb_krs,dims=1),dims=1)
     tot_av_steps = dropdims(sum(cmb_av_steps,dims=1),dims=1)
+    tot_av_steps_bw = dropdims(sum(cmb_av_steps_bw,dims=1),dims=1)
     tot_η_stp = dropdims(sum(cmb_η_stp,dims=1),dims=1)
     tot_fr_ΔG_stp = dropdims(sum(cmb_fr_ΔG_stp,dims=1),dims=1)
     tot_ϕP_stp = dropdims(sum(cmb_ϕP_stp,dims=1),dims=1)
@@ -260,15 +280,19 @@ function trjstats()
     mn_ηs = tot_ηs./no_sims
     mn_ωs = tot_ωs./no_sims
     # Calculate means for viable case
+    mn_via_bm = tot_via_bm./(no_via)
     mn_via_ω = tot_via_ω./(no_via)
     mn_via_η = tot_via_η./(no_via)
+    mn_via_η_bw = tot_via_η_bw./(no_via)
     mn_via_a = tot_via_a./(no_via)
     mn_via_ϕR = tot_via_ϕR./(no_via)
     mn_fr_ΔG = tot_fr_ΔG./(no_via)
+    mn_fr_ΔG_bw = tot_fr_ΔG_bw./(no_via)
     mn_kcs = tot_kcs./(no_via)
     mn_KSs = tot_KSs./(no_via)
     mn_krs = tot_krs./(no_via)
     mn_av_steps = tot_av_steps./(no_via)
+    mn_av_steps_bw = tot_av_steps_bw./(no_via)
     mn_η_stp = tot_η_stp./(no_via)
     mn_fr_ΔG_stp = tot_fr_ΔG_stp./(no_via)
     mn_ϕP_stp = tot_ϕP_stp./(no_via)
@@ -298,6 +322,7 @@ function trjstats()
     sd_svt = zeros(size(mn_svt))
     sd_tsvt = zeros(size(mn_tsvt))
     sd_pop = zeros(size(mn_pop))
+    sd_via_bm = zeros(size(mn_via_bm))
     sd_shD = zeros(size(mn_shD))
     sd_sbs = zeros(size(mn_sbs))
     sd_Rs = zeros(size(mn_Rs))
@@ -309,15 +334,18 @@ function trjstats()
     sd_kr_R = zeros(size(mn_kr_R))
     sd_ηs = zeros(size(mn_ηs))
     sd_via_η = zeros(size(mn_via_η))
+    sd_via_η_bw = zeros(size(mn_via_η_bw))
     sd_ωs = zeros(size(mn_ωs))
     sd_via_ω = zeros(size(mn_via_ω))
     sd_fr_ΔG = zeros(size(mn_fr_ΔG))
+    sd_fr_ΔG_bw = zeros(size(mn_fr_ΔG_bw))
     sd_via_a = zeros(size(mn_via_a))
     sd_via_ϕR = zeros(size(mn_via_ϕR))
     sd_kcs = zeros(size(mn_kcs))
     sd_KSs = zeros(size(mn_KSs))
     sd_krs = zeros(size(mn_krs))
     sd_av_steps = zeros(size(mn_av_steps))
+    sd_av_steps_bw = zeros(size(mn_av_steps_bw))
     sd_η_stp = zeros(size(mn_η_stp))
     sd_fr_ΔG_stp = zeros(size(mn_fr_ΔG_stp))
     sd_ϕP_stp = zeros(size(mn_ϕP_stp))
@@ -337,15 +365,19 @@ function trjstats()
         sd_ωs[i] = sqrt(sum((cmb_ωs[inds,i] .- mn_ωs[i]).^2)/(no_sims[i] - 1))
         # These should be calculated just for viable strains
         if no_via[i] > 1
+            sd_via_bm[i] = sqrt(sum((cmb_via_bm[inds,i] .- mn_via_bm[i]).^2)/(no_via[i] - 1))
             sd_via_η[i] = sqrt(sum((cmb_via_η[vinds,i] .- mn_via_η[i]).^2)/(no_via[i] - 1))
+            sd_via_η_bw[i] = sqrt(sum((cmb_via_η_bw[vinds,i] .- mn_via_η_bw[i]).^2)/(no_via[i] - 1))
             sd_via_ω[i] = sqrt(sum((cmb_via_ω[vinds,i] .- mn_via_ω[i]).^2)/(no_via[i] - 1))
             sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[vinds,i] .- mn_fr_ΔG[i]).^2)/(no_via[i] - 1))
+            sd_fr_ΔG_bw[i] = sqrt(sum((cmb_fr_ΔG_bw[vinds,i] .- mn_fr_ΔG_bw[i]).^2)/(no_via[i] - 1))
             sd_via_a[i] = sqrt(sum((cmb_via_a[vinds,i] .- mn_via_a[i]).^2)/(no_via[i] - 1))
             sd_via_ϕR[i] = sqrt(sum((cmb_via_ϕR[vinds,i] .- mn_via_ϕR[i]).^2)/(no_via[i] - 1))
             sd_kcs[i] = sqrt(sum((cmb_kcs[vinds,i] .- mn_kcs[i]).^2)/(no_via[i] - 1))
             sd_KSs[i] = sqrt(sum((cmb_KSs[vinds,i] .- mn_KSs[i]).^2)/(no_via[i] - 1))
             sd_krs[i] = sqrt(sum((cmb_krs[vinds,i] .- mn_krs[i]).^2)/(no_via[i] - 1))
             sd_av_steps[i] = sqrt(sum((cmb_av_steps[vinds,i] .- mn_av_steps[i]).^2)/(no_via[i] - 1))
+            sd_av_steps_bw[i] = sqrt(sum((cmb_av_steps_bw[vinds,i] .- mn_av_steps_bw[i]).^2)/(no_via[i] - 1))
             for j = 1:(M-1)
                 sd_η_stp[i,j] = sqrt(sum((cmb_η_stp[vinds,i,j] .- mn_η_stp[i,j]).^2)/(no_via[i] - 1))
                 sd_fr_ΔG_stp[i,j] = sqrt(sum((cmb_fr_ΔG_stp[vinds,i,j] .- mn_fr_ΔG_stp[i,j]).^2)/(no_via[i] - 1))
@@ -355,15 +387,19 @@ function trjstats()
                 sd_via_R[j,i] = sqrt(sum((cmb_via_R[vinds,j,i] .- mn_via_R[j,i]).^2)/(no_via[i] - 1))
             end
         else
+            sd_via_bm[i] = NaN
             sd_via_η[i] = NaN
+            sd_via_η_bw[i] = NaN
             sd_via_ω[i] = NaN
             sd_fr_ΔG[i] = NaN
+            sd_fr_ΔG_bw[i] = NaN
             sd_via_a[i] = NaN
             sd_via_ϕR[i] = NaN
             sd_kcs[i] = NaN
             sd_KSs[i] = NaN
             sd_krs[i] = NaN
             sd_av_steps[i] = NaN
+            sd_av_steps_bw[i] = NaN
             sd_η_stp[i,:] .= NaN
             sd_fr_ΔG_stp[i,:] .= NaN
             sd_ϕP_stp[i,:] .= NaN
@@ -402,6 +438,7 @@ function trjstats()
         write(file,"mn_svt",mn_svt)
         write(file,"mn_tsvt",mn_tsvt)
         write(file,"mn_pop",mn_pop)
+        write(file,"mn_via_bm",mn_via_bm)
         write(file,"mn_shD",mn_shD)
         write(file,"mn_sbs",mn_sbs)
         write(file,"mn_Rs",mn_Rs)
@@ -413,15 +450,18 @@ function trjstats()
         write(file,"mn_kr_R",mn_kr_R)
         write(file,"mn_ηs",mn_ηs)
         write(file,"mn_via_η",mn_via_η)
+        write(file,"mn_via_η_bw",mn_via_η_bw)
         write(file,"mn_ωs",mn_ωs)
         write(file,"mn_via_ω",mn_via_ω)
         write(file,"mn_fr_ΔG",mn_fr_ΔG)
+        write(file,"mn_fr_ΔG_bw",mn_fr_ΔG_bw)
         write(file,"mn_via_a",mn_via_a)
         write(file,"mn_via_ϕR",mn_via_ϕR)
         write(file,"mn_kcs",mn_kcs)
         write(file,"mn_KSs",mn_KSs)
         write(file,"mn_krs",mn_krs)
         write(file,"mn_av_steps",mn_av_steps)
+        write(file,"mn_av_steps_bw",mn_av_steps_bw)
         write(file,"mn_η_stp",mn_η_stp)
         write(file,"mn_fr_ΔG_stp",mn_fr_ΔG_stp)
         write(file,"mn_ϕP_stp",mn_ϕP_stp)
@@ -429,6 +469,7 @@ function trjstats()
         write(file,"sd_svt",sd_svt)
         write(file,"sd_tsvt",sd_tsvt)
         write(file,"sd_pop",sd_pop)
+        write(file,"sd_via_bm",sd_via_bm)
         write(file,"sd_shD",sd_shD)
         write(file,"sd_sbs",sd_sbs)
         write(file,"sd_Rs",sd_Rs)
@@ -440,15 +481,18 @@ function trjstats()
         write(file,"sd_kr_R",sd_kr_R)
         write(file,"sd_ηs",sd_ηs)
         write(file,"sd_via_η",sd_via_η)
+        write(file,"sd_via_η_bw",sd_via_η_bw)
         write(file,"sd_ωs",sd_ωs)
         write(file,"sd_via_ω",sd_via_ω)
         write(file,"sd_fr_ΔG",sd_fr_ΔG)
+        write(file,"sd_fr_ΔG_bw",sd_fr_ΔG_bw)
         write(file,"sd_via_a",sd_via_a)
         write(file,"sd_via_ϕR",sd_via_ϕR)
         write(file,"sd_kcs",sd_kcs)
         write(file,"sd_KSs",sd_KSs)
         write(file,"sd_krs",sd_krs)
         write(file,"sd_av_steps",sd_av_steps)
+        write(file,"sd_av_steps_bw",sd_av_steps_bw)
         write(file,"sd_η_stp",sd_η_stp)
         write(file,"sd_fr_ΔG_stp",sd_fr_ΔG_stp)
         write(file,"sd_ϕP_stp",sd_ϕP_stp)

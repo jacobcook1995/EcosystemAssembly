@@ -114,10 +114,14 @@ function v_over_t()
         KSs = zeros(length(T))
         krs = zeros(length(T))
         av_steps = zeros(length(T))
+        av_steps_bw = zeros(length(T))
         via_η = zeros(length(T))
+        via_η_bw = zeros(length(T))
+        via_bm = zeros(length(T))
         ωs = zeros(length(T))
         via_ω = zeros(length(T))
         fr_ΔG = zeros(length(T))
+        fr_ΔG_bw = zeros(length(T))
         via_a = zeros(length(T))
         via_ϕR = zeros(length(T))
         η_stp = zeros(length(T),M-1)
@@ -182,6 +186,8 @@ function v_over_t()
             for k = 1:length(vinds)
                 via_η[j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
                 via_ω[j] += ms[vinds[k]].ω
+                via_η_bw[j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)*C[j,vinds[k]]
+                via_bm[j] += C[j,vinds[k]]
                 kcs[j] += sum(ms[vinds[k]].kc.*ms[vinds[k]].ϕP)
                 KSs[j] += sum(ms[vinds[k]].KS.*ms[vinds[k]].ϕP)
                 krs[j] += sum(ms[vinds[k]].kr.*ms[vinds[k]].ϕP)
@@ -200,10 +206,14 @@ function v_over_t()
                     r = ps.reacs[Rn]
                     # Then calculate frac transduced
                     fr_ΔG[j] += ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
+                    # Do biomass weighted version as well
+                    fr_ΔG_bw[j] += C[j,vinds[k]]*ms[vinds[k]].η[l].*ms[vinds[k]].ϕP[l]*ΔGATP/(-r.ΔG0)
                     # Find step size
                     s_size = (r.Prd - r.Rct)
                     # weight this step size to 1 and add to total
                     av_steps[j] += (s_size)*ms[vinds[k]].ϕP[l]
+                    # same approach for biomass weighted case
+                    av_steps_bw[j] += C[j,vinds[k]]*(s_size)*ms[vinds[k]].ϕP[l]
                     # Store (population) weighted expression of the reaction
                     ϕP_stp[j,s_size] += ms[vinds[k]].ϕP[l]*C[j,vinds[k]]
                     # use step size to choose which eta value to add to
@@ -222,15 +232,18 @@ function v_over_t()
                     end
                 end
             end
-            # Average over number of strains
+            # Average over number of strains (or biomass)
             if tsvt[j] > 0
                 via_η[j] /= tsvt[j]
+                via_η_bw[j] /= via_bm[j]
                 via_ω[j] /= tsvt[j]
                 kcs[j] /= tsvt[j]
                 KSs[j] /= tsvt[j]
                 krs[j] /= tsvt[j]
                 av_steps[j] /= tsvt[j]
+                av_steps_bw[j] /= via_bm[j]
                 fr_ΔG[j] /= tsvt[j]
+                fr_ΔG_bw[j] /= via_bm[j]
                 # Divide by number of strains that possess reactions
                 for k = 1:length(c)
                     if c[k] > 0
@@ -292,17 +305,21 @@ function v_over_t()
             write(file,"svt",svt)
             write(file,"tsvt",tsvt)
             write(file,"pop",pop)
+            write(file,"via_bm",via_bm)
             write(file,"shD",shD)
             write(file,"sbs",sbs)
             write(file,"ηs",ηs)
             write(file,"via_η",via_η)
+            write(file,"via_η_bw",via_η_bw)
             write(file,"kcs",kcs)
             write(file,"KSs",KSs)
             write(file,"krs",krs)
             write(file,"av_steps",av_steps)
+            write(file,"av_steps_bw",av_steps_bw)
             write(file,"ωs",ωs)
             write(file,"via_ω",via_ω)
             write(file,"fr_ΔG",fr_ΔG)
+            write(file,"fr_ΔG_bw",fr_ΔG_bw)
             write(file,"via_a",via_a)
             write(file,"via_ϕR",via_ϕR)
             write(file,"η_stp",η_stp)

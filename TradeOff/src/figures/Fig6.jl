@@ -36,14 +36,14 @@ function figure6(rps::Int64,ims::Int64)
     plot!(p4,ylabel="Average number of reaction steps",title="Relative frequency of reaction types")
     p5 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(-Inf,Inf),legend=:bottomright)
     plot!(p5,ylabel="Fraction of free-energy transduced",title="Test plot")
-    p6 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.0,1.2),legend=:bottomright)
-    plot!(p6,ylabel="Test plot",title="Test plot")
-    p7 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.0,1.2),legend=:bottomright)
+    p6 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.0,Inf),legend=false)
+    plot!(p6,ylabel="Fraction of free-energy transduced",title="Average reaction efficiency")
+    p7 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.0,1.2),legend=:topright)
     plot!(p7,ylabel="Test plot",title="Test plot")
     p8 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.0,Inf),legend=:bottomright)
     plot!(p8,ylabel="Test plot",title="Test plot")
     # Loop over the 4 conditions
-    for i = 3#1:2
+    for i = 1:2
         # Extract other simulation parameters from the function
         Np, Nt, M, d, μrange = sim_paras(i)
         # Read in appropriate files
@@ -86,6 +86,9 @@ function figure6(rps::Int64,ims::Int64)
         # Calculated expected eta value
         η_exp = mn_ϕP_stp[:,1].*mn_η_stp[:,1] .+ mn_ϕP_stp[:,2].*mn_η_stp[:,2]
         η_exp = η_exp .+ mn_ϕP_stp[:,3].*mn_η_stp[:,3] .+ mn_ϕP_stp[:,4].*mn_η_stp[:,4]
+        # And expected efficency
+        fr_ΔG_exp = mn_ϕP_stp[:,1].*mn_fr_ΔG_stp[:,1] .+ mn_ϕP_stp[:,2].*mn_fr_ΔG_stp[:,2]
+        fr_ΔG_exp = fr_ΔG_exp .+ mn_ϕP_stp[:,3].*mn_fr_ΔG_stp[:,3] .+ mn_ϕP_stp[:,4].*mn_fr_ΔG_stp[:,4]
         # Find appropriate label
         lb = find_label(i)
         # Plot the data to the relevant plot objects
@@ -100,12 +103,14 @@ function figure6(rps::Int64,ims::Int64)
         plot!(p5,times,mn_η_stp[:,2],ribbon=se_η_stp,color=b[2],label="$(lb) 2-step")
         plot!(p5,times,mn_η_stp[:,3],ribbon=se_η_stp,color=b[3],label="$(lb) 3-step")
         plot!(p5,times,mn_η_stp[:,4],ribbon=se_η_stp,color=b[4],label="$(lb) 4-step")
-        plot!(p6,times,sum(mn_ϕP_stp[:,:],dims=2))
+        plot!(p6,times,fr_ΔG_exp,label="Expected")
+        plot!(p6,times,mn_fr_ΔG,ribbon=se_fr_ΔG,label="Actual")
         plot!(p7,times,mn_ϕP_stp[:,1],ribbon=se_ϕP_stp,color=b[1],label="$(lb) 1-step")
         plot!(p7,times,mn_ϕP_stp[:,2],ribbon=se_ϕP_stp,color=b[2],label="$(lb) 2-step")
         plot!(p7,times,mn_ϕP_stp[:,3],ribbon=se_ϕP_stp,color=b[3],label="$(lb) 3-step")
         plot!(p7,times,mn_ϕP_stp[:,4],ribbon=se_ϕP_stp,color=b[4],label="$(lb) 4-step")
-        plot!(p8,times,η_exp,label="")
+        plot!(p8,times,η_exp,label="Expected")
+        plot!(p8,times,mn_via_η,ribbon=se_via_η,label="Actual")
     end
     # Check if directory exists and if not make it
     if ~isdir("Output/Fig6")
@@ -117,7 +122,7 @@ function figure6(rps::Int64,ims::Int64)
     savefig(p3,"Output/Fig6/CompEfficencies.png")
     savefig(p4,"Output/Fig6/Steps.png")
     savefig(p5,"Output/Fig6/EtabyStep.png")
-    savefig(p6,"Output/Fig6/Testplot.png")
+    savefig(p6,"Output/Fig6/Eff_comp.png")
     savefig(p7,"Output/Fig6/Comm_phi.png")
     savefig(p8,"Output/Fig6/Eta_comp.png")
     # Add annotations

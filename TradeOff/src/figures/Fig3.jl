@@ -65,7 +65,7 @@ function figure3(rps::Int64,ims::Int64,sim_type::Int64)
     p1 = plot(ylabel="Total population ($(e13) cells)",xlim=(-Inf,5e7),legend=:topleft)
     plot!(p1,t_times,mn_pop/1e13,ribbon=se_pop/1e13,label="Population",color=a[1],ylim=(-Inf,4.0))
     # Define box for inset here
-    box = (1,bbox(0.4,0.35,0.4,0.3,:bottom,:left))
+    box = (1,bbox(0.4,0.3,0.4,0.3,:bottom,:left))
     # Add histogram in as an insert
     histogram!(p1,all_fin_ϕRs,nbins=100,color=a[2],label="",inset_subplots=box,subplot=2)
     plot!(p1,xlabel="Final ribosome fraction ($(L"\phi_R"))",ylabel="Number of survivors",subplot=2)

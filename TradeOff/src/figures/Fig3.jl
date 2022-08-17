@@ -84,7 +84,7 @@ function figure3(rps::Int64,ims::Int64,sim_type::Int64)
     p2 = plot(xlabel="Time (s)",ylabel="Number of species",xlim=(-Inf,5e7),legend=:topleft)
     plot!(p2,t_times,mn_svt,ribbon=se_svt,label="Species",color=a[4])
     # Add annotation
-    px, py = annpos([0.0;5e7],[0.0;35.0],0.05,0.0)
+    px, py = annpos([0.0;5e7],[0.0;30.0],0.05,0.0)
     annotate!(p2,[px,py,text("B",17,:black)])
     # Define box for inset here
     box = (1,bbox(0.4,0.4,0.4,0.3,:bottom,:left))

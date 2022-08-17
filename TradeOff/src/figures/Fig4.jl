@@ -91,13 +91,13 @@ function figure4(rps::Int64,ims::Int64,sim_type::Int64,sim_type2::Int64)
     a = ColorSchemes.sunset.colors
     # Plot basic trade-off first
     p1 = plot(xlabel="Time (s)",ylabel="Number of species",xlim=(-Inf,5e7))
-    plot!(p1,title="High substrate free-energy case",legend=:bottomright)
+    plot!(p1,title="High substrate free-energy case",legend=:bottomright,ylim=(0.0,8.0))
     plot!(p1,times,mn_via_R[1,:],ribbon=se_via_R[1,:],label="R=1",color=a[1])
     plot!(p1,times,mn_via_R[3,:],ribbon=se_via_R[3,:],label="R=3",color=a[2])
     plot!(p1,times,mn_via_R[5,:],ribbon=se_via_R[5,:],label="R=5",color=a[3])
     plot!(p1,times,mn_via_R[7,:],ribbon=se_via_R[7,:],label="R=7",color=a[4])
     # Add annotation
-    px, py = annpos([0.0;5e7],[0.0;7.6],0.05,0.0)
+    px, py = annpos([0.0;5e7],[0.0;8.0],0.075,0.05)
     annotate!(p1,[px,py,text("A",17,:black)])
     savefig(p1,"Output/Fig4/AvViaReacsTime.png")
     # Now do probability plot
@@ -108,18 +108,18 @@ function figure4(rps::Int64,ims::Int64,sim_type::Int64,sim_type2::Int64)
     plot!(p2,times,1 .-mn_Ps[5,:],ribbon=(up_Ps[5,:],dw_Ps[5,:]),label="R=5",color=a[3])
     plot!(p2,times,1 .-mn_Ps[7,:],ribbon=(up_Ps[7,:],dw_Ps[7,:]),label="R=7",color=a[4])
     # Add annotation
-    px, py = annpos([0.0;5e7],[0.0;1.1],0.05,0.0)
+    px, py = annpos([0.0;5e7],[0.0;1.0375],0.075,0.05)
     annotate!(p2,[px,py,text("B",17,:black)])
     savefig(p2,"Output/Fig4/ProbSubTime.png")
     # Plot trade-off for η
     p3 = plot(xlabel="Time (s)",ylabel="Average eta value",xlim=(-Inf,5e7))
-    plot!(p3,title="Variation of key parameters",legend=false)
+    plot!(p3,title="Variation of key parameters",legend=false,ylim=(0.0,7.5))
     plot!(p3,times,mn_ηs_R[1,:],ribbon=se_ηs_R[1,:],label="R=1",color=a[1])
     plot!(p3,times,mn_ηs_R[3,:],ribbon=se_ηs_R[3,:],label="R=3",color=a[2])
     plot!(p3,times,mn_ηs_R[5,:],ribbon=se_ηs_R[5,:],label="R=5",color=a[3])
     plot!(p3,times,mn_ηs_R[7,:],ribbon=se_ηs_R[7,:],label="R=7",color=a[4])
     # Add annotation
-    px, py = annpos([0.0;5e7],[1.2;3.95],0.05,0.0)
+    px, py = annpos([0.0;5e7],[0.0;7.5],0.075,0.05)
     annotate!(p3,[px,py,text("C",17,:black)])
     # Define box for inset here
     box = (1,bbox(0.4,0.15,0.4,0.3,:bottom,:left))
@@ -155,13 +155,13 @@ function figure4(rps::Int64,ims::Int64,sim_type::Int64,sim_type2::Int64)
         se_via_R[i,:] = sd_via_R[i,:]./sqrt.(no_via)
     end
     p4 = plot(xlabel="Time (s)",ylabel="Number of species",xlim=(-Inf,5e7))
-    plot!(p4,title="Low substrate free-energy case",legend=false)
+    plot!(p4,title="Low substrate free-energy case",legend=false,ylim=(0.0,5.0))
     plot!(p4,times,mn_via_R[1,:],ribbon=se_via_R[1,:],label="R=1",color=a[1])
     plot!(p4,times,mn_via_R[3,:],ribbon=se_via_R[3,:],label="R=3",color=a[2])
     plot!(p4,times,mn_via_R[5,:],ribbon=se_via_R[5,:],label="R=5",color=a[3])
     plot!(p4,times,mn_via_R[7,:],ribbon=se_via_R[7,:],label="R=7",color=a[4])
     # Add annotation
-    px, py = annpos([0.0;5e7],[0.0;9.25],0.05,0.0)
+    px, py = annpos([0.0;5e7],[0.0;5.0],0.075,0.05)
     annotate!(p4,[px,py,text("D",17,:black)])
     savefig(p4,"Output/Fig4/LowFreeEnergy.png")
     # Plot all graphs as a single figure

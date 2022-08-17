@@ -28,12 +28,11 @@ function figure6(rps::Int64,ims::Int64)
     b = [bt[10];bt[9];bt[7];bt[5]]
     # Make plot objects
     p1 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),legend=:right,ylabel=L"\eta",title="ATP yield")
-    p2 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.55,Inf),legend=false)
+    plot!(p1,ylim=(1.0,6.0))
+    p2 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(0.55,0.8),legend=false)
     plot!(p2,ylabel="Fraction of free-energy transduced",title="Average reaction efficiency")
-    p3 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(2.0,Inf),legend=false)
+    p3 = plot(xlabel="Times (s)",xlim=(-Inf,5e7),ylim=(2.0,2.75),legend=false)
     plot!(p3,ylabel="Average number of reaction steps",title="Relative frequency of reaction types")
-    p4 = plot(xlabel="Times (s)")
-    plot!(p4,title="Placeholder")
     # Loop over the 4 conditions
     for i = 1:2
         # Extract other simulation parameters from the function
@@ -73,6 +72,24 @@ function figure6(rps::Int64,ims::Int64)
         plot!(p2,times,mn_fr_ΔG_bw,ribbon=se_fr_ΔG_bw,color=a[i])
         plot!(p3,times,mn_av_steps_bw,ribbon=se_av_steps_bw,color=a[i])
     end
+    # Load in no immigration data
+    Np, Nt, M, d, μrange = sim_paras(5)
+    noim_file = "Output/NoImm$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats0Ims.jld"
+    # Check it actually exists
+    if ~isfile(noim_file)
+        error("missing stats file for no immigrations simulations")
+    end
+    times = load(noim_file,"times")
+    no_via = load(noim_file,"no_via")
+    # Load in η data
+    mn_via_η_bw = load(noim_file,"mn_via_η_bw")
+    sd_via_η_bw = load(noim_file,"sd_via_η_bw")
+    # Calculate relevant standard errors
+    se_via_η_bw = sd_via_η_bw./sqrt.(no_via)
+    # Then plot
+    p4 = plot(times,mn_via_η_bw,ribbon=se_via_η_bw,color=a[3],label="high free-energy")
+    plot!(p4,xlim=(-Inf,2.5e6),ylim=(1.0,6.0),title="ATP yield without immigration")
+    plot!(p4,xlabel="Times (s)",ylabel=L"\eta")
     # Check if directory exists and if not make it
     if ~isdir("Output/Fig6")
         mkdir("Output/Fig6")
@@ -81,14 +98,15 @@ function figure6(rps::Int64,ims::Int64)
     savefig(p1,"Output/Fig6/Eta.png")
     savefig(p2,"Output/Fig6/Efficency.png")
     savefig(p3,"Output/Fig6/Steps.png")
+    savefig(p4,"Output/Fig6/NoImmEta.png")
     # Add annotations
-    px, py = annpos([0.0;5e7],[0.0;6.0],0.075,0.0)
+    px, py = annpos([0.0;5e7],[1.0;6.0],0.075,0.05)
     annotate!(p1,[px,py,text("A",17,:black)])
-    px, py = annpos([0.0;5e7],[0.55;0.9],0.075,0.0)
+    px, py = annpos([0.0;5e7],[0.55;0.8],0.075,0.05)
     annotate!(p2,[px,py,text("B",17,:black)])
-    px, py = annpos([0.0;5e7],[0.0;0.85],0.075,0.0)
+    px, py = annpos([0.0;5e7],[2.0;2.75],0.075,0.05)
     annotate!(p3,[px,py,text("C",17,:black)])
-    px, py = annpos([0.0;5e7],[2.0;3.25],0.075,0.0)
+    px, py = annpos([0.0;2.5e6],[1.0;6.0],0.075,0.05)
     annotate!(p4,[px,py,text("D",17,:black)])
     # Plot all graphs as a single figure
     pt = plot(p1,p2,p3,p4,layout=(2,2),size=(1200,800),margin=5.0mm)

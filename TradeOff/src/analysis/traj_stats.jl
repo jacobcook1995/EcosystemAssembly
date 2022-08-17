@@ -159,7 +159,8 @@ function trjstats()
                     no_rs[j,cnt] += 1
                 end
             end
-            if Tind > 1
+            # Skip averaging if previous point is missing
+            if Tind > 1 && tsvt[Tind-1] != 0
                 # Calculate relevant time gaps
                 Tg = (T[Tind]-T[Tind-1])
                 T1x = times[cnt]-T[Tind-1]
@@ -202,7 +203,7 @@ function trjstats()
                 cmb_svt[i,cnt] = svt[Tind]
                 cmb_tsvt[i,cnt] = tsvt[Tind]
                 cmb_pop[i,cnt] = pop[Tind]
-                cmb_via_bm[i,cnt] = via_bm[i,cnt]
+                cmb_via_bm[i,cnt] = via_bm[Tind]
                 cmb_shD[i,cnt] = shD[Tind]
                 cmb_sbs[i,cnt] = sbs[Tind]
                 cmb_ηs[i,cnt] = ηs[Tind]

@@ -14,6 +14,7 @@ include("parameters/make_paras.jl") # Function to make parameters for full model
 include("parameters/gen_pool.jl") # Function to generate species pools
 include("simulate/sim.jl") # Include simulation code for full model
 include("analysis/merge_data.jl") # Allows reconstruction of full trajectories
+include("analysis/chemostat.jl") # Allows chemostat testing
 
 # export global constants
 export Rgas, ΔGATP, NA

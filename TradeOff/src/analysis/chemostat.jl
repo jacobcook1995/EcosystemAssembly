@@ -4,7 +4,7 @@ export ω_test
 
 # function to implement the consumer resource dynamics
 function chemo_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Microbe,1},ps::TOParameters,
-                        rate::Array{Float64,2},t::Float64)
+                        C::Array{Float64,1},rate::Array{Float64,2},t::Float64)
     # loop over the reactions to find reaction rate for each reaction for each strain
     for j = 1:ps.O
         # Find substrate and product for this reaction
@@ -14,9 +14,9 @@ function chemo_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Micr
                 # Find index of this reaction in microbe
                 k = findfirst(x->x==j,ms[i].Reacs)
                 # Find amount of enzyme E
-                E = Eα(x[2*length(ms)+ps.M+i],ms[i],k)
+                E = Eα(x[2*length(ms)+i],ms[i],k)
                 # Then finally calculate reaction rate
-                rate[i,j] = qs(x[length(ms)+ps.reacs[j].Rct],x[length(ms)+ps.reacs[j].Prd],E,k,ms[i],ps.T,ps.reacs[ms[i].Reacs[k]])
+                rate[i,j] = qs(C[ps.reacs[j].Rct],C[ps.reacs[j].Prd],E,k,ms[i],ps.T,ps.reacs[ms[i].Reacs[k]])
             else
                 rate[i,j] = 0.0
             end
@@ -30,21 +30,21 @@ function chemo_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Micr
             dx[i] = 0.0
             x[i] = 0.0
             # In this case the energy concentration should also be fixed to zero
-            dx[length(ms)+ps.M+i] = 0.0
-            x[length(ms)+ps.M+i] = 0.0
+            dx[length(ms)+i] = 0.0
+            x[length(ms)+i] = 0.0
             # Corresponding proteome fraction also shouldn't shift
-            dx[2*length(ms)+ps.M+i] = 0.0
+            dx[2*length(ms)+i] = 0.0
         else
             # find growth rate for strains that aren't extinct
-            λ = λs(x[length(ms)+ps.M+i],x[2*length(ms)+ps.M+i],ms[i])
+            λ = λs(x[length(ms)+i],x[2*length(ms)+i],ms[i])
             # (growth rate - death rate)*population
             dx[i] = (λ - ms[i].d)*x[i]
             # Now find optimal ribosome fraction
-            ϕR = ϕ_R(x[length(ms)+ps.M+i],ms[i])
+            ϕR = ϕ_R(x[length(ms)+i],ms[i])
             # This introduces a time delay
             τ = ms[i].fd/λ
             # Then update actual ribosome fraction
-            dx[2*length(ms)+ps.M+i] = (ϕR - x[2*length(ms)+ps.M+i])/τ
+            dx[2*length(ms)+i] = (ϕR - x[2*length(ms)+i])/τ
             # Energy intake is zero
             J = 0
             # Loop over all reactions to find energy gained by them
@@ -52,11 +52,11 @@ function chemo_dynamics!(dx::Array{Float64,1},x::Array{Float64,1},ms::Array{Micr
                 J += ms[i].η[j]*rate[i,ms[i].Reacs[j]]
             end
             # Add energy intake and substract translation and dilution from the energy concentration
-            dx[length(ms)+ps.M+i] = J - (ms[i].MC*χs(ϕR,ms[i]) + x[length(ms)+ps.M+i])*λ
+            dx[length(ms)+i] = J - (ms[i].MC*χs(ϕR,ms[i]) + x[length(ms)+i])*λ
         end
     end
     # Any ATP numbers that have gone below 0.33 should be removed
-    for i = (length(ms)+ps.M+1):(2*length(ms)+ps.M)
+    for i = (length(ms)+1):(2*length(ms))
         if x[i] < 0.33
             x[i] = 0.0
             dx[i] = 0.0
@@ -70,13 +70,14 @@ function chemo(ps::TOParameters,pop::Float64,conc::Float64,as::Float64,ϕs::Floa
                     mic::Microbe,Tmax::Float64)
     # Preallocate memory
     rate = zeros(1,ps.O)
+    # Set constant concentration
+    concs = [conc,1e-7]
     # Now substitute preallocated memory in
-    dyns!(dx,x,ms,t) = chemo_dynamics!(dx,x,ms,ps,rate,t)
+    dyns!(dx,x,ms,t) = chemo_dynamics!(dx,x,ms,ps,concs,rate,t)
     # Find time span for this step
     tspan = (0,Tmax)
     # Make appropriate initial condition
-    concs = [conc,0.001]
-    x0 = [pop;concs;as;ϕs]
+    x0 = [pop;as;ϕs]
     # Then setup and solve the problem
     prob = ODEProblem(dyns!,x0,tspan,[mic])
     sol = DifferentialEquations.solve(prob)
@@ -90,7 +91,7 @@ function ω_test()
     d = 6e-5
     μrange = 5e7 # Set high to avoid thermodynamic inhibition
     # Predefine a set of omega values
-    ωs = collect(range(0.1, 0.9, length=9))
+    ωs = collect(range(0.1, 0.9, length=19))
     # First define fixed microbial variables
     η = 3.0 # Reasonably high
     PID = randstring(['0':'9'; 'a':'f'])
@@ -136,27 +137,43 @@ function ω_test()
     # Preallocate array of fixed microbes
     fix = Array{Microbe,1}(undef,length(ωs))
     # Set fixed Ω
-    Ωf1 = 1e9
+    Ωf = 5e8#9
     for i = 1:length(ωs)
         # Can finally generate microbe
-        fix[i] = make_Microbe(MC,γm,Kγ,χl,χu,Pb,d,ϕH,Ωf1,fd,ωs[i],R,Reacs,
+        fix[i] = make_Microbe(MC,γm,Kγ,χl,χu,Pb,d,ϕH,Ωf,fd,ωs[i],R,Reacs,
                    [η],[kc],[KS],[kr],n,[1.0],i,PID)
     end
     # Choose sensible initial values
     ϕi = 0.01 # Start at low value
     ai = 1e5
-    Ci = 1.0
+    Ci = 0.001#1.0
     Ni = 1e-3
+    # Preallocate containers
+    λf = zeros(length(ωs))
+    ϕsf = zeros(length(ωs))
+    af = zeros(length(ωs))
+    λv = zeros(length(ωs))
+    ϕsv = zeros(length(ωs))
     # Choose simulation window
     Tmax = 5e5
     # Loop over all the fixed species
-    for i = 2#:length(ωs)
+    for i = 1:length(ωs)
         # Simulate each population
         C, T = chemo(ps,Ni,Ci,ai,ϕi,fix[i],Tmax)
-        return(C, T)
+        # Find growth rate of final point
+        λf[i] = λs(C[end,2],C[end,3],fix[i])
+        af[i] = C[end,2]
+        ϕsf[i] = C[end,3]
     end
-
-    return(nothing)
+    # Then loop over all the variable species
+    for i = 1:length(ωs)
+        # Simulate each population
+        C, T = chemo(ps,Ni,Ci,ai,ϕi,var[i],Tmax)
+        # Find growth rate of final point
+        λv[i] = λs(C[end,2],C[end,3],var[i])
+        ϕsv[i] = C[end,3]
+    end
+    return(ωs,λf,af,ϕsf)
 end
 
 # @time ω_test()

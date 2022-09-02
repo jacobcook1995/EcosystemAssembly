@@ -101,7 +101,8 @@ function ω_test()
     γm = 1260.0/60.0
     Kγ = 5e8
     χl = 29.0
-    χu = 1e-20 # Turns off differences in efficency
+    χu = 3.5*χl
+    χoff = 1e-20 # Turns off differences in efficency
     Pb = 0.7
     ϕH = 0.45
     fd = log(100)/log(2)
@@ -136,44 +137,49 @@ function ω_test()
     end
     # Preallocate array of fixed microbes
     fix = Array{Microbe,1}(undef,length(ωs))
+    var = Array{Microbe,1}(undef,length(ωs))
     # Set fixed Ω
-    Ωf = 5e8#9
+    Ωf = 2.5e8
     for i = 1:length(ωs)
         # Can finally generate microbe
-        fix[i] = make_Microbe(MC,γm,Kγ,χl,χu,Pb,d,ϕH,Ωf,fd,ωs[i],R,Reacs,
+        fix[i] = make_Microbe(MC,γm,Kγ,χl,χoff,Pb,d,ϕH,Ωf,fd,ωs[i],R,Reacs,
                    [η],[kc],[KS],[kr],n,[1.0],i,PID)
+        var[i] = make_Microbe(MC,γm,Kγ,χl,χu,Pb,d,ϕH,Ωf,fd,ωs[i],R,Reacs,
+                   [η],[kc],[KS],[kr],n,[1.0],i+length(ωs),PID)
     end
     # Choose sensible initial values
     ϕi = 0.01 # Start at low value
     ai = 1e5
-    Ci = 0.001#1.0
+    Cl = 0.001
+    Ch = 1.0
     Ni = 1e-3
     # Preallocate containers
-    λf = zeros(length(ωs))
-    ϕsf = zeros(length(ωs))
-    af = zeros(length(ωs))
-    λv = zeros(length(ωs))
-    ϕsv = zeros(length(ωs))
+    λl = zeros(length(ωs))
+    ϕsl = zeros(length(ωs))
+    χfl = zeros(length(ωs))
+    χvl = zeros(length(ωs))
+    λh = zeros(length(ωs))
+    ϕsh = zeros(length(ωs))
+    χfh = zeros(length(ωs))
+    χvh = zeros(length(ωs))
     # Choose simulation window
     Tmax = 5e5
     # Loop over all the fixed species
     for i = 1:length(ωs)
-        # Simulate each population
-        C, T = chemo(ps,Ni,Ci,ai,ϕi,fix[i],Tmax)
+        # Simulate each population (first for low conc)
+        C, T = chemo(ps,Ni,Cl,ai,ϕi,fix[i],Tmax)
         # Find growth rate of final point
-        λf[i] = λs(C[end,2],C[end,3],fix[i])
-        af[i] = C[end,2]
-        ϕsf[i] = C[end,3]
-    end
-    # Then loop over all the variable species
-    for i = 1:length(ωs)
-        # Simulate each population
-        C, T = chemo(ps,Ni,Ci,ai,ϕi,var[i],Tmax)
+        λl[i] = λs(C[end,2],C[end,3],fix[i])
+        ϕsl[i] = C[end,3]
+        χfl[i] = χl*MC
+        χvl[i] = χs(C[end,3],var[i])*MC
+        # Then simulate the high conc case
+        C, T = chemo(ps,Ni,Ch,ai,ϕi,fix[i],Tmax)
         # Find growth rate of final point
-        λv[i] = λs(C[end,2],C[end,3],var[i])
-        ϕsv[i] = C[end,3]
+        λh[i] = λs(C[end,2],C[end,3],fix[i])
+        ϕsh[i] = C[end,3]
+        χfh[i] = χl*MC
+        χvh[i] = χs(C[end,3],var[i])*MC
     end
-    return(ωs,λf,af,ϕsf)
+    return(ωs,λl,ϕsl,χfl,χvl,λh,ϕsh,χfh,χvh)
 end
-
-# @time ω_test()

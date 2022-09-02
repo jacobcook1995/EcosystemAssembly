@@ -99,7 +99,7 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
     # This is a slightly arbitary choice for Kγ
     Kγ = 5e8
     # Set mimumum KΩ value
-    KΩm = 1e9
+    KΩ = 2.5e8
     # Use formula to calculate how many reactions are implied
     if M < 4
         O = floor(Int64,M*(M - 1)/2)
@@ -140,8 +140,6 @@ function new_pool(Nt::Int64,M::Int64,Rs::Array{Int64,1},d::Float64,μrange::Floa
         # Roller et al suggest a factor of 10 variation in max growth rate
         # So varies between 0.1 and 1.0
         ω = 0.1 + 0.9*rand()
-        # Want KΩ variations to be smaller, i.e. factor of 2.5
-        KΩ = 1.5*(ω-0.1)*KΩm + 1*KΩm
         # Make vectors of the (fixed) kinetic parameters
         kcs, KSs, krs = kin_rand(kc,KS,kr,R)
         # Reactions given random proportional weightings, done this in the simplest way possible

@@ -53,3 +53,7 @@ docs/site/
 # committed for packages, but should be committed for applications that require a static
 # environment.
 Manifest.toml
+
+# Ignore the pool files as they are just too big to add, and the Output folders, which also contain files that are far too large
+TradeOff/Pools/*.jld
+TradeOff/Output/*/

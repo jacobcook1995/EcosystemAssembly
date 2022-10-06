@@ -98,7 +98,7 @@ function figure4(rps::Int64,ims::Int64,sim_type::Int64,sim_type2::Int64)
     plot!(p1,times,mn_via_R[7,:],ribbon=se_via_R[7,:],label="R=7",color=a[4])
     # Add annotation
     px, py = annpos([0.0;5e7],[0.0;8.0],0.075,0.05)
-    annotate!(p1,[px,py,text("A",17,:black)])
+    annotate!(p1,px,py,text("A",17,:black))
     savefig(p1,"Output/Fig4/AvViaReacsTime.png")
     # Now do probability plot
     p2 = plot(xlabel="Time (s)",ylabel="Probability of no usable substrate",xlim=(-Inf,5e7))
@@ -109,7 +109,7 @@ function figure4(rps::Int64,ims::Int64,sim_type::Int64,sim_type2::Int64)
     plot!(p2,times,1 .-mn_Ps[7,:],ribbon=(up_Ps[7,:],dw_Ps[7,:]),label="R=7",color=a[4])
     # Add annotation
     px, py = annpos([0.0;5e7],[0.0;1.0375],0.075,0.05)
-    annotate!(p2,[px,py,text("B",17,:black)])
+    annotate!(p2,px,py,text("B",17,:black))
     savefig(p2,"Output/Fig4/ProbSubTime.png")
     # Plot trade-off for η
     p3 = plot(xlabel="Time (s)",ylabel="Average eta value",xlim=(-Inf,5e7))
@@ -120,7 +120,7 @@ function figure4(rps::Int64,ims::Int64,sim_type::Int64,sim_type2::Int64)
     plot!(p3,times,mn_ηs_R[7,:],ribbon=se_ηs_R[7,:],label="R=7",color=a[4])
     # Add annotation
     px, py = annpos([0.0;5e7],[0.0;7.5],0.075,0.05)
-    annotate!(p3,[px,py,text("C",17,:black)])
+    annotate!(p3,px,py,text("C",17,:black))
     # Define box for inset here
     box = (1,bbox(0.4,0.15,0.4,0.3,:bottom,:left))
     Ks = L"K_S"
@@ -162,7 +162,7 @@ function figure4(rps::Int64,ims::Int64,sim_type::Int64,sim_type2::Int64)
     plot!(p4,times,mn_via_R[7,:],ribbon=se_via_R[7,:],label="R=7",color=a[4])
     # Add annotation
     px, py = annpos([0.0;5e7],[0.0;5.0],0.075,0.05)
-    annotate!(p4,[px,py,text("D",17,:black)])
+    annotate!(p4,px,py,text("D",17,:black))
     savefig(p4,"Output/Fig4/LowFreeEnergy.png")
     # Plot all graphs as a single figure
     pt = plot(p1,p3,p2,p4,layout=4,size=(1200,800),margin=5.0mm)

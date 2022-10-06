@@ -65,7 +65,7 @@ function figure3(rps::Int64,ims::Int64,sim_type::Int64)
     p1 = plot(ylabel="Total population ($(e13) cells)",xlim=(-Inf,5e7),legend=:topleft)
     plot!(p1,t_times,mn_pop/1e13,ribbon=se_pop/1e13,label="Population",color=a[1],ylim=(-Inf,4.0))
     # Define box for inset here
-    box = (1,bbox(0.4,0.3,0.4,0.3,:bottom,:left))
+    box = (1,bbox(0.4,0.2,0.4,0.3,:bottom,:left))
     # Add histogram in as an insert
     histogram!(p1,all_fin_ϕRs,nbins=100,color=a[2],label="",inset_subplots=box,subplot=2)
     plot!(p1,xlabel="Final ribosome fraction ($(L"\phi_R"))",ylabel="Number of survivors",subplot=2)
@@ -78,14 +78,14 @@ function figure3(rps::Int64,ims::Int64,sim_type::Int64)
     p1 = plot!(pt,t_times,mn_shD,ribbon=se_shD,label="Diversity",color=a[3],legend=:topright)
     # Add annotation
     px, py = annpos([0.0;5e7],[0.0;3.9],0.05,0.0)
-    annotate!(p1,[px,py,text("A",17,:black)])
+    annotate!(p1,px,py,text("A",17,:black))
     savefig(p1,"Output/Fig3/SumStats.png")
     # Now make the second plot
-    p2 = plot(xlabel="Time (s)",ylabel="Number of species",xlim=(-Inf,5e7),legend=:topleft)
-    plot!(p2,t_times,mn_svt,ribbon=se_svt,label="Species",color=a[4])
+    p2 = plot(xlabel="Time (s)",ylabel="Number of species",xlim=(-Inf,5e7),ylim=(-Inf,30.0))
+    plot!(p2,t_times,mn_svt,ribbon=se_svt,label="Species",color=a[4],legend=:topleft)
     # Add annotation
     px, py = annpos([0.0;5e7],[0.0;30.0],0.05,0.0)
-    annotate!(p2,[px,py,text("B",17,:black)])
+    annotate!(p2,px,py,text("B",17,:black))
     # Define box for inset here
     box = (1,bbox(0.4,0.4,0.4,0.3,:bottom,:left))
     # Add histogram in as an insert

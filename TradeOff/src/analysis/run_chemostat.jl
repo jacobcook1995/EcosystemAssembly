@@ -2,24 +2,16 @@ using Plots
 using TradeOff
 
 function wrap_test()
-    ωs, λl, ϕsl, χfl, χvl, λh, ϕsh, χfh, χvh = ω_test()
+    ωs, λlf, λhf, λlv, λhv = ω_test()
     # Extract max ribosome fraction
-    plot(ωs,λl,label="")
-    savefig("Output/Fig8/GrowthLow.png")
-    plot(ωs,ϕsl,label="")
-    savefig("Output/Fig8/PhiLow.png")
-    plot(ωs,χfl,label="")
-    savefig("Output/Fig8/FixedCostLow.png")
-    plot(ωs,χvl,label="")
-    savefig("Output/Fig8/VariableCostLow.png")
-    plot(ωs,λh,label="")
-    savefig("Output/Fig8/GrowthHigh.png")
-    plot(ωs,ϕsh,label="")
-    savefig("Output/Fig8/PhiHigh.png")
-    plot(ωs,χfh,label="")
-    savefig("Output/Fig8/FixedCostHigh.png")
-    plot(ωs,χvh,label="")
-    savefig("Output/Fig8/VariableCostHigh.png")
+    plot(ωs,λlf,label="")
+    savefig("Output/Fig8/GrowthLowFixed.png")
+    plot(ωs,λhf,label="")
+    savefig("Output/Fig8/GrowthHighFixed.png")
+    plot(ωs,λlv,label="")
+    savefig("Output/Fig8/GrowthLowVar.png")
+    plot(ωs,λhv,label="")
+    savefig("Output/Fig8/GrowthHighVar.png")
     return(nothing)
 end
 

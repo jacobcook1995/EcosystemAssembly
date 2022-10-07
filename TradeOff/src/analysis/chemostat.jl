@@ -154,14 +154,10 @@ function ω_test()
     Ch = 1.0
     Ni = 1e-3
     # Preallocate containers
-    λl = zeros(length(ωs))
-    ϕsl = zeros(length(ωs))
-    χfl = zeros(length(ωs))
-    χvl = zeros(length(ωs))
-    λh = zeros(length(ωs))
-    ϕsh = zeros(length(ωs))
-    χfh = zeros(length(ωs))
-    χvh = zeros(length(ωs))
+    λlf = zeros(length(ωs))
+    λhf = zeros(length(ωs))
+    λlv = zeros(length(ωs))
+    λhv = zeros(length(ωs))
     # Choose simulation window
     Tmax = 5e5
     # Loop over all the fixed species
@@ -169,17 +165,19 @@ function ω_test()
         # Simulate each population (first for low conc)
         C, T = chemo(ps,Ni,Cl,ai,ϕi,fix[i],Tmax)
         # Find growth rate of final point
-        λl[i] = λs(C[end,2],C[end,3],fix[i])
-        ϕsl[i] = C[end,3]
-        χfl[i] = χl*MC
-        χvl[i] = χs(C[end,3],var[i])*MC
+        λlf[i] = λs(C[end,2],C[end,3],fix[i])
         # Then simulate the high conc case
         C, T = chemo(ps,Ni,Ch,ai,ϕi,fix[i],Tmax)
         # Find growth rate of final point
-        λh[i] = λs(C[end,2],C[end,3],fix[i])
-        ϕsh[i] = C[end,3]
-        χfh[i] = χl*MC
-        χvh[i] = χs(C[end,3],var[i])*MC
+        λhf[i] = λs(C[end,2],C[end,3],fix[i])
+        # Then move onto the variable cases
+        C, T = chemo(ps,Ni,Cl,ai,ϕi,var[i],Tmax)
+        # Find growth rate of final point
+        λlv[i] = λs(C[end,2],C[end,3],var[i])
+        # Then simulate the high conc case
+        C, T = chemo(ps,Ni,Ch,ai,ϕi,var[i],Tmax)
+        # Find growth rate of final point
+        λhv[i] = λs(C[end,2],C[end,3],var[i])
     end
-    return(ωs,λl,ϕsl,χfl,χvl,λh,ϕsh,χfh,χvh)
+    return(ωs,λlf,λhf,λlv,λhv)
 end

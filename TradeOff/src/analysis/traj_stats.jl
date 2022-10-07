@@ -82,6 +82,7 @@ function trjstats()
     cmb_via_η_bw = zeros(rps,length(times))
     cmb_ωs = zeros(rps,length(times))
     cmb_via_ω = zeros(rps,length(times))
+    cmb_via_ω_bw = zeros(rps,length(times))
     cmb_fr_ΔG = zeros(rps,length(times))
     cmb_fr_ΔG_bw = zeros(rps,length(times))
     cmb_via_a = zeros(rps,length(times))
@@ -122,6 +123,7 @@ function trjstats()
         via_η_bw = load(vfile,"via_η_bw")
         ωs = load(vfile,"ωs")
         via_ω = load(vfile,"via_ω")
+        via_ω_bw = load(vfile,"via_ω_bw")
         fr_ΔG = load(vfile,"fr_ΔG")
         fr_ΔG_bw = load(vfile,"fr_ΔG_bw")
         via_a = load(vfile,"via_a")
@@ -177,6 +179,7 @@ function trjstats()
                 cmb_via_η_bw[i,cnt] = via_η_bw[Tind]*(T1x)/Tg + via_η_bw[Tind-1]*(Tx2)/Tg
                 cmb_ωs[i,cnt] = ωs[Tind]*(T1x)/Tg + ωs[Tind-1]*(Tx2)/Tg
                 cmb_via_ω[i,cnt] = via_ω[Tind]*(T1x)/Tg + via_ω[Tind-1]*(Tx2)/Tg
+                cmb_via_ω_bw[i,cnt] = via_ω_bw[Tind]*(T1x)/Tg + via_ω_bw[Tind-1]*(Tx2)/Tg
                 cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]*(T1x)/Tg + fr_ΔG[Tind-1]*(Tx2)/Tg
                 cmb_fr_ΔG_bw[i,cnt] = fr_ΔG_bw[Tind]*(T1x)/Tg + fr_ΔG_bw[Tind-1]*(Tx2)/Tg
                 cmb_via_a[i,cnt] = via_a[Tind]*(T1x)/Tg + via_a[Tind-1]*(Tx2)/Tg
@@ -211,6 +214,7 @@ function trjstats()
                 cmb_via_η_bw[i,cnt] = via_η_bw[Tind]
                 cmb_ωs[i,cnt] = ωs[Tind]
                 cmb_via_ω[i,cnt] = via_ω[Tind]
+                cmb_via_ω_bw[i,cnt] = via_ω_bw[Tind]
                 cmb_fr_ΔG[i,cnt] = fr_ΔG[Tind]
                 cmb_fr_ΔG_bw[i,cnt] = fr_ΔG_bw[Tind]
                 cmb_via_a[i,cnt] = via_a[Tind]
@@ -260,6 +264,7 @@ function trjstats()
     tot_via_η_bw = dropdims(sum(cmb_via_η_bw,dims=1),dims=1)
     tot_ωs = dropdims(sum(cmb_ωs,dims=1),dims=1)
     tot_via_ω = dropdims(sum(cmb_via_ω,dims=1),dims=1)
+    tot_via_ω_bw = dropdims(sum(cmb_via_ω_bw,dims=1),dims=1)
     tot_fr_ΔG = dropdims(sum(cmb_fr_ΔG,dims=1),dims=1)
     tot_fr_ΔG_bw = dropdims(sum(cmb_fr_ΔG_bw,dims=1),dims=1)
     tot_via_a = dropdims(sum(cmb_via_a,dims=1),dims=1)
@@ -283,6 +288,7 @@ function trjstats()
     # Calculate means for viable case
     mn_via_bm = tot_via_bm./(no_via)
     mn_via_ω = tot_via_ω./(no_via)
+    mn_via_ω_bw = tot_via_ω_bw./(no_via)
     mn_via_η = tot_via_η./(no_via)
     mn_via_η_bw = tot_via_η_bw./(no_via)
     mn_via_a = tot_via_a./(no_via)
@@ -338,6 +344,7 @@ function trjstats()
     sd_via_η_bw = zeros(size(mn_via_η_bw))
     sd_ωs = zeros(size(mn_ωs))
     sd_via_ω = zeros(size(mn_via_ω))
+    sd_via_ω_bw = zeros(size(mn_via_ω_bw))
     sd_fr_ΔG = zeros(size(mn_fr_ΔG))
     sd_fr_ΔG_bw = zeros(size(mn_fr_ΔG_bw))
     sd_via_a = zeros(size(mn_via_a))
@@ -370,6 +377,7 @@ function trjstats()
             sd_via_η[i] = sqrt(sum((cmb_via_η[vinds,i] .- mn_via_η[i]).^2)/(no_via[i] - 1))
             sd_via_η_bw[i] = sqrt(sum((cmb_via_η_bw[vinds,i] .- mn_via_η_bw[i]).^2)/(no_via[i] - 1))
             sd_via_ω[i] = sqrt(sum((cmb_via_ω[vinds,i] .- mn_via_ω[i]).^2)/(no_via[i] - 1))
+            sd_via_ω_bw[i] = sqrt(sum((cmb_via_ω_bw[vinds,i] .- mn_via_ω_bw[i]).^2)/(no_via[i] - 1))
             sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[vinds,i] .- mn_fr_ΔG[i]).^2)/(no_via[i] - 1))
             sd_fr_ΔG_bw[i] = sqrt(sum((cmb_fr_ΔG_bw[vinds,i] .- mn_fr_ΔG_bw[i]).^2)/(no_via[i] - 1))
             sd_via_a[i] = sqrt(sum((cmb_via_a[vinds,i] .- mn_via_a[i]).^2)/(no_via[i] - 1))
@@ -392,6 +400,7 @@ function trjstats()
             sd_via_η[i] = NaN
             sd_via_η_bw[i] = NaN
             sd_via_ω[i] = NaN
+            sd_via_ω_bw[i] = NaN
             sd_fr_ΔG[i] = NaN
             sd_fr_ΔG_bw[i] = NaN
             sd_via_a[i] = NaN
@@ -454,6 +463,7 @@ function trjstats()
         write(file,"mn_via_η_bw",mn_via_η_bw)
         write(file,"mn_ωs",mn_ωs)
         write(file,"mn_via_ω",mn_via_ω)
+        write(file,"mn_via_ω_bw",mn_via_ω_bw)
         write(file,"mn_fr_ΔG",mn_fr_ΔG)
         write(file,"mn_fr_ΔG_bw",mn_fr_ΔG_bw)
         write(file,"mn_via_a",mn_via_a)
@@ -485,6 +495,7 @@ function trjstats()
         write(file,"sd_via_η_bw",sd_via_η_bw)
         write(file,"sd_ωs",sd_ωs)
         write(file,"sd_via_ω",sd_via_ω)
+        write(file,"sd_via_ω_bw",sd_via_ω_bw)
         write(file,"sd_fr_ΔG",sd_fr_ΔG)
         write(file,"sd_fr_ΔG_bw",sd_fr_ΔG_bw)
         write(file,"sd_via_a",sd_via_a)

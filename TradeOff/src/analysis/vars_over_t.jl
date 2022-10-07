@@ -120,6 +120,7 @@ function v_over_t()
         via_bm = zeros(length(T))
         ωs = zeros(length(T))
         via_ω = zeros(length(T))
+        via_ω_bw = zeros(length(T))
         fr_ΔG = zeros(length(T))
         fr_ΔG_bw = zeros(length(T))
         via_a = zeros(length(T))
@@ -187,6 +188,7 @@ function v_over_t()
                 via_η[j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)
                 via_ω[j] += ms[vinds[k]].ω
                 via_η_bw[j] += sum(ms[vinds[k]].η.*ms[vinds[k]].ϕP)*C[j,vinds[k]]
+                via_ω_bw[j] += ms[vinds[k]].ω*C[j,vinds[k]]
                 via_bm[j] += C[j,vinds[k]]
                 kcs[j] += sum(ms[vinds[k]].kc.*ms[vinds[k]].ϕP)
                 KSs[j] += sum(ms[vinds[k]].KS.*ms[vinds[k]].ϕP)
@@ -237,6 +239,7 @@ function v_over_t()
                 via_η[j] /= tsvt[j]
                 via_η_bw[j] /= via_bm[j]
                 via_ω[j] /= tsvt[j]
+                via_ω_bw[j] /= via_bm[j]
                 kcs[j] /= tsvt[j]
                 KSs[j] /= tsvt[j]
                 krs[j] /= tsvt[j]
@@ -318,6 +321,7 @@ function v_over_t()
             write(file,"av_steps_bw",av_steps_bw)
             write(file,"ωs",ωs)
             write(file,"via_ω",via_ω)
+            write(file,"via_ω_bw",via_ω_bw)
             write(file,"fr_ΔG",fr_ΔG)
             write(file,"fr_ΔG_bw",fr_ΔG_bw)
             write(file,"via_a",via_a)

@@ -8,33 +8,43 @@ using PlotUtils
 # Export functions that are useful externally
 export annpos, corrparr
 
-# Export color palette
+# Export colour palette
 export wong2_palette
 
 # A function to return positions for labels
-function annpos(datax::Array{Float64,1},datay::Array{Float64,1},δx=0.10::Float64,δy=0.0::Float64)
+function annpos(
+    datax::Array{Float64,1},
+    datay::Array{Float64,1},
+    δx = 0.10::Float64,
+    δy = 0.0::Float64,
+)
     # Need minimas and maximas
     xmax = maximum(datax)
     xmin = minimum(datax)
     # Calculate optimal x position for label
-    posx = xmin - δx*(xmax-xmin)
+    posx = xmin - δx * (xmax - xmin)
     ymax = maximum(datay)
     ymin = minimum(datay)
     # Different formula for y as y axis extends a different length
-    posy = ymax + δy*(ymax-ymin)
-    return(posx,posy)
+    posy = ymax + δy * (ymax - ymin)
+    return (posx, posy)
 end
 
 # Function that takes sets of data and does some fitting
 # This returns the fit, the correlation coefficient, and the confidence interval
-function corrparr(xdata::Array{Float64,1},ydata::Array{Float64,1},p0::Array{Float64,1},xran::AbstractRange)
+function corrparr(
+    xdata::Array{Float64,1},
+    ydata::Array{Float64,1},
+    p0::Array{Float64,1},
+    xran::AbstractRange,
+)
     # p0 is the initial parameter guess
     # xran is the range to calculate over
 
     # First define model
-    @. model(x,p) = p[1] + p[2]*x
+    @. model(x, p) = p[1] + p[2] * x
     # Fit data to this model
-    fit = curve_fit(model,xdata,ydata,p0)
+    fit = curve_fit(model, xdata, ydata, p0)
     yint = coef(fit)[1]
     slop = coef(fit)[2]
     # Then find confidence interval
@@ -42,34 +52,40 @@ function corrparr(xdata::Array{Float64,1},ydata::Array{Float64,1},p0::Array{Floa
     vyint = con[1]
     vslop = con[2]
     # Calculate intervals for the range given
-    intlow = abs.(model(xran,[yint,slop]) .- model(xran,[vyint[2],vslop[2]]))
-    intup = abs.(model(xran,[yint,slop]) .- model(xran,[vyint[1],vslop[1]]))
+    intlow = abs.(model(xran, [yint, slop]) .- model(xran, [vyint[2], vslop[2]]))
+    intup = abs.(model(xran, [yint, slop]) .- model(xran, [vyint[1], vslop[1]]))
     # Now calculate Pearson correlation coefficient
-    xbar = sum(xdata)/length(xdata)
-    ybar = sum(ydata)/length(ydata)
+    xbar = sum(xdata) / length(xdata)
+    ybar = sum(ydata) / length(ydata)
     a = 0
     b = 0
     c = 0
     for i = 1:length(xdata)
-        a += (xdata[i] - xbar)*(ydata[i] - ybar)
+        a += (xdata[i] - xbar) * (ydata[i] - ybar)
         b += (xdata[i] - xbar)^2
         c += (ydata[i] - ybar)^2
     end
-    r = a/sqrt(b*c)
-    return(yint,slop,intlow,intup,r)
+    r = a / sqrt(b * c)
+    return (yint, slop, intlow, intup, r)
 end
 
 # Overload corrparr function so that errors can be provided
 # This returns the fit, the correlation coefficient, and the confidence interval
-function corrparr(xdata::Array{Float64,1},ydata::Array{Float64,1},weig::Array{Float64,1},p0::Array{Float64,1},xran::AbstractRange)
+function corrparr(
+    xdata::Array{Float64,1},
+    ydata::Array{Float64,1},
+    weig::Array{Float64,1},
+    p0::Array{Float64,1},
+    xran::AbstractRange,
+)
     # p0 is the initial parameter guess
     # xran is the range to calculate over
     # weig is the weight given to each point
 
     # First define model
-    @. model(x,p) = p[1] + p[2]*x
+    @. model(x, p) = p[1] + p[2] * x
     # Fit data to this model
-    fit = curve_fit(model,xdata,ydata,weig,p0)
+    fit = curve_fit(model, xdata, ydata, weig, p0)
     yint = coef(fit)[1]
     slop = coef(fit)[2]
     # Then find confidence interval
@@ -77,44 +93,52 @@ function corrparr(xdata::Array{Float64,1},ydata::Array{Float64,1},weig::Array{Fl
     vyint = con[1]
     vslop = con[2]
     # Calculate intervals for the range given
-    intlow = abs.(model(xran,[yint,slop]) .- model(xran,[vyint[2],vslop[2]]))
-    intup = abs.(model(xran,[yint,slop]) .- model(xran,[vyint[1],vslop[1]]))
+    intlow = abs.(model(xran, [yint, slop]) .- model(xran, [vyint[2], vslop[2]]))
+    intup = abs.(model(xran, [yint, slop]) .- model(xran, [vyint[1], vslop[1]]))
     # Now calculate Pearson correlation coefficient
-    xbar = sum(xdata)/length(xdata)
-    ybar = sum(ydata)/length(ydata)
+    xbar = sum(xdata) / length(xdata)
+    ybar = sum(ydata) / length(ydata)
     a = 0
     b = 0
     c = 0
     for i = 1:length(xdata)
-        a += (xdata[i] - xbar)*(ydata[i] - ybar)
+        a += (xdata[i] - xbar) * (ydata[i] - ybar)
         b += (xdata[i] - xbar)^2
         c += (ydata[i] - ybar)^2
     end
-    r = a/sqrt(b*c)
+    r = a / sqrt(b * c)
     # And could do a weighted correlation
-    wxbar = sum(weig.*xdata)/(length(xdata)*sum(weig))
-    wybar = sum(weig.*ydata)/(length(ydata)*sum(weig))
-    wcovxy = sum(weig.*(xdata.-wxbar).*(ydata.-wybar))/sum(weig)
-    wcovxx = sum(weig.*(xdata.-wxbar).*(xdata.-wxbar))/sum(weig)
-    wcovyy = sum(weig.*(ydata.-wybar).*(ydata.-wybar))/sum(weig)
-    wr = wcovxy/sqrt(wcovxx*wcovyy)
-    return(yint,slop,intlow,intup,r,wr)
- end
+    wxbar = sum(weig .* xdata) / (length(xdata) * sum(weig))
+    wybar = sum(weig .* ydata) / (length(ydata) * sum(weig))
+    wcovxy = sum(weig .* (xdata .- wxbar) .* (ydata .- wybar)) / sum(weig)
+    wcovxx = sum(weig .* (xdata .- wxbar) .* (xdata .- wxbar)) / sum(weig)
+    wcovyy = sum(weig .* (ydata .- wybar) .* (ydata .- wybar)) / sum(weig)
+    wr = wcovxy / sqrt(wcovxx * wcovyy)
+    return (yint, slop, intlow, intup, r, wr)
+end
 
- # Function to make the wong2_palette
+# Function to make the wong2_palette
 function wong2_palette()
     # Define Wong palette
     wong_palette = [
-    RGB(([230, 159,   0] / 255)...), # orange
-    RGB(([ 86, 180, 233] / 255)...), # sky blue
-    RGB(([  0, 158, 115] / 255)...), # blueish green
-    RGB(([240, 228,  66] / 255)...), # yellow
-    RGB(([  0, 114, 178] / 255)...), # blue
-    RGB(([213,  94,   0] / 255)...), # vermillion
-    RGB(([204, 121, 167] / 255)...), # reddish purple
+        RGB(([230, 159, 0] / 255)...), # orange
+        RGB(([86, 180, 233] / 255)...), # sky blue
+        RGB(([0, 158, 115] / 255)...), # blueish green
+        RGB(([240, 228, 66] / 255)...), # yellow
+        RGB(([0, 114, 178] / 255)...), # blue
+        RGB(([213, 94, 0] / 255)...), # vermillion
+        RGB(([204, 121, 167] / 255)...), # reddish purple
     ]
 
-    colors = palette([RGB(0,0,0); wong_palette]).colors.colors
-    c = convert.(RGBA,distinguishable_colors(20,vcat(colorant"white",colors);lchoices=[57],cchoices=[100]))[2:end]
-    return(palette(c))
+    colors = palette([RGB(0, 0, 0); wong_palette]).colors.colors
+    c = convert.(
+        RGBA,
+        distinguishable_colors(
+            20,
+            vcat(colorant"white", colors);
+            lchoices = [57],
+            cchoices = [100],
+        ),
+    )[2:end]
+    return (palette(c))
 end

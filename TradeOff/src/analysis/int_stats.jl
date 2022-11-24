@@ -2,10 +2,6 @@
 using TradeOff
 using JLD
 
-# Function to interpolate over a time series
-function interpolate_time(ts::Array[Float64,1], Tg::Float64, T1x::Float64, T2x::Float64)
-    return (ts[Tind] * (T1x) / Tg + ts[Tind-1] * (T2x) / Tg)
-
 # Function to read in variables with time and calculate stats over time
 function intstats()
     # Check that sufficient arguments have been provided

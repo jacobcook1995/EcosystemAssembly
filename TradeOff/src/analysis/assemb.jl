@@ -3,19 +3,19 @@ using TradeOff
 using JLD
 using Glob
 
-# Function to assemble specfic communities
+# Function to assemble specific communities
 function assemble()
-    # Check that sufficent arguments have been provided
+    # Check that sufficient arguments have been provided
     if length(ARGS) < 2
-        error("Insufficent inputs provided")
+        error("Insufficient inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     rps = 0
     sim_type = 0
     # Check that all arguments can be converted to integers
     try
-        rps = parse(Int64,ARGS[1])
-        sim_type = parse(Int64,ARGS[2])
+        rps = parse(Int64, ARGS[1])
+        sim_type = parse(Int64, ARGS[2])
     catch e
         error("need to provide 2 integers")
     end
@@ -25,9 +25,9 @@ function assemble()
     if length(ARGS) > 2
         # Check this argument is an integer
         try
-            Rs = parse(Int64,ARGS[3])
+            Rs = parse(Int64, ARGS[3])
         catch e
-            error("intial run number must be integer")
+            error("initial run number must be integer")
         end
     end
     # Check that number of strains is greater than 0
@@ -48,18 +48,18 @@ function assemble()
     flush(stdout)
     # Use formula to find how many reactions number of metabolites implies
     if M < 4
-        O = floor(Int64,M*(M - 1)/2)
+        O = floor(Int64, M * (M - 1) / 2)
     else
-        O = 4*M - 10
+        O = 4 * M - 10
     end
     # Preallocate container for filenames
-    pls = fill("",Np)
+    pls = fill("", Np)
     # Loop over number of required pools
     for i = 1:Np
         # Find all pools satisfying the condition
         flnms = glob("Pools/ID=*N=$(Nt)M=$(M)d=$(d)u=$(μrange).jld")
         # Loop over valid filenames
-        for j = 1:length(flnms)
+        for j in eachindex(flnms)
             # Save first that hasn't already been used
             if flnms[j] ∉ pls
                 pls[i] = flnms[j]
@@ -67,17 +67,17 @@ function assemble()
         end
     end
     # Save the reaction set for the first file as a point of comparison
-    rs = load(pls[1],"reacs")
+    rs = load(pls[1], "reacs")
     # Check that all pools match this
     for i = 2:Np
-        rst = load(pls[i],"reacs")
+        rst = load(pls[i], "reacs")
         if rst ≠ rs
             error("pool $i uses different reaction set")
         end
     end
     # Initial ribosome fraction is taken from ATP fits I did a while ago
     ϕR0 = 0.128
-    # Fairly arbitary inital conditions
+    # Fairly arbitrary initial conditions
     pop = 1000.0
     conc = 1e-15
     as = 1e5
@@ -90,7 +90,7 @@ function assemble()
     end
     # Mean immigration time assumed to be 1*10^5 seconds
     mT = 1e5
-    # Small number of immigration events for inital testing
+    # Small number of immigration events for initial testing
     ims = 500
     # Turn off immigration events for no immigration case
     if sim_type == 5
@@ -99,7 +99,7 @@ function assemble()
     # Rate of additional immigrants
     λIm = 0.5
     # Make parameter set
-    ps = initialise(M,O,μrange)
+    ps = initialise(M, O, μrange)
     # Check that reaction set is identical to sets the pool was generated with
     if ps.reacs ≠ rs
         error("simulation reaction set does not match pool reaction set")
@@ -115,11 +115,14 @@ function assemble()
         mkdir("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)")
     end
     # Save this parameter set
-    jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld","w") do file
-        write(file,"ps",ps)
+    jldopen(
+        "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld",
+        "w",
+    ) do file
+        write(file, "ps", ps)
     end
     # ONLY LOADING ONE POOL AT THE MOMENT, THIS PROBABLY HAS TO CHANGE
-    mpl = load(pls[1],"mics")
+    mpl = load(pls[1], "mics")
     # Now loop over the number of repeats
     for i = Rs:rps
         # Print that the new run has been started
@@ -128,25 +131,28 @@ function assemble()
         # Find starting time
         ti = time()
         # Then run the simulation
-        traj, T, micd, its = full_simulate(ps,pop,conc,as,ϕs,mpl,Ni,mT,ims,λIm)
+        traj, T, micd, its = full_simulate(ps, pop, conc, as, ϕs, mpl, Ni, mT, ims, λIm)
         # And then print time elapsed
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")
         # Now just save the relevant data
-        jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld","w") do file
+        jldopen(
+            "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld",
+            "w",
+        ) do file
             # Save full set of microbe data
-            write(file,"micd",micd)
+            write(file, "micd", micd)
             # Save extinction times
-            write(file,"its",its)
+            write(file, "its", its)
             # Save time data and dynamics data
-            write(file,"T",T)
-            write(file,"traj",traj)
+            write(file, "T", T)
+            write(file, "traj", traj)
         end
         # Print to show that run has been successfully completed
         println("Run $i completed and saved!")
         flush(stdout)
     end
-    return(nothing)
+    return (nothing)
 end
 
 @time assemble()

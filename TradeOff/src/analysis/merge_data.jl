@@ -10,30 +10,35 @@ function sim_paras(sim_type::Int64)
     # Choose biomass loss rate and
     if sim_type == 1 || sim_type == 5
         d = 6e-5
-        μrange = 5e6*(M/25)
+        μrange = 5e6 * (M / 25)
     elseif sim_type == 2
         d = 6e-5
-        μrange = 1.5e6*(M/25)
+        μrange = 1.5e6 * (M / 25)
     elseif sim_type == 3
         d = 1e-4
-        μrange = 5e6*(M/25)
+        μrange = 5e6 * (M / 25)
     elseif sim_type == 4
         d = 1e-4
-        μrange = 1.5e6*(M/25)
+        μrange = 1.5e6 * (M / 25)
     end
-    return(Np,Nt,M,d,μrange)
+    return (Np, Nt, M, d, μrange)
 end
 
 # function to merge my output data into a plotable form
-function merge_data(ps::TOParameters,traj::Array{Array{Float64,2},1},T::Array{Float64,1},
-                    micd::Array{MicData,1},its::Array{Float64,1})
+function merge_data(
+    ps::TOParameters,
+    traj::Array{Array{Float64,2},1},
+    T::Array{Float64,1},
+    micd::Array{MicData,1},
+    its::Array{Float64,1},
+)
     # Find total number of microbes
     totN = length(micd)
     # Find total number of immigration attempts
     ims = length(its)
     # Preallocate array to store all the trajectory data
-    C = Array{Float64,2}(undef,length(T),3*totN+ps.M)
-    # Previous immigration time is initally zero
+    C = Array{Float64,2}(undef, length(T), 3 * totN + ps.M)
+    # Previous immigration time is initially zero
     tp = 0.0
     # Index is 1 to begin with
     ind_tp = 1
@@ -44,29 +49,29 @@ function merge_data(ps::TOParameters,traj::Array{Array{Float64,2},1},T::Array{Fl
         # Find new immigration time
         tn = its[i]
         # Find index of this time in vector T
-        ind_tn = ind_tp + size(tt,1) - 2
+        ind_tn = ind_tp + size(tt, 1) - 2
         # Find strains that exist in this window
-        inds = ((micd.↦:ImT) .<= tp) .& (((micd.↦:ExT) .>= tn) .| isnan.(micd.↦:ExT))
+        inds = ((micd .↦ :ImT) .<= tp) .& (((micd .↦ :ExT) .>= tn) .| isnan.(micd .↦ :ExT))
         # From this calculate number of strains
         Ns = sum(inds)
         # setup counter
         cnt = 1
         # Firstly save the concentrations
-        C[ind_tp:ind_tn,(totN+1):(totN+ps.M)] = tt[1:end-1,(Ns+1):(Ns+ps.M)]
+        C[ind_tp:ind_tn, (totN+1):(totN+ps.M)] = tt[1:end-1, (Ns+1):(Ns+ps.M)]
         # loop over total number of strains
         for j = 1:totN
             # Find strains that exist within this window
             if inds[j] == true
-                C[ind_tp:ind_tn,j] = tt[1:end-1,cnt]
-                C[ind_tp:ind_tn,totN+ps.M+j] = tt[1:end-1,Ns+ps.M+cnt]
-                C[ind_tp:ind_tn,2*totN+ps.M+j] = tt[1:end-1,2*Ns+ps.M+cnt]
+                C[ind_tp:ind_tn, j] = tt[1:end-1, cnt]
+                C[ind_tp:ind_tn, totN+ps.M+j] = tt[1:end-1, Ns+ps.M+cnt]
+                C[ind_tp:ind_tn, 2*totN+ps.M+j] = tt[1:end-1, 2*Ns+ps.M+cnt]
                 # Then increment counter
                 cnt += 1
             else
                 # Strains that aren't present have their variables set as NaN
-                C[ind_tp:ind_tn,j] .= NaN
-                C[ind_tp:ind_tn,totN+ps.M+j] .= NaN
-                C[ind_tp:ind_tn,2*totN+ps.M+j] .= NaN
+                C[ind_tp:ind_tn, j] .= NaN
+                C[ind_tp:ind_tn, totN+ps.M+j] .= NaN
+                C[ind_tp:ind_tn, 2*totN+ps.M+j] .= NaN
             end
         end
         # Finally update previous time
@@ -75,7 +80,7 @@ function merge_data(ps::TOParameters,traj::Array{Array{Float64,2},1},T::Array{Fl
         ind_tp = ind_tn + 1
     end
     # find strains that go extinct at the very end or survive past it
-    inds = (((micd.↦:ExT) .== T[end]) .| isnan.(micd.↦:ExT))
+    inds = (((micd .↦ :ExT) .== T[end]) .| isnan.(micd .↦ :ExT))
     # Save number of survivors
     Ns = sum(inds)
     # Extract final relevant trajectory
@@ -83,22 +88,22 @@ function merge_data(ps::TOParameters,traj::Array{Array{Float64,2},1},T::Array{Fl
     # setup counter
     cnt = 1
     # Firstly save the concentrations
-    C[ind_tp:end,(totN+1):(totN+ps.M)] = tt[1:end,(Ns+1):(Ns+ps.M)]
+    C[ind_tp:end, (totN+1):(totN+ps.M)] = tt[1:end, (Ns+1):(Ns+ps.M)]
     # loop over total number of strains
     for j = 1:totN
         # Find strains that exist within this window
         if inds[j] == true
-            C[ind_tp:end,j] = tt[1:end,cnt]
-            C[ind_tp:end,totN+ps.M+j] = tt[1:end,Ns+ps.M+cnt]
-            C[ind_tp:end,2*totN+ps.M+j] = tt[1:end,2*Ns+ps.M+cnt]
+            C[ind_tp:end, j] = tt[1:end, cnt]
+            C[ind_tp:end, totN+ps.M+j] = tt[1:end, Ns+ps.M+cnt]
+            C[ind_tp:end, 2*totN+ps.M+j] = tt[1:end, 2*Ns+ps.M+cnt]
             # Then increment counter
             cnt += 1
         else
             # Strains that aren't present have their variables set as NaN
-            C[ind_tp:end,j] .= NaN
-            C[ind_tp:end,totN+ps.M+j] .= NaN
-            C[ind_tp:end,2*totN+ps.M+j] .= NaN
+            C[ind_tp:end, j] .= NaN
+            C[ind_tp:end, totN+ps.M+j] .= NaN
+            C[ind_tp:end, 2*totN+ps.M+j] .= NaN
         end
     end
-    return(C)
+    return (C)
 end

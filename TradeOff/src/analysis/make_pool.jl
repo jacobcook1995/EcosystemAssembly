@@ -2,9 +2,9 @@ using TradeOff
 
 # Function to generate a species pool
 function make_spool()
-    # Check that sufficent arguments have been provided
+    # Check that sufficient arguments have been provided
     if length(ARGS) < 3
-        error("Insufficent inputs provided")
+        error("Insufficient inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     Rl = 0
@@ -12,11 +12,11 @@ function make_spool()
     sim_type = 0
     # Check that all arguments can be converted to integers
     try
-        Rl = parse(Int64,ARGS[1])
-        Ru = parse(Int64,ARGS[2])
-        sim_type = parse(Int64,ARGS[3])
+        Rl = parse(Int64, ARGS[1])
+        Ru = parse(Int64, ARGS[2])
+        sim_type = parse(Int64, ARGS[3])
     catch e
-            error("need to provide 3 integers")
+        error("need to provide 3 integers")
     end
     # Check that simulation type is valid
     if Rl < 1
@@ -34,11 +34,11 @@ function make_spool()
     Rs = collect(Rl:2:Ru)
     # Extract other parameters based on simulation type chosen
     Np, Nt, M, d, μrange = sim_paras(sim_type)
-    # Product to substrate ratio for equilbrium (fixing this across all simualtions for now)
+    # Product to substrate ratio for equilibrium (fixing this across all simulations for now)
     mratio = 1e-2
     # Finally generate the new pool
-    new_pool(Nt,M,Rs,d,μrange,mratio)
-    return(nothing)
+    new_pool(Nt, M, Rs, d, μrange, mratio)
+    return (nothing)
 end
 
 @time make_spool()

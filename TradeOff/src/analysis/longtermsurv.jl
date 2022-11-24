@@ -4,9 +4,9 @@ using JLD
 
 # Something
 function long_term_surv()
-    # Check that sufficent arguments have been provided
+    # Check that sufficient arguments have been provided
     if length(ARGS) < 3
-        error("insufficent inputs provided")
+        error("insufficient inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     rps = 0
@@ -14,9 +14,9 @@ function long_term_surv()
     sim_type = 0
     # Check that all arguments can be converted to integers
     try
-        rps = parse(Int64,ARGS[1])
-        ims = parse(Int64,ARGS[2])
-        sim_type = parse(Int64,ARGS[3])
+        rps = parse(Int64, ARGS[1])
+        ims = parse(Int64, ARGS[2])
+        sim_type = parse(Int64, ARGS[3])
     catch e
         error("need to provide 3 integers")
     end
@@ -34,19 +34,22 @@ function long_term_surv()
             error("$(ims) immigrations run $(rN) is missing an output file")
         end
         # Load in microbe data
-        micd = load(ofile,"micd")
+        micd = load(ofile, "micd")
         # Find indices of species that survive to the end
-        inds = findall(isnan,micd.↦:ExT)
+        inds = findall(isnan, micd .↦ :ExT)
         # Add the immigration times of these species to the vector
-        sTs = cat(sTs,(micd.↦:ImT)[inds],dims=1)
+        sTs = cat(sTs, (micd.↦:ImT)[inds], dims = 1)
     end
     # Once all this has been calculated save ``survival'' times as a new datafiles
     # Now want to save means and standard deviations
-    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SurvTimes$(ims)Ims.jld","w") do file
+    jldopen(
+        "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SurvTimes$(ims)Ims.jld",
+        "w",
+    ) do file
         # Save times
-        write(file,"sTs",sTs)
+        write(file, "sTs", sTs)
     end
-    return(nothing)
+    return (nothing)
 end
 
 @time long_term_surv()

@@ -1,1 +1,3 @@
+always_for_in = true
 whitespace_in_kwargs = true
+remove_extra_newlines = true

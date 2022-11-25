@@ -60,7 +60,7 @@ function corrparr(
     a = 0
     b = 0
     c = 0
-    for i = 1:length(xdata)
+    for i in 1:length(xdata)
         a += (xdata[i] - xbar) * (ydata[i] - ybar)
         b += (xdata[i] - xbar)^2
         c += (ydata[i] - ybar)^2
@@ -101,7 +101,7 @@ function corrparr(
     a = 0
     b = 0
     c = 0
-    for i = 1:length(xdata)
+    for i in 1:length(xdata)
         a += (xdata[i] - xbar) * (ydata[i] - ybar)
         b += (xdata[i] - xbar)^2
         c += (ydata[i] - ybar)^2

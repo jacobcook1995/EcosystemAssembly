@@ -225,7 +225,7 @@ function make_TOParameters(
     @assert all((reacs .↦ :Rct) .<= M) "Reactant numbers cannot exceed number of metabolites"
     @assert all((reacs .↦ :Prd) .<= M) "Product numbers cannot exceed number of metabolites"
     # Check that no reaction is repeated
-    for i = 1:O
+    for i in 1:O
         @assert all(
             ((reacs.↦:Rct)[i] .!= (reacs.↦:Rct)[1:end.!=i]) .|
             ((reacs.↦:Prd)[i] .!= (reacs.↦:Prd)[1:end.!=i]),

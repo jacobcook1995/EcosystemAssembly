@@ -57,7 +57,7 @@ function v_over_t()
     # Counter for number of reactions
     NoR = 0
     # Loop over number of repeats
-    for i = 1:rps
+    for i in 1:rps
         # Load in relevant output file
         ofile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
@@ -139,7 +139,7 @@ function v_over_t()
         a_i = collect((numS+ps.M+1):(2*numS+ps.M))
         ϕ_i = collect((2*numS+ps.M+1):(3*numS+ps.M))
         # Loop over all time points
-        for j = 1:length(T)
+        for j in 1:length(T)
             # Find indices of surviving strains
             inds = findall(x -> x > 1e-5, C[j, 1:numS])
             # Save number of surviving strains at each time point
@@ -166,7 +166,7 @@ function v_over_t()
                 via_ϕR[j] = sum(C[j, ϕ_i[vinds]]) / length(ϕ_i[vinds])
             end
             # Loop over number of reactions
-            for k = 1:NoR
+            for k in 1:NoR
                 # Count number of strains with reaction for each case
                 Rs[k, j] = count(x -> x == k, ms[inds] .↦ :R)
                 via_R[k, j] = count(x -> x == k, ms[vinds] .↦ :R)
@@ -201,7 +201,7 @@ function v_over_t()
                 # Counters to track amount of protein allocated to each reaction type
                 ϕPt = fill(0.0, length(c))
                 # Loop over all reactions this strain has
-                for l = 1:ms[vinds[k]].R
+                for l in 1:ms[vinds[k]].R
                     # Find reaction number
                     Rn = ms[vinds[k]].Reacs[l]
                     # Find relevant reaction
@@ -273,7 +273,7 @@ function v_over_t()
                 kr_R[l, j] += sum(ms[vinds[k]].kr .* ms[vinds[k]].ϕP)
             end
             # Now weight by number of strains with each type of reaction
-            for k = 1:NoR
+            for k in 1:NoR
                 if via_R[k, j] > 0
                     ηs_R[k, j] /= via_R[k, j]
                     ωs_R[k, j] /= via_R[k, j]
@@ -288,7 +288,7 @@ function v_over_t()
         # Find indices of all surviving species
         inds = findall(x -> x > 1e-5, C[end, 1:numS])
         # Loop over number of survivors
-        for j = 1:svt[end]
+        for j in 1:svt[end]
             # Store corresponding final ϕR value
             fin_ϕR[j] = C[end, ϕ_i[inds[j]]]
         end
@@ -345,6 +345,5 @@ function v_over_t()
     end
     return (nothing)
 end
-
 
 @time v_over_t()

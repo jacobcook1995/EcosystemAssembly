@@ -44,7 +44,7 @@ function trjstats()
     # Counter for number of reactions
     NoR = 0
     # Loop over number of repeats
-    for i = 1:rps
+    for i in 1:rps
         # Load in relevant output file
         vfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
@@ -98,7 +98,7 @@ function trjstats()
     all_fin_ϕRs = Float64[]
     all_l_sb = zeros(rps)
     # Loop over number of trajectories (to minimise the number of reads in)
-    for i = 1:rps
+    for i in 1:rps
         # Load in relevant output file
         vfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
@@ -155,7 +155,7 @@ function trjstats()
                 no_via[cnt] += 1
             end
             # Loop over reactions to find number of viable reactions
-            for j = 1:NoR
+            for j in 1:NoR
                 # Check if counter should be incremented
                 if via_R[j, Tind] .> 0.0
                     no_rs[j, cnt] += 1
@@ -192,7 +192,7 @@ function trjstats()
                 cmb_η_stp[i, cnt, :] = interpolate_time(η_stp, Tg, T1x, T2x)
                 cmb_fr_ΔG_stp[i, cnt, :] = interpolate_time(fr_ΔG_stp, Tg, T1x, T2x)
                 cmb_ϕP_stp[i, cnt, :] = interpolate_time(ϕP_stp, Tg, T1x, T2x)
-                for j = 1:NoR
+                for j in 1:NoR
                     cmb_Rs[i, j, cnt] = interpolate_time(Rs[j, :], Tg, T1x, T2x)
                     cmb_via_R[i, j, cnt] = interpolate_time(via_R[j, :], Tg, T1x, T2x)
                     cmb_ηs_R[i, j, cnt] = interpolate_time(ηs_R[j, :], Tg, T1x, T2x)
@@ -227,7 +227,7 @@ function trjstats()
                 cmb_η_stp[i, cnt, :] = η_stp[Tind, :]
                 cmb_fr_ΔG_stp[i, cnt, :] = fr_ΔG_stp[Tind, :]
                 cmb_ϕP_stp[i, cnt, :] = ϕP_stp[Tind, :]
-                for j = 1:NoR
+                for j in 1:NoR
                     cmb_Rs[i, j, cnt] = Rs[j, Tind]
                     cmb_via_R[i, j, cnt] = via_R[j, Tind]
                     cmb_ηs_R[i, j, cnt] = ηs_R[j, Tind]
@@ -305,7 +305,7 @@ function trjstats()
     mn_ϕP_stp = tot_ϕP_stp ./ (no_via)
     # Preallocate 2D array
     mn_via_R = zeros(NoR, length(times))
-    for i = 1:NoR
+    for i in 1:NoR
         mn_via_R[i, :] = tot_via_R[i, :] ./ (no_via)
     end
     # 2D arrays have to be preallocated
@@ -315,7 +315,7 @@ function trjstats()
     mn_kc_R = zeros(NoR, length(times))
     mn_KS_R = zeros(NoR, length(times))
     mn_kr_R = zeros(NoR, length(times))
-    for i = 1:NoR
+    for i in 1:NoR
         mn_Rs[i, :] = tot_Rs[i, :] ./ no_sims
         # Use number of strains with reaction to calculate the mean
         mn_ηs_R[i, :] = tot_ηs_R[i, :] ./ no_rs[i, :]
@@ -400,7 +400,7 @@ function trjstats()
                 sum((cmb_av_steps_bw[vinds, i] .- mn_av_steps_bw[i]) .^ 2) /
                 (no_via[i] - 1),
             )
-            for j = 1:(M-1)
+            for j in 1:(M-1)
                 sd_η_stp[i, j] = sqrt(
                     sum((cmb_η_stp[vinds, i, j] .- mn_η_stp[i, j]) .^ 2) / (no_via[i] - 1),
                 )
@@ -413,7 +413,7 @@ function trjstats()
                     (no_via[i] - 1),
                 )
             end
-            for j = 1:NoR
+            for j in 1:NoR
                 sd_via_R[j, i] = sqrt(
                     sum((cmb_via_R[vinds, j, i] .- mn_via_R[j, i]) .^ 2) / (no_via[i] - 1),
                 )
@@ -439,7 +439,7 @@ function trjstats()
             sd_via_R[:, i] .= NaN
         end
         # Calculate standard deviations for reactions
-        for j = 1:NoR
+        for j in 1:NoR
             sd_Rs[j, i] =
                 sqrt(sum((cmb_Rs[inds, j, i] .- mn_Rs[j, i]) .^ 2) / (no_sims[i] - 1))
             # Find indices of where reactions exist
@@ -608,7 +608,7 @@ function snpstats()
     sd_inc = zeros(size(mn_inc))
     sd_dec = zeros(size(mn_dec))
     # Loop over times
-    for i = 1:length(times)-1
+    for i in 1:length(times)-1
         # Find indices of still progressing trajectories
         inds = (ns[i, :] .!== 0.0)
         # Calculate standard deviations

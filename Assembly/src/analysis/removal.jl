@@ -3,11 +3,11 @@ using Assembly
 using JLD
 using SymPy
 
-# function to read in data set and remove non-long term suvivors
+# function to read in data set and remove non-long term survivors
 function removal()
-    # Check that sufficent arguments have been provided
+    # Check that sufficient arguments have been provided
     if length(ARGS) < 6
-        error("Insufficent inputs provided")
+        error("Insufficient inputs provided")
     end
     # Preallocate the variables I want to extract from the input
     Rl = 0
@@ -19,19 +19,19 @@ function removal()
     opt = 0
     # Check that all arguments can be converted to integers
     try
-        Rl = parse(Int64,ARGS[1])
-        Ru = parse(Int64,ARGS[2])
-        syn = parse(Bool,ARGS[3])
-        nR = parse(Int64,ARGS[4])
-        Ni = parse(Int64,ARGS[5])
+        Rl = parse(Int64, ARGS[1])
+        Ru = parse(Int64, ARGS[2])
+        syn = parse(Bool, ARGS[3])
+        nR = parse(Int64, ARGS[4])
+        Ni = parse(Int64, ARGS[5])
     catch e
-           error("should provide 4 integers, a bool, and a string")
+        error("should provide 4 integers, a bool, and a string")
     end
     # Check if run to start from has been provided
     if length(ARGS) > 6
         # Check this argument is an integer
         try
-            opt = parse(Int64,ARGS[7])
+            opt = parse(Int64, ARGS[7])
         catch e
             error("option number must be integer")
         end
@@ -71,7 +71,7 @@ function removal()
         P_pth = "Paras/$(title_op)/$(Rl)-$(Ru)$(syn)$(en)"
     end
     # Loop over repeats
-    for i = 1:nR
+    for i in 1:nR
         # Assume that output files don't already exist
         outp = false
         # Three output files to check the existence of
@@ -101,19 +101,19 @@ function removal()
             error("run $(i) is missing an extinct file")
         end
         # Basically just loading everything out as I'm not sure what I'll need
-        ps = load(pfile,"ps")
-        C = load(ofile,"C")
-        T = load(ofile,"T")
-        out = load(ofile,"out")
-        ded = load(efile,"ded")
+        ps = load(pfile, "ps")
+        C = load(ofile, "C")
+        T = load(ofile, "T")
+        out = load(ofile, "out")
+        ded = load(efile, "ded")
         # Preallocate force vector
-        F = Array{Sym,1}(undef,3*ps.N+ps.M)
+        F = Array{Sym, 1}(undef, 3 * ps.N + ps.M)
         # Find forces using function
-        F = Force(ps,F)
+        F = Force(ps, F)
         # Use initial conditions to find local forces
-        f = nForce(F,out,ps)
+        f = nForce(F, out, ps)
         # Check if forces are stable
-        stab = all(abs.(f[1:ps.N]./out[1:ps.N]) .< 1e-9)
+        stab = all(abs.(f[1:(ps.N)] ./ out[1:(ps.N)]) .< 1e-9)
         # Skip further evaluation if output already exists
         if outp == true
             println("Simulation $(i) already has output")
@@ -123,58 +123,61 @@ function removal()
             cnt += 1
             # Write out old data if stable
             # Save extinct strains
-            jldopen("$(pth)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
-                write(file,"ded",ded)
+            jldopen("$(pth)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
+                    "w") do file
+                write(file, "ded", ded)
             end
             # the reduced parameter sets
-            jldopen("$(P_pth)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
-                write(file,"ps",ps)
+            jldopen("$(P_pth)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
+                    "w") do file
+                write(file, "ps", ps)
             end
             # and the full output
-            jldopen("$(pth)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
+            jldopen("$(pth)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
+                    "w") do file
                 # Save final output
-                write(file,"out",out)
+                write(file, "out", out)
                 # This output is basically the output at infinity
-                write(file,"inf_out",out)
+                write(file, "inf_out", out)
                 # Save time data and dynamics data
-                write(file,"T",T)
-                write(file,"C",C[1:end,1:end])
+                write(file, "T", T)
+                write(file, "C", C[1:end, 1:end])
             end
         else
             println("Simulation $(i) unstable")
             flush(stdout)
             # Set a high final time
-            Tmax = 10*maximum(T)
-            # Store intial numbers of strains and metabolites
+            Tmax = 10 * maximum(T)
+            # Store initial numbers of strains and metabolites
             N = ps.N
             M = ps.M
             # Extract initial conditions
-            pop = out[1:ps.N]
-            conc = out[(ps.N+1):(ps.N+ps.M)]
-            as = out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
-            ϕs = out[(2*ps.N+ps.M+1):end]
+            pop = out[1:(ps.N)]
+            conc = out[(ps.N + 1):(ps.N + ps.M)]
+            as = out[(ps.N + ps.M + 1):(2 * ps.N + ps.M)]
+            ϕs = out[(2 * ps.N + ps.M + 1):end]
             # Then run the simulation
-            Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+            Cl, Tl = full_simulate(ps, Tmax, pop, conc, as, ϕs)
             # Remove any microbes below threshold
-            for j = 1:ps.N
-                if Cl[end,j] < 1e-5
-                    Cl[end,j] = 0.0
+            for j in 1:(ps.N)
+                if Cl[end, j] < 1e-5
+                    Cl[end, j] = 0.0
                 end
             end
             # Preallocate force vector
-            F = Array{Sym,1}(undef,3*ps.N+ps.M)
+            F = Array{Sym, 1}(undef, 3 * ps.N + ps.M)
             # Find forces using function
-            F = Force(ps,F)
+            F = Force(ps, F)
             # Use final condition to find local forces
-            f = nForce(F,Cl[end,:],ps)
+            f = nForce(F, Cl[end, :], ps)
             # Check if ecosystem is now stable
             stab2 = true
-            for j = 1:ps.N
-                if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
+            for j in 1:(ps.N)
+                if Cl[end, j] > 0.0 && abs(f[j] / Cl[end, j]) > 1e-9
                     # Find magnitude of the change
-                    mg = abs(Cl[end,j] - Cl[1,j])
+                    mg = abs(Cl[end, j] - Cl[1, j])
                     # Check if the magnitude of change is greater than the minimum value
-                    if mg > minimum(Cl[:,j])
+                    if mg > minimum(Cl[:, j])
                         println("Strain $(j) unstable")
                         println("Pop = $(Cl[end,j])")
                         flush(stdout)
@@ -191,32 +194,32 @@ function removal()
                 println("Simulation $(i) being repeated time $(c)")
                 flush(stdout)
                 # Extract initial conditions
-                pop = Cl[end,1:ps.N]
-                conc = Cl[end,(ps.N+1):(ps.N+ps.M)]
-                as = Cl[end,(ps.N+ps.M+1):(2*ps.N+ps.M)]
-                ϕs = Cl[end,(2*ps.N+ps.M+1):end]
+                pop = Cl[end, 1:(ps.N)]
+                conc = Cl[end, (ps.N + 1):(ps.N + ps.M)]
+                as = Cl[end, (ps.N + ps.M + 1):(2 * ps.N + ps.M)]
+                ϕs = Cl[end, (2 * ps.N + ps.M + 1):end]
                 # Then run the simulation
-                Cl, Tl = full_simulate(ps,Tmax,pop,conc,as,ϕs)
+                Cl, Tl = full_simulate(ps, Tmax, pop, conc, as, ϕs)
                 # Remove any microbes below threshold
-                for j = 1:ps.N
-                    if Cl[end,j] < 1e-5
-                        Cl[end,j] = 0.0
+                for j in 1:(ps.N)
+                    if Cl[end, j] < 1e-5
+                        Cl[end, j] = 0.0
                     end
                 end
                 # Preallocate force vector
-                F = Array{Sym,1}(undef,3*ps.N+ps.M)
+                F = Array{Sym, 1}(undef, 3 * ps.N + ps.M)
                 # Find forces using function
-                F = Force(ps,F)
+                F = Force(ps, F)
                 # Use final condition to find local forces
-                f = nForce(F,Cl[end,:],ps)
+                f = nForce(F, Cl[end, :], ps)
                 # Check if ecosystem is now stable
                 stab2 = true
-                for j = 1:ps.N
-                    if Cl[end,j] > 0.0 && abs(f[j]/Cl[end,j]) > 1e-9
+                for j in 1:(ps.N)
+                    if Cl[end, j] > 0.0 && abs(f[j] / Cl[end, j]) > 1e-9
                         # Find magnitude of the change
-                        mg = abs(Cl[end,j] - Cl[1,j])
+                        mg = abs(Cl[end, j] - Cl[1, j])
                         # Check if the magnitude of change is greater than the minimum value
-                        if mg > minimum(Cl[:,j])
+                        if mg > minimum(Cl[:, j])
                             println("Strain $(j) unstable")
                             println("Pop = $(Cl[end,j])")
                             flush(stdout)
@@ -226,82 +229,85 @@ function removal()
                 end
             end
             if c == 50
-                println("Run $(i) is possibly oscilliatory")
+                println("Run $(i) is possibly oscillatory")
                 flush(stdout)
             end
             # Establish which microbes are now extinct
-            ext = (Cl[end,1:N] .== 0.0)
+            ext = (Cl[end, 1:N] .== 0.0)
             # Preallocate vector to store extinct microbes
-            ded2 = Array{MicrobeP,1}(undef,sum(ext))
+            ded2 = Array{MicrobeP, 1}(undef, sum(ext))
             # Loop over and store microbes in the vector
             k = 0
-            for j = 1:length(ext)
+            for j in eachindex(ext)
                 if ext[j] == 1
                     k += 1
                     ded2[k] = ps.mics[j]
                 end
             end
             # Remove extinct strains from parameter set
-            ps = extinction(ps,ext)
+            ps = extinction(ps, ext)
             # Preallocate output at infinity
-            inf_out = Array{Float64,1}(undef,3*ps.N+ps.M)
+            inf_out = Array{Float64, 1}(undef, 3 * ps.N + ps.M)
             # Store final metabolite concentrations
-            inf_out[ps.N+1:ps.N+M] = Cl[end,N+1:N+M]
+            inf_out[(ps.N + 1):(ps.N + M)] = Cl[end, (N + 1):(N + M)]
             # Now sub in data for not extinct microbes
             k = 0
-            for j = 1:length(ext)
+            for j in eachindex(ext)
                 if ext[j] != 1
                     k += 1
                     # Population
-                    inf_out[k] = Cl[end,j]
+                    inf_out[k] = Cl[end, j]
                     # Energy
-                    inf_out[ps.M+ps.N+k] = Cl[end,M+N+j]
+                    inf_out[ps.M + ps.N + k] = Cl[end, M + N + j]
                     # Fraction
-                    inf_out[ps.M+2*ps.N+k] = Cl[end,M+2*N+j]
+                    inf_out[ps.M + 2 * ps.N + k] = Cl[end, M + 2 * N + j]
                 end
             end
             # Preallocate final concentrations (etc) for output
-            nout = Array{Float64,1}(undef,3*ps.N+M)
+            nout = Array{Float64, 1}(undef, 3 * ps.N + M)
             # Store final metabolite concentrations
-            nout[ps.N+1:ps.N+M] = out[N+1:N+M]
+            nout[(ps.N + 1):(ps.N + M)] = out[(N + 1):(N + M)]
             # Now sub in data for not extinct microbes
             k = 0
-            for j = 1:length(ext)
+            for j in eachindex(ext)
                 if ext[j] != 1
                     k += 1
                     # Population
                     nout[k] = out[j]
                     # Energy
-                    nout[M+ps.N+k] = out[M+N+j]
+                    nout[M + ps.N + k] = out[M + N + j]
                     # Fraction
-                    nout[M+2*ps.N+k] = out[M+2*N+j]
+                    nout[M + 2 * ps.N + k] = out[M + 2 * N + j]
                 end
             end
-            # Gather and output new reduceded data
-            ded = cat(ded,ded2,dims=1)
+            # Gather and output new reduced data
+            ded = cat(ded, ded2, dims = 1)
             # Save extinct strains
-            jldopen("$(pth)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
-                write(file,"ded",ded)
+            jldopen("$(pth)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
+                    "w") do file
+                write(file, "ded", ded)
             end
             # the reduced parameter sets
-            jldopen("$(P_pth)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
-                write(file,"ps",ps)
+            jldopen("$(P_pth)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
+                    "w") do file
+                write(file, "ps", ps)
             end
             # and the full output
-            jldopen("$(pth)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld","w") do file
+            jldopen("$(pth)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
+                    "w") do file
                 # Save final output
-                write(file,"out",nout)
+                write(file, "out", nout)
                 # Save the output at infinity here
-                write(file,"inf_out",inf_out)
+                write(file, "inf_out", inf_out)
                 # Save time data and dynamics data
-                write(file,"T",T)
-                write(file,"C",C[1:end,1:end])
+                write(file, "T", T)
+                write(file, "C", C[1:end, 1:end])
             end
         end
     end
     println("$(cnt) out of $(nR) were already stable")
     flush(stdout)
-    return(nothing)
+    return (nothing)
 end
 
 @time removal()

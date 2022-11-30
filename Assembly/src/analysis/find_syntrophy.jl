@@ -7,7 +7,7 @@ import PyPlot
 
 # A function to search for syntrophic pairs in the data
 function find_syn()
-    # Check that sufficent arguments have been provided
+    # Check that sufficient arguments have been provided
     if length(ARGS) < 2
         error("need to specify community and number of repeats")
     end
@@ -16,10 +16,10 @@ function find_syn()
     nR = 0
     # Check that all arguments can be converted to integers
     try
-        R = parse(Int64,ARGS[1])
-        nR = parse(Int64,ARGS[2])
+        R = parse(Int64, ARGS[1])
+        nR = parse(Int64, ARGS[2])
     catch e
-           error("both inputs must be integer")
+        error("both inputs must be integer")
     end
     # Check that simulation type is valid
     if R < 1
@@ -32,13 +32,13 @@ function find_syn()
     println("Compiled!")
     # Now move onto plotting
     pyplot()
-    theme(:wong2,dpi=200)
+    theme(:wong2, dpi = 200)
     # Preallocate population changes
-    dNs = Array{Float64,1}(undef,0)
-    θs = Array{Float64,1}(undef,0)
-    θa = Array{Float64,1}(undef,0)
+    dNs = Array{Float64, 1}(undef, 0)
+    θs = Array{Float64, 1}(undef, 0)
+    θa = Array{Float64, 1}(undef, 0)
     # Loop over repeats
-    for i = 1:nR
+    for i in 1:nR
         # Read in relevant files
         pfile = "Data/Type$(R)/RedParasType$(R)Run$(i).jld"
         if ~isfile(pfile)
@@ -53,33 +53,33 @@ function find_syn()
             error("run $(i) is missing an extinct file")
         end
         # Basically just loading everything out as I'm not sure what I'll need
-        ps = load(pfile,"ps")
-        C = load(ofile,"C")
-        T = load(ofile,"T")
-        out = load(ofile,"out")
-        ded = load(efile,"ded")
-        # Find orginal number of strains
+        ps = load(pfile, "ps")
+        C = load(ofile, "C")
+        T = load(ofile, "T")
+        out = load(ofile, "out")
+        ded = load(efile, "ded")
+        # Find original number of strains
         N = ps.N + length(ded)
         # Vector to indicate obligate syntrophically consuming strains
-        cons = fill(false,ps.N)
+        cons = fill(false, ps.N)
         # And the inhibited producers
-        prod = fill(false,ps.N)
+        prod = fill(false, ps.N)
         # Loop over strains
-        for j = 1:ps.N
+        for j in 1:(ps.N)
             # Extract strain of interest
             m = ps.mics[j]
             # Loop over its reactions
-            for k = 1:m.R
+            for k in 1:(m.R)
                 # Find reaction
                 r = ps.reacs[m.Reacs[k]]
                 # Find θ values
-                θr = θ(out[ps.N+r.Rct],out[ps.N+r.Prd],ps.T,m.η[k],r.ΔG0)
+                θr = θ(out[ps.N + r.Rct], out[ps.N + r.Prd], ps.T, m.η[k], r.ΔG0)
                 # Check if theta is high enough for syntrophy to be a meaningful effect
                 if θr > 5e-4
                     # Loop over all other strains
-                    for l = 1:ps.N
+                    for l in 1:(ps.N)
                         # Check if any strain other than itself consume the microbe
-                        if l != j && any((ps.reacs[ps.mics[l].Reacs].↦:Rct) .== r.Prd)
+                        if l != j && any((ps.reacs[ps.mics[l].Reacs] .↦ :Rct) .== r.Prd)
                             # Inhibited producer
                             prod[j] = true
                             # Update consumer strains to match
@@ -91,54 +91,55 @@ function find_syn()
             # Check if there are any consumer strains
             if any(cons .== true)
                 # Set up plotting of old dynamics
-                plot(yaxis=:log10)
+                plot(yaxis = :log10)
                 Tmax = 5e6
                 # Extract initial conditions
-                pop = out[1:ps.N]
-                conc = out[(ps.N+1):(ps.N+ps.M)]
-                as = out[(ps.N+ps.M+1):(2*ps.N+ps.M)]
-                ϕs = out[(2*ps.N+ps.M+1):end]
+                pop = out[1:(ps.N)]
+                conc = out[(ps.N + 1):(ps.N + ps.M)]
+                as = out[(ps.N + ps.M + 1):(2 * ps.N + ps.M)]
+                ϕs = out[(2 * ps.N + ps.M + 1):end]
                 # Find indices of down stream
-                inds = collect(1:ps.N)[cons]
+                inds = collect(1:(ps.N))[cons]
                 # Simulate with strain repressed
-                Cn, Tn = full_simulate_syn(ps,Tmax,pop,conc,as,ϕs,inds)
+                Cn, Tn = full_simulate_syn(ps, Tmax, pop, conc, as, ϕs, inds)
                 # Set offset time
                 Toff = 1e6
                 # and use to join old data to new data
-                Ca = cat(out',out',Cn[:,:],dims=1)
-                Ta = cat(0.0,Toff,Tn.+Toff,dims=1)
+                Ca = cat(out', out', Cn[:, :], dims = 1)
+                Ta = cat(0.0, Toff, Tn .+ Toff, dims = 1)
                 # Find indices of producers
-                inds = collect(1:ps.N)[prod]
+                inds = collect(1:(ps.N))[prod]
                 # Calculate and store changes in producer populations
-                dN = (out[inds] .- Ca[end,inds])/out[inds]
-                # Preallocate θ ouputs
+                dN = (out[inds] .- Ca[end, inds]) / out[inds]
+                # Preallocate θ outputs
                 θrs = zeros(length(inds))
                 θas = zeros(length(inds))
                 # Loop over to find relevant θ values
-                for k = 1:length(inds)
+                for k in eachindex(inds)
                     # Find relevant microbe
                     m = ps.mics[inds[k]]
                     # Find reaction (Single reaction case only!)
                     r = ps.reacs[m.Reacs[1]]
                     # Find θ values
-                    θrs[k] = θ(out[ps.N+r.Rct],out[ps.N+r.Prd],ps.T,m.η[1],r.ΔG0)
+                    θrs[k] = θ(out[ps.N + r.Rct], out[ps.N + r.Prd], ps.T, m.η[1], r.ΔG0)
                     # Find θ values after extinction
-                    θas[k] = θ(Ca[end,ps.N+r.Rct],Ca[end,ps.N+r.Prd],ps.T,m.η[1],r.ΔG0)
+                    θas[k] = θ(Ca[end, ps.N + r.Rct], Ca[end, ps.N + r.Prd], ps.T, m.η[1],
+                               r.ΔG0)
                 end
                 # Store in main collection
-                dNs = cat(dNs,dN,dims=1)
-                θs = cat(θs,θrs,dims=1)
-                θa = cat(θa,θas,dims=1)
+                dNs = cat(dNs, dN, dims = 1)
+                θs = cat(θs, θrs, dims = 1)
+                θa = cat(θa, θas, dims = 1)
                 # Setup plot for new dynamics
-                plot(yaxis=:log10,xlabel="Time (seconds)",ylabel="Log population")
-                for k = 1:ps.N
+                plot(yaxis = :log10, xlabel = "Time (seconds)", ylabel = "Log population")
+                for k in 1:(ps.N)
                     # Find and eliminate zeros so that they can be plotted on a log plot
-                    inds = (Ca[:,k] .> 0)
+                    inds = (Ca[:, k] .> 0)
                     # Find reaction to use as a label
                     r = ps.reacs[ps.mics[k].Reacs[1]]
-                    plot!(Ta[inds],Ca[inds,k],label="$(r.Rct)→$(r.Prd)")
+                    plot!(Ta[inds], Ca[inds, k], label = "$(r.Rct)→$(r.Prd)")
                 end
-                vline!([Toff],color=:red,label="Extinction")
+                vline!([Toff], color = :red, label = "Extinction")
                 savefig("Output/Newpops$(i).png")
             end
         end
@@ -146,11 +147,13 @@ function find_syn()
     # Useful for label
     th = L"\theta"
     # Scatter graph of population change vs theta
-    scatter(dNs*100.0,θs,label="",xlabel="Percentage population change",ylabel="$(th) before extinction")
+    scatter(dNs * 100.0, θs, label = "", xlabel = "Percentage population change",
+            ylabel = "$(th) before extinction")
     savefig("Output/PopChange.png")
-    scatter(θa,θs,label="",xlabel="$(th) after extinction",ylabel="$(th) before extinction")
+    scatter(θa, θs, label = "", xlabel = "$(th) after extinction",
+            ylabel = "$(th) before extinction")
     savefig("Output/ThetaChange.png")
-    return(nothing)
+    return (nothing)
 end
 
 @time find_syn()

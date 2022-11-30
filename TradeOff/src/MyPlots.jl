@@ -12,9 +12,7 @@ export annpos, corrparr
 export wong2_palette
 
 # A function to return positions for labels
-function annpos(datax::Array{Float64, 1},
-                datay::Array{Float64, 1},
-                δx = 0.10::Float64,
+function annpos(datax::Array{Float64, 1}, datay::Array{Float64, 1}, δx = 0.10::Float64,
                 δy = 0.0::Float64)
     # Need minimas and maximas
     xmax = maximum(datax)
@@ -30,9 +28,7 @@ end
 
 # Function that takes sets of data and does some fitting
 # This returns the fit, the correlation coefficient, and the confidence interval
-function corrparr(xdata::Array{Float64, 1},
-                  ydata::Array{Float64, 1},
-                  p0::Array{Float64, 1},
+function corrparr(xdata::Array{Float64, 1}, ydata::Array{Float64, 1}, p0::Array{Float64, 1},
                   xran::AbstractRange)
     # p0 is the initial parameter guess
     # xran is the range to calculate over
@@ -67,11 +63,8 @@ end
 
 # Overload corrparr function so that errors can be provided
 # This returns the fit, the correlation coefficient, and the confidence interval
-function corrparr(xdata::Array{Float64, 1},
-                  ydata::Array{Float64, 1},
-                  weig::Array{Float64, 1},
-                  p0::Array{Float64, 1},
-                  xran::AbstractRange)
+function corrparr(xdata::Array{Float64, 1}, ydata::Array{Float64, 1},
+                  weig::Array{Float64, 1}, p0::Array{Float64, 1}, xran::AbstractRange)
     # p0 is the initial parameter guess
     # xran is the range to calculate over
     # weig is the weight given to each point

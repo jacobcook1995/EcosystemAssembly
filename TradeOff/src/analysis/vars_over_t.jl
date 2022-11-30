@@ -3,7 +3,7 @@ using TradeOff
 using JLD
 
 # Function to calculate Shannon diversity from a vector of populations
-function shan(pops::Array{Float64,1})
+function shan(pops::Array{Float64, 1})
     # Set initial value
     H = 0.0
     # Make vector of relative abundances
@@ -53,7 +53,7 @@ function v_over_t()
     # List of pools already loaded in
     pls = []
     # Array of array to store pools
-    pools = Array{Array{Microbe,1},1}(undef, 1)
+    pools = Array{Array{Microbe, 1}, 1}(undef, 1)
     # Counter for number of reactions
     NoR = 0
     # Loop over number of repeats
@@ -71,7 +71,7 @@ function v_over_t()
         # Use to construct full trajectory C
         C = merge_data(ps, traj, T, micd, its)
         # Preallocate vector of microbes
-        ms = Array{Microbe,1}(undef, length(micd))
+        ms = Array{Microbe, 1}(undef, length(micd))
         # Loop over and find each one
         for j in eachindex(micd)
             # check for case where pool hasn't already been loaded in
@@ -102,13 +102,13 @@ function v_over_t()
             ms[j] = (pools[ind])[micd[j].MID]
         end
         # Preallocate containers to store number of survivors with time
-        svt = Array{Int64,1}(undef, length(T))
-        tsvt = Array{Int64,1}(undef, length(T))
+        svt = Array{Int64, 1}(undef, length(T))
+        tsvt = Array{Int64, 1}(undef, length(T))
         pop = zeros(length(T))
         shD = zeros(length(T))
-        sbs = Array{Int64,1}(undef, length(T))
-        Rs = Array{Int64,2}(undef, NoR, length(T))
-        via_R = Array{Int64,2}(undef, NoR, length(T))
+        sbs = Array{Int64, 1}(undef, length(T))
+        Rs = Array{Int64, 2}(undef, NoR, length(T))
+        via_R = Array{Int64, 2}(undef, NoR, length(T))
         ηs = zeros(length(T))
         kcs = zeros(length(T))
         KSs = zeros(length(T))
@@ -136,8 +136,8 @@ function v_over_t()
         # Save total number of strains
         numS = length(micd)
         # Make vector of indices
-        a_i = collect((numS+ps.M+1):(2*numS+ps.M))
-        ϕ_i = collect((2*numS+ps.M+1):(3*numS+ps.M))
+        a_i = collect((numS + ps.M + 1):(2 * numS + ps.M))
+        ϕ_i = collect((2 * numS + ps.M + 1):(3 * numS + ps.M))
         # Loop over all time points
         for j in 1:length(T)
             # Find indices of surviving strains
@@ -156,7 +156,7 @@ function v_over_t()
             # Save number of "viable" strains
             tsvt[j] = length(vinds)
             # Then also number of substrates (skipping final waste product)
-            sbs[j] = count(x -> x > 1e-12, C[j, (numS+1):(numS+ps.M-1)])
+            sbs[j] = count(x -> x > 1e-12, C[j, (numS + 1):(numS + ps.M - 1)])
             # Calculate average energy concentration (a)
             if length(a_i[vinds]) > 0
                 via_a[j] = sum(C[j, a_i[vinds]]) / length(a_i[vinds])
@@ -201,7 +201,7 @@ function v_over_t()
                 # Counters to track amount of protein allocated to each reaction type
                 ϕPt = fill(0.0, length(c))
                 # Loop over all reactions this strain has
-                for l in 1:ms[vinds[k]].R
+                for l in 1:(ms[vinds[k]].R)
                     # Find reaction number
                     Rn = ms[vinds[k]].Reacs[l]
                     # Find relevant reaction
@@ -209,9 +209,9 @@ function v_over_t()
                     # Then calculate frac transduced
                     fr_ΔG[j] += ms[vinds[k]].η[l] .* ms[vinds[k]].ϕP[l] * ΔGATP / (-r.ΔG0)
                     # Do biomass weighted version as well
-                    fr_ΔG_bw[j] +=
-                        C[j, vinds[k]] * ms[vinds[k]].η[l] .* ms[vinds[k]].ϕP[l] * ΔGATP /
-                        (-r.ΔG0)
+                    fr_ΔG_bw[j] += C[j, vinds[k]] * ms[vinds[k]].η[l] .*
+                                   ms[vinds[k]].ϕP[l] * ΔGATP /
+                                   (-r.ΔG0)
                     # Find step size
                     s_size = (r.Prd - r.Rct)
                     # weight this step size to 1 and add to total
@@ -224,8 +224,8 @@ function v_over_t()
                     pres[s_size] = true
                     ϕPt[s_size] += ms[vinds[k]].ϕP[l]
                     ηt[s_size] += ms[vinds[k]].η[l] .* ms[vinds[k]].ϕP[l]
-                    fr_ΔGt[s_size] +=
-                        ms[vinds[k]].η[l] .* ms[vinds[k]].ϕP[l] * ΔGATP / (-r.ΔG0)
+                    fr_ΔGt[s_size] += ms[vinds[k]].η[l] .* ms[vinds[k]].ϕP[l] * ΔGATP /
+                                      (-r.ΔG0)
                 end
                 # If they are present them increment the counters
                 for l in eachindex(c)
@@ -293,13 +293,11 @@ function v_over_t()
             fin_ϕR[j] = C[end, ϕ_i[inds[j]]]
         end
         # Store the identity of the lowest substrate with a significant concentration
-        vld_sb = findall(>(1e-10), C[end, (numS+1):(numS+ps.M)])
+        vld_sb = findall(>(1e-10), C[end, (numS + 1):(numS + ps.M)])
         l_sb = vld_sb[end]
         # Now just save the relevant data
-        jldopen(
-            "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld",
-            "w",
-        ) do file
+        jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld",
+                "w") do file
             # Save full time course
             write(file, "T", T)
             # Save reaction data

@@ -44,8 +44,8 @@ function figure8()
     # Generate fixed reaction
     RP, ΔG = fix_reactions(O, M, μrange, T)
     # Preallocate vector to store single reaction
-    reacs = Array{Reaction,1}(undef, O)
-    for i = 1:O
+    reacs = Array{Reaction, 1}(undef, O)
+    for i in 1:O
         reacs[i] = make_Reaction(i, RP[i, 1], RP[i, 2], ΔG[i])
     end
     # Only one reaction, which all species possess
@@ -58,39 +58,37 @@ function figure8()
     # Second is housekeeping
     n[2] = ns
     # Determine the others based on reactions
-    for j = 1:R
-        n[2+j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
+    for j in 1:R
+        n[2 + j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
     end
     # Preallocate array of fixed microbes
-    fix = Array{Microbe,2}(undef, length(ηs), length(ωs))
+    fix = Array{Microbe, 2}(undef, length(ηs), length(ωs))
     # Generate one species for each energy availabilities
     for i in eachindex(ηs)
         # And one for each ω parameter
         for j in eachindex(ωs)
             # Can finally generate microbe
-            fix[i, j] = make_Microbe(
-                MC,
-                γm,
-                Kγ,
-                χl,
-                χu,
-                Pb,
-                d,
-                ϕH,
-                Ωf,
-                fd,
-                ωs[j],
-                R,
-                Reacs,
-                [ηs[i]],
-                [kc],
-                [KS],
-                [kr],
-                n,
-                [1.0],
-                j + (i - 1) * length(ηs),
-                PID,
-            )
+            fix[i, j] = make_Microbe(MC,
+                                     γm,
+                                     Kγ,
+                                     χl,
+                                     χu,
+                                     Pb,
+                                     d,
+                                     ϕH,
+                                     Ωf,
+                                     fd,
+                                     ωs[j],
+                                     R,
+                                     Reacs,
+                                     [ηs[i]],
+                                     [kc],
+                                     [KS],
+                                     [kr],
+                                     n,
+                                     [1.0],
+                                     j + (i - 1) * length(ηs),
+                                     PID)
         end
     end
     # Preallocate vector of varying Ωs
@@ -100,35 +98,33 @@ function figure8()
         Ωvs[i] = 1.5 * (ωs[i] - 0.1) * Ωf + 1 * Ωf
     end
     # Preallocate array of varying microbes
-    var = Array{Microbe,2}(undef, length(ηs), length(ωs))
+    var = Array{Microbe, 2}(undef, length(ηs), length(ωs))
     # Generate one species for each energy availabilities
     for i in eachindex(ηs)
         # And one for each ω parameter
         for j in eachindex(ωs)
             # Can finally generate microbe
-            var[i, j] = make_Microbe(
-                MC,
-                γm,
-                Kγ,
-                χl,
-                χu,
-                Pb,
-                d,
-                ϕH,
-                Ωvs[j],
-                fd,
-                ωs[j],
-                R,
-                Reacs,
-                [ηs[i]],
-                [kc],
-                [KS],
-                [kr],
-                n,
-                [1.0],
-                j + (i - 1) * length(ηs),
-                PID,
-            )
+            var[i, j] = make_Microbe(MC,
+                                     γm,
+                                     Kγ,
+                                     χl,
+                                     χu,
+                                     Pb,
+                                     d,
+                                     ϕH,
+                                     Ωvs[j],
+                                     fd,
+                                     ωs[j],
+                                     R,
+                                     Reacs,
+                                     [ηs[i]],
+                                     [kc],
+                                     [KS],
+                                     [kr],
+                                     n,
+                                     [1.0],
+                                     j + (i - 1) * length(ηs),
+                                     PID)
         end
     end
     # Choose sensible initial values
@@ -142,9 +138,9 @@ function figure8()
     maxϕf = zeros(length(ηs), length(ωs))
     maxϕv = zeros(length(ηs), length(ωs))
     # Loop over all the fixed species
-    for i = 1:length(ηs)
+    for i in 1:length(ηs)
         println("Fixed Ω run $i")
-        for j = 1:length(ωs)
+        for j in 1:length(ωs)
             # Simulate each population
             C, T = sing_pop(ps, Ni, Ci, ai, ϕi, fix[i, j], Tmax)
             # Extract max ribosome fraction
@@ -152,8 +148,8 @@ function figure8()
         end
     end
     # Loop over all the variable species
-    for i = 1:length(ηs)
-        for j = 1:length(ωs)
+    for i in 1:length(ηs)
+        for j in 1:length(ωs)
             # Simulate each population
             C, T = sing_pop(ps, Ni, Ci, ai, ϕi, var[i, j], Tmax)
             # Extract max ribosome fraction

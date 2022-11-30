@@ -3,75 +3,71 @@
 export ω_test
 
 # function to implement the consumer resource dynamics
-function chemo_dynamics!(
-    dx::Array{Float64,1},
-    x::Array{Float64,1},
-    ms::Array{Microbe,1},
-    ps::TOParameters,
-    C::Array{Float64,1},
-    rate::Array{Float64,2},
-    t::Float64,
-)
+function chemo_dynamics!(dx::Array{Float64, 1},
+                         x::Array{Float64, 1},
+                         ms::Array{Microbe, 1},
+                         ps::TOParameters,
+                         C::Array{Float64, 1},
+                         rate::Array{Float64, 2},
+                         t::Float64)
     # loop over the reactions to find reaction rate for each reaction for each strain
-    for j = 1:ps.O
+    for j in 1:(ps.O)
         # Find substrate and product for this reaction
-        for i = 1:length(ms)
+        for i in 1:length(ms)
             # Check if microbe i performs reaction j
             if j ∈ ms[i].Reacs
                 # Find index of this reaction in microbe
                 k = findfirst(x -> x == j, ms[i].Reacs)
                 # Find amount of enzyme E
-                E = Eα(x[2*length(ms)+i], ms[i], k)
+                E = Eα(x[2 * length(ms) + i], ms[i], k)
                 # Then finally calculate reaction rate
-                rate[i, j] = qs(
-                    C[ps.reacs[j].Rct],
-                    C[ps.reacs[j].Prd],
-                    E,
-                    k,
-                    ms[i],
-                    ps.T,
-                    ps.reacs[ms[i].Reacs[k]],
-                )
+                rate[i, j] = qs(C[ps.reacs[j].Rct],
+                                C[ps.reacs[j].Prd],
+                                E,
+                                k,
+                                ms[i],
+                                ps.T,
+                                ps.reacs[ms[i].Reacs[k]])
             else
                 rate[i, j] = 0.0
             end
         end
     end
     # Now want to use the rate matrix in the consumer dynamics
-    for i = 1:length(ms)
+    for i in 1:length(ms)
         # Check if strain is effectively extinct
         if x[i] <= 1e-5
             # If so x should be set to zero and should not change from that
             dx[i] = 0.0
             x[i] = 0.0
             # In this case the energy concentration should also be fixed to zero
-            dx[length(ms)+i] = 0.0
-            x[length(ms)+i] = 0.0
+            dx[length(ms) + i] = 0.0
+            x[length(ms) + i] = 0.0
             # Corresponding proteome fraction also shouldn't shift
-            dx[2*length(ms)+i] = 0.0
+            dx[2 * length(ms) + i] = 0.0
         else
             # find growth rate for strains that aren't extinct
-            λ = λs(x[length(ms)+i], x[2*length(ms)+i], ms[i])
+            λ = λs(x[length(ms) + i], x[2 * length(ms) + i], ms[i])
             # (growth rate - death rate)*population
             dx[i] = (λ - ms[i].d) * x[i]
             # Now find optimal ribosome fraction
-            ϕR = ϕ_R(x[length(ms)+i], ms[i])
+            ϕR = ϕ_R(x[length(ms) + i], ms[i])
             # This introduces a time delay
             τ = ms[i].fd / λ
             # Then update actual ribosome fraction
-            dx[2*length(ms)+i] = (ϕR - x[2*length(ms)+i]) / τ
+            dx[2 * length(ms) + i] = (ϕR - x[2 * length(ms) + i]) / τ
             # Energy intake is zero
             J = 0
             # Loop over all reactions to find energy gained by them
-            for j = 1:ms[i].R
+            for j in 1:(ms[i].R)
                 J += ms[i].η[j] * rate[i, ms[i].Reacs[j]]
             end
             # Add energy intake and subtract translation and dilution from the energy concentration
-            dx[length(ms)+i] = J - (ms[i].MC * χs(ϕR, ms[i]) + x[length(ms)+i]) * λ
+            dx[length(ms) + i] = J - (ms[i].MC * χs(ϕR, ms[i]) + x[length(ms) + i]) * λ
         end
     end
     # Any ATP numbers that have gone below 0.33 should be removed
-    for i = (length(ms)+1):(2*length(ms))
+    for i in (length(ms) + 1):(2 * length(ms))
         if x[i] < 0.33
             x[i] = 0.0
             dx[i] = 0.0
@@ -81,15 +77,13 @@ function chemo_dynamics!(
 end
 
 # function to test for single population growth
-function chemo(
-    ps::TOParameters,
-    pop::Float64,
-    conc::Float64,
-    as::Float64,
-    ϕs::Float64,
-    mic::Microbe,
-    Tmax::Float64,
-)
+function chemo(ps::TOParameters,
+               pop::Float64,
+               conc::Float64,
+               as::Float64,
+               ϕs::Float64,
+               mic::Microbe,
+               Tmax::Float64)
     # Preallocate memory
     rate = zeros(1, ps.O)
     # Set constant concentration
@@ -140,8 +134,8 @@ function ω_test()
     # Generate fixed reaction
     RP, ΔG = fix_reactions(O, M, μrange, T)
     # Preallocate vector to store single reaction
-    reacs = Array{Reaction,1}(undef, O)
-    for i = 1:O
+    reacs = Array{Reaction, 1}(undef, O)
+    for i in 1:O
         reacs[i] = make_Reaction(i, RP[i, 1], RP[i, 2], ΔG[i])
     end
     # Only one reaction, which all species possess
@@ -154,62 +148,58 @@ function ω_test()
     # Second is housekeeping
     n[2] = ns
     # Determine the others based on reactions
-    for j = 1:R
-        n[2+j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
+    for j in 1:R
+        n[2 + j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
     end
     # Preallocate array of fixed microbes
-    fix = Array{Microbe,1}(undef, length(ωs))
-    var = Array{Microbe,1}(undef, length(ωs))
+    fix = Array{Microbe, 1}(undef, length(ωs))
+    var = Array{Microbe, 1}(undef, length(ωs))
     # Set fixed Ω
     Ωf = 2.5e8
     for i in eachindex(ωs)
         # Can finally generate microbe
-        fix[i] = make_Microbe(
-            MC,
-            γm,
-            Kγ,
-            χl,
-            χoff,
-            Pb,
-            d,
-            ϕH,
-            Ωf,
-            fd,
-            ωs[i],
-            R,
-            Reacs,
-            [η],
-            [kc],
-            [KS],
-            [kr],
-            n,
-            [1.0],
-            i,
-            PID,
-        )
-        var[i] = make_Microbe(
-            MC,
-            γm,
-            Kγ,
-            χl,
-            χu,
-            Pb,
-            d,
-            ϕH,
-            Ωf,
-            fd,
-            ωs[i],
-            R,
-            Reacs,
-            [η],
-            [kc],
-            [KS],
-            [kr],
-            n,
-            [1.0],
-            i + length(ωs),
-            PID,
-        )
+        fix[i] = make_Microbe(MC,
+                              γm,
+                              Kγ,
+                              χl,
+                              χoff,
+                              Pb,
+                              d,
+                              ϕH,
+                              Ωf,
+                              fd,
+                              ωs[i],
+                              R,
+                              Reacs,
+                              [η],
+                              [kc],
+                              [KS],
+                              [kr],
+                              n,
+                              [1.0],
+                              i,
+                              PID)
+        var[i] = make_Microbe(MC,
+                              γm,
+                              Kγ,
+                              χl,
+                              χu,
+                              Pb,
+                              d,
+                              ϕH,
+                              Ωf,
+                              fd,
+                              ωs[i],
+                              R,
+                              Reacs,
+                              [η],
+                              [kc],
+                              [KS],
+                              [kr],
+                              n,
+                              [1.0],
+                              i + length(ωs),
+                              PID)
     end
     # Choose sensible initial values
     ϕi = 0.01 # Start at low value

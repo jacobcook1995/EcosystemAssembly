@@ -34,7 +34,7 @@ function snp_shot()
     # Preallocate vector to store final times
     Tfs = zeros(rps)
     # Loop over number of repeats to find maximum times
-    for i = 1:rps
+    for i in 1:rps
         # Load in relevant output file
         ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
@@ -63,11 +63,11 @@ function snp_shot()
     # List of pools already loaded in
     pls = []
     # Array of array to store pools
-    pools = Array{Array{Microbe,1},1}(undef, 1)
+    pools = Array{Array{Microbe, 1}, 1}(undef, 1)
     # Counter for number of reactions
     NoR = 0
     # Loop over number of repeats
-    for i = 1:rps
+    for i in 1:rps
         # Load in relevant output file
         ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
@@ -83,7 +83,7 @@ function snp_shot()
         # Find and save initial population value for this run
         Ni = C[1, 1]
         # Preallocate vector of microbes
-        ms = Array{Microbe,1}(undef, length(micd))
+        ms = Array{Microbe, 1}(undef, length(micd))
         # Loop over and find each one
         for j in eachindex(micd)
             # check for case where pool hasn't already been loaded in
@@ -114,15 +114,15 @@ function snp_shot()
             ms[j] = (pools[ind])[micd[j].MID]
         end
         # loop over time snapshots
-        for j = 1:length(snps)-1
+        for j in 1:(length(snps) - 1)
             # Find indices of the time point before and after the snapshot point
             ind1 = findfirst(x -> x >= snps[j], T)
-            ind2 = findfirst(x -> x >= snps[j+1], T)
+            ind2 = findfirst(x -> x >= snps[j + 1], T)
             # Check that the simulation is still running at this point
             if ~isnothing(ind1)
                 st_r[j] += 1
                 # Check for new species that entered the system in this time window
-                migs = findall(x -> snps[j] <= x < snps[j+1], micd .↦ :ImT)
+                migs = findall(x -> snps[j] <= x < snps[j + 1], micd .↦ :ImT)
                 # Count number of new immigrants
                 ns[j, i] = length(migs)
                 # Also need to calculate the number that grow (over the snapshot period)
@@ -133,12 +133,9 @@ function snp_shot()
                     end
                 end
                 # Find strains that either exist at the start of the snapshot, or immigrate within it
-                survs = findall(
-                    (
-                        (C[ind1, 1:length(micd)] .!== 0.0) .&
-                        (.~isnan.(C[ind1, 1:length(micd)]))
-                    ) .| (snps[j] .<= (micd .↦ :ImT) .< snps[j+1]),
-                )
+                survs = findall(((C[ind1, 1:length(micd)] .!== 0.0) .&
+                                 (.~isnan.(C[ind1, 1:length(micd)]))) .|
+                                (snps[j] .<= (micd .↦ :ImT) .< snps[j + 1]))
                 # Calculate change necessary to be considered to be growing
                 pchng = exp(0.01 * d * t_step) - 1.00
                 # Adjust for the fact that ind2 can be nothing
@@ -180,10 +177,8 @@ function snp_shot()
         flush(stdout)
     end
     # Now just save the relevant data
-    jldopen(
-        "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapData$(ims)Ims.jld",
-        "w",
-    ) do file
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapData$(ims)Ims.jld",
+            "w") do file
         # Save times of snapshots
         write(file, "times", snps)
         # Save whatever I generate here

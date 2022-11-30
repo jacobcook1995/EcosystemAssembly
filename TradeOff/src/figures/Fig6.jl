@@ -27,32 +27,26 @@ function figure6(rps::Int64, ims::Int64)
     bt = ColorSchemes.tab10.colors
     b = [bt[10]; bt[9]; bt[7]; bt[5]]
     # Make plot objects
-    p1 = plot(
-        xlabel = "Times (s)",
-        xlim = (-Inf, 5e7),
-        legend = :right,
-        ylabel = L"\eta",
-        title = "ATP yield",
-        ylim = (1.0, 6.0),
-    )
-    p2 = plot(
-        xlabel = "Times (s)",
-        xlim = (-Inf, 5e7),
-        ylim = (0.55, 0.75),
-        legend = false,
-        ylabel = "Fraction of free-energy transduced",
-        title = "Average reaction efficiency",
-    )
-    p3 = plot(
-        xlabel = "Times (s)",
-        xlim = (-Inf, 5e7),
-        ylim = (2.25, 3.00),
-        legend = false,
-        ylabel = "Average number of reaction steps",
-        title = "Relative frequency of reaction types",
-    )
+    p1 = plot(xlabel = "Times (s)",
+              xlim = (-Inf, 5e7),
+              legend = :right,
+              ylabel = L"\eta",
+              title = "ATP yield",
+              ylim = (1.0, 6.0))
+    p2 = plot(xlabel = "Times (s)",
+              xlim = (-Inf, 5e7),
+              ylim = (0.55, 0.75),
+              legend = false,
+              ylabel = "Fraction of free-energy transduced",
+              title = "Average reaction efficiency")
+    p3 = plot(xlabel = "Times (s)",
+              xlim = (-Inf, 5e7),
+              ylim = (2.25, 3.00),
+              legend = false,
+              ylabel = "Average number of reaction steps",
+              title = "Relative frequency of reaction types")
     # Loop over the 4 conditions
-    for i = 1:2
+    for i in 1:2
         # Extract other simulation parameters from the function
         Np, Nt, M, d, μrange = sim_paras(i)
         # Read in appropriate files
@@ -105,16 +99,14 @@ function figure6(rps::Int64, ims::Int64)
     # Calculate relevant standard errors
     se_via_η_bw = sd_via_η_bw ./ sqrt.(no_via)
     # Then plot
-    p4 = plot(
-        times,
-        mn_via_η_bw,
-        ribbon = se_via_η_bw,
-        color = a[3],
-        label = "high free-energy",
-        xlim = (-Inf, 2.5e6),
-        ylim = (1.0, 6.0),
-        title = "ATP yield without immigration",
-    )
+    p4 = plot(times,
+              mn_via_η_bw,
+              ribbon = se_via_η_bw,
+              color = a[3],
+              label = "high free-energy",
+              xlim = (-Inf, 2.5e6),
+              ylim = (1.0, 6.0),
+              title = "ATP yield without immigration")
     plot!(p4, xlabel = "Times (s)", ylabel = L"\eta")
     # Check if directory exists and if not make it
     if ~isdir("Output/Fig6")

@@ -91,12 +91,10 @@ function figure7(rps::Int64)
     a = ColorSchemes.sunset.colors
     # Plot basic trade-off first
     p1 = plot(xlabel = "Time (s)", ylabel = "Number of species", xlim = (-Inf, 2.5e6))
-    plot!(
-        p1,
-        title = "Number of reactions with time",
-        legend = :bottomright,
-        ylim = (0.0, 5.0),
-    )
+    plot!(p1,
+          title = "Number of reactions with time",
+          legend = :bottomright,
+          ylim = (0.0, 5.0))
     plot!(p1, times, mn_via_R[1, :], ribbon = se_via_R[1, :], label = "R=1", color = a[1])
     plot!(p1, times, mn_via_R[3, :], ribbon = se_via_R[3, :], label = "R=3", color = a[2])
     plot!(p1, times, mn_via_R[5, :], ribbon = se_via_R[5, :], label = "R=5", color = a[3])
@@ -106,92 +104,74 @@ function figure7(rps::Int64)
     annotate!(p1, px, py, text("A", 17, :black))
     savefig(p1, "Output/Fig7/AvViaReacsTime.png")
     # Now do probability plot
-    p2 = plot(
-        xlabel = "Time (s)",
-        ylabel = "Probability of no usable substrate",
-        xlim = (-Inf, 2.5e6),
-        title = "Chance of species finding no usable substrates",
-        legend = false,
-        times,
-        1 .- mn_Ps[1, :],
-        ribbon = (up_Ps[1, :], dw_Ps[1, :]),
-        label = "R=1",
-        color = a[1],
-    )
-    plot!(
-        p2,
-        times,
-        1 .- mn_Ps[3, :],
-        ribbon = (up_Ps[3, :], dw_Ps[3, :]),
-        label = "R=3",
-        color = a[2],
-    )
-    plot!(
-        p2,
-        times,
-        1 .- mn_Ps[5, :],
-        ribbon = (up_Ps[5, :], dw_Ps[5, :]),
-        label = "R=5",
-        color = a[3],
-    )
-    plot!(
-        p2,
-        times,
-        1 .- mn_Ps[7, :],
-        ribbon = (up_Ps[7, :], dw_Ps[7, :]),
-        label = "R=7",
-        color = a[4],
-    )
+    p2 = plot(xlabel = "Time (s)",
+              ylabel = "Probability of no usable substrate",
+              xlim = (-Inf, 2.5e6),
+              title = "Chance of species finding no usable substrates",
+              legend = false,
+              times,
+              1 .- mn_Ps[1, :],
+              ribbon = (up_Ps[1, :], dw_Ps[1, :]),
+              label = "R=1",
+              color = a[1])
+    plot!(p2,
+          times,
+          1 .- mn_Ps[3, :],
+          ribbon = (up_Ps[3, :], dw_Ps[3, :]),
+          label = "R=3",
+          color = a[2])
+    plot!(p2,
+          times,
+          1 .- mn_Ps[5, :],
+          ribbon = (up_Ps[5, :], dw_Ps[5, :]),
+          label = "R=5",
+          color = a[3])
+    plot!(p2,
+          times,
+          1 .- mn_Ps[7, :],
+          ribbon = (up_Ps[7, :], dw_Ps[7, :]),
+          label = "R=7",
+          color = a[4])
     # Define box for inset here
     box = (1, bbox(0.5, 0.5, 0.45, 0.3375, :bottom, :left))
     Ks = L"K_S"
     e7 = L"10^7"
     em3 = L"10^{-3}"
-    plot!(
-        p2,
-        times / 1e7,
-        mn_KS_R[1, :] * 1000.0,
-        ribbon = se_KS_R[1, :] * 1000.0,
-        label = "R=1",
-        color = a[1],
-        inset_subplots = box,
-        subplot = 2,
-    )
-    plot!(
-        p2,
-        times / 1e7,
-        mn_KS_R[3, :] * 1000.0,
-        ribbon = se_KS_R[3, :] * 1000.0,
-        label = "R=3",
-        color = a[2],
-        subplot = 2,
-    )
-    plot!(
-        p2,
-        times / 1e7,
-        mn_KS_R[5, :] * 1000.0,
-        ribbon = se_KS_R[5, :] * 1000.0,
-        label = "R=5",
-        color = a[3],
-        subplot = 2,
-    )
-    plot!(
-        p2,
-        times / 1e7,
-        mn_KS_R[7, :] * 1000.0,
-        ribbon = se_KS_R[7, :] * 1000.0,
-        label = "R=7",
-        color = a[4],
-        subplot = 2,
-    )
-    plot!(
-        p2,
-        xlim = (-Inf, 0.25),
-        guidefontsize = 9,
-        grid = false,
-        legend = false,
-        subplot = 2,
-    )
+    plot!(p2,
+          times / 1e7,
+          mn_KS_R[1, :] * 1000.0,
+          ribbon = se_KS_R[1, :] * 1000.0,
+          label = "R=1",
+          color = a[1],
+          inset_subplots = box,
+          subplot = 2)
+    plot!(p2,
+          times / 1e7,
+          mn_KS_R[3, :] * 1000.0,
+          ribbon = se_KS_R[3, :] * 1000.0,
+          label = "R=3",
+          color = a[2],
+          subplot = 2)
+    plot!(p2,
+          times / 1e7,
+          mn_KS_R[5, :] * 1000.0,
+          ribbon = se_KS_R[5, :] * 1000.0,
+          label = "R=5",
+          color = a[3],
+          subplot = 2)
+    plot!(p2,
+          times / 1e7,
+          mn_KS_R[7, :] * 1000.0,
+          ribbon = se_KS_R[7, :] * 1000.0,
+          label = "R=7",
+          color = a[4],
+          subplot = 2)
+    plot!(p2,
+          xlim = (-Inf, 0.25),
+          guidefontsize = 9,
+          grid = false,
+          legend = false,
+          subplot = 2)
     plot!(p2, xlabel = "Time ($(e7) s)", ylabel = "$(Ks) ($em3)", subplot = 2)
     # Add annotation
     px, py = annpos([0.0; 2.5e6], [0.0; 1.1], 0.075, 0.05)

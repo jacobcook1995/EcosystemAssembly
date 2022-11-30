@@ -36,7 +36,7 @@ function intstats()
     # Counter for number of reactions
     NoR = 0
     # Loop over number of repeats
-    for i = 1:rps
+    for i in 1:rps
         # Load in relevant output file
         vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/IntsRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
@@ -65,7 +65,7 @@ function intstats()
     cmb_st_selfc = zeros(rps, length(times))
     cmb_st_selff = zeros(rps, length(times))
     # Loop over number of trajectories (to minimise the number of reads in)
-    for i = 1:rps
+    for i in 1:rps
         # Load in relevant output file
         vfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/IntsRun$(i)Data$(ims)Ims.jld"
         if ~isfile(vfile)
@@ -104,8 +104,8 @@ function intstats()
             # Update the all but the first step in the same way
             if Tind > 1
                 # Calculate relevant time gaps
-                Tg = (T[Tind] - T[Tind-1])
-                T1x = times[cnt] - T[Tind-1]
+                Tg = (T[Tind] - T[Tind - 1])
+                T1x = times[cnt] - T[Tind - 1]
                 T2x = T[Tind] - times[cnt]
                 # And use to find appropriate averages
                 cmb_svt[i, cnt] = interpolate_time(svt, Tg, T1x, T2x)
@@ -140,7 +140,7 @@ function intstats()
                 cmb_st_selff[i, cnt] = st_selff[Tind]
             end
             # Finally check if next time point is higher than final time for this trajectory
-            if cnt >= length(times) || times[cnt+1] > Tfs[i]
+            if cnt >= length(times) || times[cnt + 1] > Tfs[i]
                 Rn_end = true
             end
         end
@@ -203,40 +203,36 @@ function intstats()
         # Calculate standard deviations
         sd_svt[i] = sqrt(sum((cmb_svt[inds, i] .- mn_svt[i]) .^ 2) / (no_sims[i] - 1))
         sd_tsvt[i] = sqrt(sum((cmb_tsvt[inds, i] .- mn_tsvt[i]) .^ 2) / (no_sims[i] - 1))
-        sd_no_comp[i] =
-            sqrt(sum((cmb_no_comp[inds, i] .- mn_no_comp[i]) .^ 2) / (no_sims[i] - 1))
-        sd_no_facl[i] =
-            sqrt(sum((cmb_no_facl[inds, i] .- mn_no_facl[i]) .^ 2) / (no_sims[i] - 1))
-        sd_no_selff[i] =
-            sqrt(sum((cmb_no_selff[inds, i] .- mn_no_selff[i]) .^ 2) / (no_sims[i] - 1))
-        sd_no_selfc[i] =
-            sqrt(sum((cmb_no_selfc[inds, i] .- mn_no_selfc[i]) .^ 2) / (no_sims[i] - 1))
-        sd_st_comp[i] =
-            sqrt(sum((cmb_st_comp[inds, i] .- mn_st_comp[i]) .^ 2) / (no_sims[i] - 1))
-        sd_st_facl[i] =
-            sqrt(sum((cmb_st_facl[inds, i] .- mn_st_facl[i]) .^ 2) / (no_sims[i] - 1))
-        sd_st_selff[i] =
-            sqrt(sum((cmb_st_selff[inds, i] .- mn_st_selff[i]) .^ 2) / (no_sims[i] - 1))
-        sd_st_selfc[i] =
-            sqrt(sum((cmb_st_selfc[inds, i] .- mn_st_selfc[i]) .^ 2) / (no_sims[i] - 1))
+        sd_no_comp[i] = sqrt(sum((cmb_no_comp[inds, i] .- mn_no_comp[i]) .^ 2) /
+                             (no_sims[i] - 1))
+        sd_no_facl[i] = sqrt(sum((cmb_no_facl[inds, i] .- mn_no_facl[i]) .^ 2) /
+                             (no_sims[i] - 1))
+        sd_no_selff[i] = sqrt(sum((cmb_no_selff[inds, i] .- mn_no_selff[i]) .^ 2) /
+                              (no_sims[i] - 1))
+        sd_no_selfc[i] = sqrt(sum((cmb_no_selfc[inds, i] .- mn_no_selfc[i]) .^ 2) /
+                              (no_sims[i] - 1))
+        sd_st_comp[i] = sqrt(sum((cmb_st_comp[inds, i] .- mn_st_comp[i]) .^ 2) /
+                             (no_sims[i] - 1))
+        sd_st_facl[i] = sqrt(sum((cmb_st_facl[inds, i] .- mn_st_facl[i]) .^ 2) /
+                             (no_sims[i] - 1))
+        sd_st_selff[i] = sqrt(sum((cmb_st_selff[inds, i] .- mn_st_selff[i]) .^ 2) /
+                              (no_sims[i] - 1))
+        sd_st_selfc[i] = sqrt(sum((cmb_st_selfc[inds, i] .- mn_st_selfc[i]) .^ 2) /
+                              (no_sims[i] - 1))
         # These should be calculated just for viable strains
         if no_via[i] > 1
-            sd_via_no_comp[i] = sqrt(
-                sum((cmb_via_no_comp[vinds, i] .- mn_via_no_comp[i]) .^ 2) /
-                (no_via[i] - 1),
-            )
-            sd_via_no_facl[i] = sqrt(
-                sum((cmb_via_no_facl[vinds, i] .- mn_via_no_facl[i]) .^ 2) /
-                (no_via[i] - 1),
-            )
-            sd_via_no_selff[i] = sqrt(
-                sum((cmb_via_no_selff[vinds, i] .- mn_via_no_selff[i]) .^ 2) /
-                (no_via[i] - 1),
-            )
-            sd_via_no_selfc[i] = sqrt(
-                sum((cmb_via_no_selfc[vinds, i] .- mn_via_no_selfc[i]) .^ 2) /
-                (no_via[i] - 1),
-            )
+            sd_via_no_comp[i] = sqrt(sum((cmb_via_no_comp[vinds, i] .- mn_via_no_comp[i]) .^
+                                         2) /
+                                     (no_via[i] - 1))
+            sd_via_no_facl[i] = sqrt(sum((cmb_via_no_facl[vinds, i] .- mn_via_no_facl[i]) .^
+                                         2) /
+                                     (no_via[i] - 1))
+            sd_via_no_selff[i] = sqrt(sum((cmb_via_no_selff[vinds, i] .- mn_via_no_selff[i]) .^
+                                          2) /
+                                      (no_via[i] - 1))
+            sd_via_no_selfc[i] = sqrt(sum((cmb_via_no_selfc[vinds, i] .- mn_via_no_selfc[i]) .^
+                                          2) /
+                                      (no_via[i] - 1))
         else
             sd_via_no_comp[i] = NaN
             sd_via_no_facl[i] = NaN
@@ -245,10 +241,8 @@ function intstats()
         end
     end
     # Now want to save means and standard deviations
-    jldopen(
-        "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/IntStats$(ims)Ims.jld",
-        "w",
-    ) do file
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/IntStats$(ims)Ims.jld",
+            "w") do file
         # Save times
         write(file, "times", times)
         # Save number of continuing trajectories

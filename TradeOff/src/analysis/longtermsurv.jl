@@ -27,7 +27,7 @@ function long_term_surv()
     # Preallocate survival times
     sTs = Float64[]
     # Loop over number of repeats
-    for i = 1:rps
+    for i in 1:rps
         # Load in relevant output file
         ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
@@ -38,14 +38,12 @@ function long_term_surv()
         # Find indices of species that survive to the end
         inds = findall(isnan, micd .↦ :ExT)
         # Add the immigration times of these species to the vector
-        sTs = cat(sTs, (micd.↦:ImT)[inds], dims = 1)
+        sTs = cat(sTs, (micd .↦ :ImT)[inds], dims = 1)
     end
     # Once all this has been calculated save ``survival'' times as a new datafiles
     # Now want to save means and standard deviations
-    jldopen(
-        "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SurvTimes$(ims)Ims.jld",
-        "w",
-    ) do file
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SurvTimes$(ims)Ims.jld",
+            "w") do file
         # Save times
         write(file, "sTs", sTs)
     end

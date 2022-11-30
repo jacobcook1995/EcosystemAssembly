@@ -50,48 +50,40 @@ function figure5(rps::Int64, ims::Int64)
     # Define reused latex strings
     e6 = L"10^6"
     # Make plot objects
-    p1 = plot(
-        xlabel = "Time (s)",
-        xlim = (-Inf, 5e7),
-        ylim = (0.35, 0.55),
-        legend = :topleft,
-        title = "Variation with free energy",
-        ylabel = "Maximum ribosome fraction factor ($(L"\omega"))",
-    )
+    p1 = plot(xlabel = "Time (s)",
+              xlim = (-Inf, 5e7),
+              ylim = (0.35, 0.55),
+              legend = :topleft,
+              title = "Variation with free energy",
+              ylabel = "Maximum ribosome fraction factor ($(L"\omega"))")
     # Add inset box to plot other trade-off into
-    plot!(
-        p1,
-        xlabel = "Time ($(e6) s)",
-        ylabel = L"\phi_R",
-        inset_subplots = box,
-        subplot = 2,
-        grid = false,
-        legend = false,
-    )
+    plot!(p1,
+          xlabel = "Time ($(e6) s)",
+          ylabel = L"\phi_R",
+          inset_subplots = box,
+          subplot = 2,
+          grid = false,
+          legend = false)
     plot!(p1, subplot = 2, xlim = (-Inf, 10.0), ylim = (0.05, 0.3), legend = false)
     # Now make second plot
-    p2 = plot(
-        xlabel = "Time (s)",
-        xlim = (-Inf, 5e7),
-        ylim = (0.4, 0.55),
-        legend = :topleft,
-        title = "Variation with maintenance cost",
-        ylabel = "Maximum ribosome fraction factor ($(L"\omega"))",
-    )
+    p2 = plot(xlabel = "Time (s)",
+              xlim = (-Inf, 5e7),
+              ylim = (0.4, 0.55),
+              legend = :topleft,
+              title = "Variation with maintenance cost",
+              ylabel = "Maximum ribosome fraction factor ($(L"\omega"))")
     # Add the same inset box, to plot the other trade-off into
-    plot!(
-        p2,
-        xlabel = "Time ($(e6) s)",
-        ylabel = L"\phi_R",
-        inset_subplots = box,
-        subplot = 2,
-        grid = false,
-    )
+    plot!(p2,
+          xlabel = "Time ($(e6) s)",
+          ylabel = L"\phi_R",
+          inset_subplots = box,
+          subplot = 2,
+          grid = false)
     plot!(p2, subplot = 2, xlim = (-Inf, 10.0), ylim = (0.05, 0.3), legend = false)
     p3 = plot(xlabel = "Time (s)", xlim = (-Inf, 5e7), legend = :topleft)
     p4 = plot(xlabel = "Time (s)", xlim = (-Inf, 5e7), legend = :topleft)
     # Loop over the 3 conditions
-    for i = 1:3
+    for i in 1:3
         # Extract other simulation parameters from the function
         Np, Nt, M, d, μrange = sim_paras(i)
         # Read in appropriate files

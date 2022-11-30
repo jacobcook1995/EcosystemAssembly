@@ -38,13 +38,11 @@ function early_immigration_dyns(rN::Int64, ims::Int64, sim_type::Int64)
     Tmax = 5e5
     pyplot(dpi = 200)
     # Plot all the populations
-    p1 = plot(
-        yaxis = :log10,
-        ylabel = "Population (# cells)",
-        ylims = (1e-5, Inf),
-        xlabel = "Time (s)",
-    )
-    for i = 1:totN
+    p1 = plot(yaxis = :log10,
+              ylabel = "Population (# cells)",
+              ylims = (1e-5, Inf),
+              xlabel = "Time (s)")
+    for i in 1:totN
         # Find and eliminate zeros so that they can be plotted on a log plot
         inds = (C[:, i] .> 0) .& (T .<= Tmax)
         plot!(p1, T[inds], C[inds, i], label = "")

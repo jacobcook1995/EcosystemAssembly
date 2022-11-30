@@ -63,7 +63,7 @@ function plot_traj()
     pyplot(dpi = 200)
     # Plot all the populations
     p1 = plot(yaxis = :log10, ylabel = "Population (# cells)", ylims = (1e-5, Inf))
-    for i = 1:totN
+    for i in 1:totN
         # Find and eliminate zeros so that they can be plotted on a log plot
         inds = (C[:, i] .> 0)
         plot!(p1, T[inds], C[inds, i], label = "")
@@ -71,27 +71,27 @@ function plot_traj()
     savefig(p1, "Output/$(tk)Plotsd=$(d)u=$(μrange)/all_pops.png")
     # Plot all the concentrations
     p2 = plot(yaxis = :log10, ylabel = "Concentration")#,ylims=(1e-15,Inf))
-    for i = 1:ps.M
+    for i in 1:(ps.M)
         # Find and eliminate zeros so that they can be plotted on a log plot
-        inds = (C[:, totN+i] .> 0)
-        plot!(p2, T[inds], C[inds, totN+i], label = "")
+        inds = (C[:, totN + i] .> 0)
+        plot!(p2, T[inds], C[inds, totN + i], label = "")
     end
     savefig(p2, "Output/$(tk)Plotsd=$(d)u=$(μrange)/all_concs.png")
     # Plot all the energy concentrations
     p3 = plot(ylabel = "Energy Concentration")
-    for i = 1:totN
-        plot!(p3, T, C[:, totN+ps.M+i], label = "")
+    for i in 1:totN
+        plot!(p3, T, C[:, totN + ps.M + i], label = "")
     end
     savefig(p3, "Output/$(tk)Plotsd=$(d)u=$(μrange)/all_as.png")
     # Plot all the ribosome fractions
     p4 = plot(ylabel = "Ribosome fraction")
-    for i = 1:totN
-        plot!(p4, T, C[:, 2*totN+ps.M+i], label = "")
+    for i in 1:totN
+        plot!(p4, T, C[:, 2 * totN + ps.M + i], label = "")
     end
     savefig(p4, "Output/$(tk)Plotsd=$(d)u=$(μrange)/all_fracs.png")
     # Plot populations that survive to the end
     p1 = plot(yaxis = :log10, ylabel = "Population (# cells)", ylims = (1e-5, Inf))
-    for i = 1:totN
+    for i in 1:totN
         if svr[i] == true
             # Find and eliminate zeros so that they can be plotted on a log plot
             inds = (C[:, i] .> 0)
@@ -101,17 +101,17 @@ function plot_traj()
     savefig(p1, "Output/$(tk)Plotsd=$(d)u=$(μrange)/surv_pops.png")
     # Plot energy concentrations of populations that survive to the end
     p3 = plot(ylabel = "Energy Concentration")
-    for i = 1:totN
+    for i in 1:totN
         if svr[i] == true
-            plot!(p3, T, C[:, totN+ps.M+i], label = "")
+            plot!(p3, T, C[:, totN + ps.M + i], label = "")
         end
     end
     savefig(p3, "Output/$(tk)Plotsd=$(d)u=$(μrange)/surv_as.png")
     # Plot ribosome fractions of populations that survive to the end
     p4 = plot(ylabel = "Ribosome fraction")
-    for i = 1:totN
+    for i in 1:totN
         if svr[i] == true
-            plot!(p4, T, C[:, 2*totN+ps.M+i], label = "")
+            plot!(p4, T, C[:, 2 * totN + ps.M + i], label = "")
         end
     end
     savefig(p4, "Output/$(tk)Plotsd=$(d)u=$(μrange)/surv_fracs.png")
@@ -253,11 +253,9 @@ function plot_aves()
     plot(xlabel = "Time (s)", ylabel = "Number of viable strains", xlim = (-Inf, 5e7))
     plot!(times, mn_tsvt, ribbon = se_tsvt, label = "")
     savefig("Output/Plotsd=$(d)u=$(μrange)/AvViaTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of diversified substrates",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Number of diversified substrates",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_sbs, ribbon = se_sbs, label = "")
     savefig("Output/Plotsd=$(d)u=$(μrange)/AvSubTime.png")
     plot(xlabel = "Time (s)", ylabel = "Number of strains", xlim = (-Inf, 5e7))
@@ -290,11 +288,9 @@ function plot_aves()
     plot!(times, mn_kc_R[5, :], ribbon = se_kc_R[5, :], label = "R=5")
     plot!(times, mn_kc_R[7, :], ribbon = se_kc_R[7, :], label = "R=7")
     savefig("Output/Plotsd=$(d)u=$(μrange)/AvkcperReacTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Average half saturation constant",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Average half saturation constant",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_KS_R[1, :], ribbon = se_KS_R[1, :], label = "R=1")
     plot!(times, mn_KS_R[3, :], ribbon = se_KS_R[3, :], label = "R=3")
     plot!(times, mn_KS_R[5, :], ribbon = se_KS_R[5, :], label = "R=5")
@@ -312,11 +308,9 @@ function plot_aves()
     plot!(times, mn_η_stp[:, 3], ribbon = se_η_stp[:, 3], label = "3-step")
     plot!(times, mn_η_stp[:, 4], ribbon = se_η_stp[:, 4], label = "4-step")
     savefig("Output/Plotsd=$(d)u=$(μrange)/AvEtaperStepTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Fraction of free energy transduced",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Fraction of free energy transduced",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_fr_ΔG_stp[:, 1], ribbon = se_fr_ΔG_stp[:, 1], label = "1-step")
     plot!(times, mn_fr_ΔG_stp[:, 2], ribbon = se_fr_ΔG_stp[:, 2], label = "2-step")
     plot!(times, mn_fr_ΔG_stp[:, 3], ribbon = se_fr_ΔG_stp[:, 3], label = "3-step")
@@ -346,11 +340,9 @@ function plot_aves()
     plot(xlabel = "Time (s)", ylabel = "Average reversibility factor", xlim = (-Inf, 5e7))
     plot!(times, mn_krs, ribbon = se_krs, label = "")
     savefig("Output/Plotsd=$(d)u=$(μrange)/AvkrTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Average steps in metabolite hierarchy",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Average steps in metabolite hierarchy",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_av_steps, ribbon = se_av_steps, label = "")
     savefig("Output/Plotsd=$(d)u=$(μrange)/AvStepsTime.png")
     plot(xlabel = "Time (s)", ylabel = "Average ATP concentration", xlim = (-Inf, 5e7))
@@ -441,116 +433,84 @@ function plot_av_ints()
     # Setup plotting
     # ALL QUITE MUCKY HERE AT THE MOMENT, CLEAN THESE UP BEFORE I PRESENT THEM
     pyplot(dpi = 200)
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Number of competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_no_comp ./ (mn_no_selfc .^ 2), label = "")
     savefig("Output/AvCompTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of facilitation interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Number of facilitation interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_no_facl ./ (mn_no_selfc .^ 2), label = "")
     savefig("Output/AvFaclTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of (self) competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Number of (self) competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_no_selfc ./ mn_no_selfc, label = "")
     savefig("Output/AvSelfCompTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of (self) facilitation interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Number of (self) facilitation interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_no_selff ./ mn_no_selfc, label = "")
     savefig("Output/AvSelfFaclTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of viable competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Number of viable competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_via_no_comp ./ (mn_via_no_selfc .^ 2), label = "")
     savefig("Output/AvViaCompTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of viable facilitation interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Number of viable facilitation interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_via_no_facl ./ (mn_via_no_selfc .^ 2), label = "")
     savefig("Output/AvViaFaclTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of viable (self) competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Number of viable (self) competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_via_no_selfc ./ mn_via_no_selfc, label = "")
     savefig("Output/AvViaSelfCompTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of viable (self) competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Number of viable (self) competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_via_no_selff ./ mn_via_no_selfc, label = "")
     savefig("Output/AvViaSelfFaclTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Strength of competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Strength of competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_st_comp, ribbon = se_st_comp, label = "")
     savefig("Output/AvStCompTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Strength of facilitation interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Strength of facilitation interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_st_facl, ribbon = se_st_facl, label = "")
     savefig("Output/AvStFaclTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Strength of (self) competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Strength of (self) competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_st_selfc, ribbon = se_st_selfc, label = "")
     savefig("Output/AvStSelfCompTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Strength of (self) competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Strength of (self) competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_st_selff, ribbon = se_st_selff, label = "")
     savefig("Output/AvStSelfFaclTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Mean strength of competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Mean strength of competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_st_comp ./ mn_no_comp, label = "")
     savefig("Output/MnStCompTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Mean strength of facilitation interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Mean strength of facilitation interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_st_facl ./ mn_no_facl, label = "")
     savefig("Output/MnStFaclTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Mean strength of (self) competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Mean strength of (self) competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_st_selfc ./ mn_no_selfc, label = "")
     savefig("Output/MnStSelfCompTime.png")
-    plot(
-        xlabel = "Time (s)",
-        ylabel = "Mean strength of (self) competition interactions",
-        xlim = (-Inf, 5e7),
-    )
+    plot(xlabel = "Time (s)",
+         ylabel = "Mean strength of (self) competition interactions",
+         xlim = (-Inf, 5e7))
     plot!(times, mn_st_selff ./ mn_no_selff, label = "")
     savefig("Output/MnStSelfFaclTime.png")
     return (nothing)

@@ -3,28 +3,26 @@ using TradeOff
 using JLD
 
 # function to calculate the strength of facilitation through a particular metabolite
-function facl(
-    Mn::Int64,
-    ps::TOParameters,
-    ms::Array{Microbe,1},
-    pops::Array{Float64,1},
-    concs::Array{Float64,1},
-    ϕRs::Array{Float64,1},
-    fcls::Array{Int64,2},
-)
+function facl(Mn::Int64,
+              ps::TOParameters,
+              ms::Array{Microbe, 1},
+              pops::Array{Float64, 1},
+              concs::Array{Float64, 1},
+              ϕRs::Array{Float64, 1},
+              fcls::Array{Int64, 2})
     # Find all reactions where metabolite is a product
     Pind = findall(x -> x == Mn, ps.reacs .↦ :Prd)
     # Preallocate counters for self-facilitation and facilitation
     selff = 0
     fcl = 0
     # Now loop over all pairs of strains (strain i facilitates strain j)
-    for i = 1:length(ms)
-        for j = 1:length(ms)
+    for i in 1:length(ms)
+        for j in 1:length(ms)
             # Check that facilitation interaction is present
             if fcls[i, j] > 0
                 if i == j
                     # Loop over all of strain i's reaction
-                    for k = 1:ms[i].R
+                    for k in 1:(ms[i].R)
                         # Only use the ones that count
                         if ms[i].Reacs[k] ∈ Pind
                             # Save reaction
@@ -32,14 +30,14 @@ function facl(
                             # Find enzyme dedicated to the reaction
                             E = Eα(ϕRs[i], ms[i], k)
                             # Finally find flux for this reaction
-                            selff +=
-                                pops[i] *
-                                qs(concs[r.Rct], concs[r.Prd], E, k, ms[i], ps.T, r) / NA
+                            selff += pops[i] *
+                                     qs(concs[r.Rct], concs[r.Prd], E, k, ms[i], ps.T, r) /
+                                     NA
                         end
                     end
                 else
                     # Loop over all of strain i's reaction
-                    for k = 1:ms[i].R
+                    for k in 1:(ms[i].R)
                         # Only use the ones that count
                         if ms[i].Reacs[k] ∈ Pind
                             # Save reaction
@@ -47,9 +45,8 @@ function facl(
                             # Find enzyme dedicated to the reaction
                             E = Eα(ϕRs[i], ms[i], k)
                             # Finally find flux for this reaction
-                            fcl +=
-                                pops[i] *
-                                qs(concs[r.Rct], concs[r.Prd], E, k, ms[i], ps.T, r) / NA
+                            fcl += pops[i] *
+                                   qs(concs[r.Rct], concs[r.Prd], E, k, ms[i], ps.T, r) / NA
                         end
                     end
                 end
@@ -60,15 +57,13 @@ function facl(
 end
 
 # function to calculate the strength of competition via a particular metabolite
-function comp(
-    Mn::Int64,
-    ps::TOParameters,
-    ms::Array{Microbe,1},
-    pops::Array{Float64,1},
-    concs::Array{Float64,1},
-    ϕRs::Array{Float64,1},
-    cmps::Array{Int64,2},
-)
+function comp(Mn::Int64,
+              ps::TOParameters,
+              ms::Array{Microbe, 1},
+              pops::Array{Float64, 1},
+              concs::Array{Float64, 1},
+              ϕRs::Array{Float64, 1},
+              cmps::Array{Int64, 2})
     # Find all reactions where metabolite is a substrate
     Sind = findall(x -> x == Mn, ps.reacs .↦ :Rct)
     # Preallocate counters for self-facilitation and facilitation
@@ -76,24 +71,24 @@ function comp(
     cmp = 0
     # Now loop over all pairs of strains (strain i facilitates strain j)
     # Strain i's competition with strain j is set by how much strain i consumes
-    for i = 1:length(ms)
-        for j = 1:length(ms)
+    for i in 1:length(ms)
+        for j in 1:length(ms)
             # Find self interactions
             if i == j
                 # Loop over all of strain i's reaction
-                for k = 1:ms[i].R
+                for k in 1:(ms[i].R)
                     # Save reaction
                     r = ps.reacs[ms[i].Reacs[k]]
                     # Find enzyme dedicated to the reaction
                     E = Eα(ϕRs[i], ms[i], k)
                     # Finally find flux for this reaction
-                    selfc +=
-                        pops[i] * qs(concs[r.Rct], concs[r.Prd], E, k, ms[i], ps.T, r) / NA
+                    selfc += pops[i] *
+                             qs(concs[r.Rct], concs[r.Prd], E, k, ms[i], ps.T, r) / NA
                 end
                 # Look for competition between strains now
             elseif cmps[i, j] > 0
                 # Loop over all of strain i's reaction
-                for k = 1:ms[i].R
+                for k in 1:(ms[i].R)
                     # Only use the ones that count
                     if ms[i].Reacs[k] ∈ Sind
                         # Save reaction
@@ -101,9 +96,9 @@ function comp(
                         # Find enzyme dedicated to the reaction
                         E = Eα(ϕRs[i], ms[i], k)
                         # Finally find flux for this reaction
-                        cmp +=
-                            pops[i] * qs(concs[r.Rct], concs[r.Prd], E, k, ms[i], ps.T, r) /
-                            NA
+                        cmp += pops[i] *
+                               qs(concs[r.Rct], concs[r.Prd], E, k, ms[i], ps.T, r) /
+                               NA
                     end
                 end
             end
@@ -142,11 +137,11 @@ function ints_over_t()
     # List of pools already loaded in
     pls = []
     # Array of array to store pools
-    pools = Array{Array{Microbe,1},1}(undef, 1)
+    pools = Array{Array{Microbe, 1}, 1}(undef, 1)
     # Counter for number of reactions
     NoR = 0
     # Loop over number of repeats
-    for i = 1:rps
+    for i in 1:rps
         # Load in relevant output file
         ofile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/Run$(i)Data$(ims)Ims.jld"
         if ~isfile(ofile)
@@ -160,7 +155,7 @@ function ints_over_t()
         # Use to construct full trajectory C
         C = merge_data(ps, traj, T, micd, its)
         # Preallocate vector of microbes
-        ms = Array{Microbe,1}(undef, length(micd))
+        ms = Array{Microbe, 1}(undef, length(micd))
         # Loop over and find each one
         for j in eachindex(micd)
             # check for case where pool hasn't already been loaded in
@@ -198,8 +193,8 @@ function ints_over_t()
             # Loop over microbes to find facilitation terms
             for k in eachindex(ms)
                 # Loop over reactions for both strains
-                for l = 1:ms[j].R
-                    for m = 1:ms[k].R
+                for l in 1:(ms[j].R)
+                    for m in 1:(ms[k].R)
                         # Check for facilitation cases
                         if ps.reacs[ms[j].Reacs[l]].Prd == ps.reacs[ms[k].Reacs[m]].Rct
                             fcls[j, k] += 1
@@ -214,14 +209,14 @@ function ints_over_t()
             end
         end
         # Preallocate containers to store data of interest with time
-        svt = Array{Int64,1}(undef, length(T))
-        tsvt = Array{Int64,1}(undef, length(T))
-        no_comp = Array{Int64,1}(undef, length(T))
-        no_facl = Array{Int64,1}(undef, length(T))
+        svt = Array{Int64, 1}(undef, length(T))
+        tsvt = Array{Int64, 1}(undef, length(T))
+        no_comp = Array{Int64, 1}(undef, length(T))
+        no_facl = Array{Int64, 1}(undef, length(T))
         no_selff = zeros(Int64, length(T))
         no_selfc = zeros(Int64, length(T))
-        via_no_comp = Array{Int64,1}(undef, length(T))
-        via_no_facl = Array{Int64,1}(undef, length(T))
+        via_no_comp = Array{Int64, 1}(undef, length(T))
+        via_no_facl = Array{Int64, 1}(undef, length(T))
         via_no_selff = zeros(Int64, length(T))
         via_no_selfc = zeros(Int64, length(T))
         st_comp = zeros(length(T))
@@ -231,13 +226,13 @@ function ints_over_t()
         # Save total number of strains
         numS = length(micd)
         # Loop over all time points
-        for j = 1:length(T)
+        for j in 1:length(T)
             # Save all strain populations
             pops = C[j, 1:numS]
             # Save concentrations as well
-            concs = C[j, (numS+1):(numS+ps.M)]
+            concs = C[j, (numS + 1):(numS + ps.M)]
             # Also save ribosome fractions
-            ϕRs = C[j, (2*numS+ps.M+1):(3*numS+ps.M)]
+            ϕRs = C[j, (2 * numS + ps.M + 1):(3 * numS + ps.M)]
             # Find indices of surviving strains
             inds = findall(x -> x > 1e-5, pops)
             # Save number of surviving strains at each time point
@@ -275,24 +270,22 @@ function ints_over_t()
                 via_no_selfc[j] = sum(ms[vinds] .↦ :R)
             end
             # Loop over all metabolites
-            for k = 1:ps.M
+            for k in 1:(ps.M)
                 # Find strength of facilitation interactions (of both types) involving this metabolite
-                selff, fcl =
-                    facl(k, ps, ms[inds], pops[inds], concs, ϕRs[inds], fcls[inds, inds])
+                selff, fcl = facl(k, ps, ms[inds], pops[inds], concs, ϕRs[inds],
+                                  fcls[inds, inds])
                 st_selff[j] += selff
                 st_facl[j] += fcl
                 # Find strength of competition interactions (of both types) involving this metabolite
-                selfc, cmp =
-                    comp(k, ps, ms[inds], pops[inds], concs, ϕRs[inds], cmps[inds, inds])
+                selfc, cmp = comp(k, ps, ms[inds], pops[inds], concs, ϕRs[inds],
+                                  cmps[inds, inds])
                 st_selfc[j] += selfc
                 st_comp[j] += cmp
             end
         end
         # Now just save the relevant data
-        jldopen(
-            "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/IntsRun$(i)Data$(ims)Ims.jld",
-            "w",
-        ) do file
+        jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)/IntsRun$(i)Data$(ims)Ims.jld",
+                "w") do file
             # Save full time course
             write(file, "T", T)
             # Output number of strains and number of viable strains
@@ -320,6 +313,5 @@ function ints_over_t()
     end
     return (nothing)
 end
-
 
 @time ints_over_t()

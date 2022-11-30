@@ -162,10 +162,10 @@ function trjstats()
                 end
             end
             # Skip averaging if previous point is missing
-            if Tind > 1 && tsvt[Tind-1] != 0
+            if Tind > 1 && tsvt[Tind - 1] != 0
                 # Calculate relevant time gaps
-                Tg = (T[Tind] - T[Tind-1])
-                T1x = times[cnt] - T[Tind-1]
+                Tg = (T[Tind] - T[Tind - 1])
+                T1x = times[cnt] - T[Tind - 1]
                 T2x = T[Tind] - times[cnt]
                 # And use to find appropriate averages
                 cmb_svt[i, cnt] = interpolate_time(svt, Tg, T1x, T2x)
@@ -238,7 +238,7 @@ function trjstats()
                 end
             end
             # Finally check if next time point is higher than final time for this trajectory
-            if cnt >= length(times) || times[cnt+1] > Tfs[i]
+            if cnt >= length(times) || times[cnt + 1] > Tfs[i]
                 Rn_end = true
             end
         end
@@ -373,50 +373,45 @@ function trjstats()
         sd_ωs[i] = sqrt(sum((cmb_ωs[inds, i] .- mn_ωs[i]) .^ 2) / (no_sims[i] - 1))
         # These should be calculated just for viable strains
         if no_via[i] > 1
-            sd_via_bm[i] =
-                sqrt(sum((cmb_via_bm[inds, i] .- mn_via_bm[i]) .^ 2) / (no_via[i] - 1))
-            sd_via_η[i] =
-                sqrt(sum((cmb_via_η[vinds, i] .- mn_via_η[i]) .^ 2) / (no_via[i] - 1))
-            sd_via_η_bw[i] =
-                sqrt(sum((cmb_via_η_bw[vinds, i] .- mn_via_η_bw[i]) .^ 2) / (no_via[i] - 1))
-            sd_via_ω[i] =
-                sqrt(sum((cmb_via_ω[vinds, i] .- mn_via_ω[i]) .^ 2) / (no_via[i] - 1))
-            sd_via_ω_bw[i] =
-                sqrt(sum((cmb_via_ω_bw[vinds, i] .- mn_via_ω_bw[i]) .^ 2) / (no_via[i] - 1))
-            sd_fr_ΔG[i] =
-                sqrt(sum((cmb_fr_ΔG[vinds, i] .- mn_fr_ΔG[i]) .^ 2) / (no_via[i] - 1))
-            sd_fr_ΔG_bw[i] =
-                sqrt(sum((cmb_fr_ΔG_bw[vinds, i] .- mn_fr_ΔG_bw[i]) .^ 2) / (no_via[i] - 1))
-            sd_via_a[i] =
-                sqrt(sum((cmb_via_a[vinds, i] .- mn_via_a[i]) .^ 2) / (no_via[i] - 1))
-            sd_via_ϕR[i] =
-                sqrt(sum((cmb_via_ϕR[vinds, i] .- mn_via_ϕR[i]) .^ 2) / (no_via[i] - 1))
+            sd_via_bm[i] = sqrt(sum((cmb_via_bm[inds, i] .- mn_via_bm[i]) .^ 2) /
+                                (no_via[i] - 1))
+            sd_via_η[i] = sqrt(sum((cmb_via_η[vinds, i] .- mn_via_η[i]) .^ 2) /
+                               (no_via[i] - 1))
+            sd_via_η_bw[i] = sqrt(sum((cmb_via_η_bw[vinds, i] .- mn_via_η_bw[i]) .^ 2) /
+                                  (no_via[i] - 1))
+            sd_via_ω[i] = sqrt(sum((cmb_via_ω[vinds, i] .- mn_via_ω[i]) .^ 2) /
+                               (no_via[i] - 1))
+            sd_via_ω_bw[i] = sqrt(sum((cmb_via_ω_bw[vinds, i] .- mn_via_ω_bw[i]) .^ 2) /
+                                  (no_via[i] - 1))
+            sd_fr_ΔG[i] = sqrt(sum((cmb_fr_ΔG[vinds, i] .- mn_fr_ΔG[i]) .^ 2) /
+                               (no_via[i] - 1))
+            sd_fr_ΔG_bw[i] = sqrt(sum((cmb_fr_ΔG_bw[vinds, i] .- mn_fr_ΔG_bw[i]) .^ 2) /
+                                  (no_via[i] - 1))
+            sd_via_a[i] = sqrt(sum((cmb_via_a[vinds, i] .- mn_via_a[i]) .^ 2) /
+                               (no_via[i] - 1))
+            sd_via_ϕR[i] = sqrt(sum((cmb_via_ϕR[vinds, i] .- mn_via_ϕR[i]) .^ 2) /
+                                (no_via[i] - 1))
             sd_kcs[i] = sqrt(sum((cmb_kcs[vinds, i] .- mn_kcs[i]) .^ 2) / (no_via[i] - 1))
             sd_KSs[i] = sqrt(sum((cmb_KSs[vinds, i] .- mn_KSs[i]) .^ 2) / (no_via[i] - 1))
             sd_krs[i] = sqrt(sum((cmb_krs[vinds, i] .- mn_krs[i]) .^ 2) / (no_via[i] - 1))
-            sd_av_steps[i] =
-                sqrt(sum((cmb_av_steps[vinds, i] .- mn_av_steps[i]) .^ 2) / (no_via[i] - 1))
-            sd_av_steps_bw[i] = sqrt(
-                sum((cmb_av_steps_bw[vinds, i] .- mn_av_steps_bw[i]) .^ 2) /
-                (no_via[i] - 1),
-            )
-            for j in 1:(M-1)
-                sd_η_stp[i, j] = sqrt(
-                    sum((cmb_η_stp[vinds, i, j] .- mn_η_stp[i, j]) .^ 2) / (no_via[i] - 1),
-                )
-                sd_fr_ΔG_stp[i, j] = sqrt(
-                    sum((cmb_fr_ΔG_stp[vinds, i, j] .- mn_fr_ΔG_stp[i, j]) .^ 2) /
-                    (no_via[i] - 1),
-                )
-                sd_ϕP_stp[i, j] = sqrt(
-                    sum((cmb_ϕP_stp[vinds, i, j] .- mn_ϕP_stp[i, j]) .^ 2) /
-                    (no_via[i] - 1),
-                )
+            sd_av_steps[i] = sqrt(sum((cmb_av_steps[vinds, i] .- mn_av_steps[i]) .^ 2) /
+                                  (no_via[i] - 1))
+            sd_av_steps_bw[i] = sqrt(sum((cmb_av_steps_bw[vinds, i] .- mn_av_steps_bw[i]) .^
+                                         2) /
+                                     (no_via[i] - 1))
+            for j in 1:(M - 1)
+                sd_η_stp[i, j] = sqrt(sum((cmb_η_stp[vinds, i, j] .- mn_η_stp[i, j]) .^ 2) /
+                                      (no_via[i] - 1))
+                sd_fr_ΔG_stp[i, j] = sqrt(sum((cmb_fr_ΔG_stp[vinds, i, j] .-
+                                               mn_fr_ΔG_stp[i, j]) .^ 2) /
+                                          (no_via[i] - 1))
+                sd_ϕP_stp[i, j] = sqrt(sum((cmb_ϕP_stp[vinds, i, j] .- mn_ϕP_stp[i, j]) .^
+                                           2) /
+                                       (no_via[i] - 1))
             end
             for j in 1:NoR
-                sd_via_R[j, i] = sqrt(
-                    sum((cmb_via_R[vinds, j, i] .- mn_via_R[j, i]) .^ 2) / (no_via[i] - 1),
-                )
+                sd_via_R[j, i] = sqrt(sum((cmb_via_R[vinds, j, i] .- mn_via_R[j, i]) .^ 2) /
+                                      (no_via[i] - 1))
             end
         else
             sd_via_bm[i] = NaN
@@ -440,27 +435,22 @@ function trjstats()
         end
         # Calculate standard deviations for reactions
         for j in 1:NoR
-            sd_Rs[j, i] =
-                sqrt(sum((cmb_Rs[inds, j, i] .- mn_Rs[j, i]) .^ 2) / (no_sims[i] - 1))
+            sd_Rs[j, i] = sqrt(sum((cmb_Rs[inds, j, i] .- mn_Rs[j, i]) .^ 2) /
+                               (no_sims[i] - 1))
             # Find indices of where reactions exist
             rinds = (Tfs .>= times[i]) .& (cmb_via_R[:, j, i] .> 0.0)
             # Use only these in the reaction calculation
             if no_rs[j, i] > 1
-                sd_ηs_R[j, i] = sqrt(
-                    sum((cmb_ηs_R[rinds, j, i] .- mn_ηs_R[j, i]) .^ 2) / (no_rs[j, i] - 1),
-                )
-                sd_ωs_R[j, i] = sqrt(
-                    sum((cmb_ωs_R[rinds, j, i] .- mn_ωs_R[j, i]) .^ 2) / (no_rs[j, i] - 1),
-                )
-                sd_kc_R[j, i] = sqrt(
-                    sum((cmb_kc_R[rinds, j, i] .- mn_kc_R[j, i]) .^ 2) / (no_rs[j, i] - 1),
-                )
-                sd_KS_R[j, i] = sqrt(
-                    sum((cmb_KS_R[rinds, j, i] .- mn_KS_R[j, i]) .^ 2) / (no_rs[j, i] - 1),
-                )
-                sd_kr_R[j, i] = sqrt(
-                    sum((cmb_kr_R[rinds, j, i] .- mn_kr_R[j, i]) .^ 2) / (no_rs[j, i] - 1),
-                )
+                sd_ηs_R[j, i] = sqrt(sum((cmb_ηs_R[rinds, j, i] .- mn_ηs_R[j, i]) .^ 2) /
+                                     (no_rs[j, i] - 1))
+                sd_ωs_R[j, i] = sqrt(sum((cmb_ωs_R[rinds, j, i] .- mn_ωs_R[j, i]) .^ 2) /
+                                     (no_rs[j, i] - 1))
+                sd_kc_R[j, i] = sqrt(sum((cmb_kc_R[rinds, j, i] .- mn_kc_R[j, i]) .^ 2) /
+                                     (no_rs[j, i] - 1))
+                sd_KS_R[j, i] = sqrt(sum((cmb_KS_R[rinds, j, i] .- mn_KS_R[j, i]) .^ 2) /
+                                     (no_rs[j, i] - 1))
+                sd_kr_R[j, i] = sqrt(sum((cmb_kr_R[rinds, j, i] .- mn_kr_R[j, i]) .^ 2) /
+                                     (no_rs[j, i] - 1))
             else
                 sd_ηs_R[j, i] = NaN
                 sd_ωs_R[j, i] = NaN
@@ -471,10 +461,8 @@ function trjstats()
         end
     end
     # Now want to save means and standard deviations
-    jldopen(
-        "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld",
-        "w",
-    ) do file
+    jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld",
+            "w") do file
         # Save times
         write(file, "times", times)
         # Save number of continuing trajectories
@@ -608,7 +596,7 @@ function snpstats()
     sd_inc = zeros(size(mn_inc))
     sd_dec = zeros(size(mn_dec))
     # Loop over times
-    for i in 1:length(times)-1
+    for i in 1:(length(times) - 1)
         # Find indices of still progressing trajectories
         inds = (ns[i, :] .!== 0.0)
         # Calculate standard deviations
@@ -630,10 +618,8 @@ function snpstats()
         end
     end
     # Now just save the relevant data
-    jldopen(
-        "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapDataStats$(ims)Ims.jld",
-        "w",
-    ) do file
+    jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapDataStats$(ims)Ims.jld",
+            "w") do file
         # Save times of snapshots
         write(file, "times", times)
         # Save growth probabilities

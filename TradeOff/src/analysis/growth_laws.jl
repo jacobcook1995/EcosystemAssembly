@@ -6,15 +6,13 @@ using LsqFit
 import PyPlot
 
 # Alternative function to generate a single microbe
-function new_mic_gl(
-    M::Int64,
-    Rs::Array{Int64,1},
-    d::Float64,
-    ω::Float64,
-    μrange::Float64,
-    γm::Float64,
-    ps::TOParameters,
-)
+function new_mic_gl(M::Int64,
+                    Rs::Array{Int64, 1},
+                    d::Float64,
+                    ω::Float64,
+                    μrange::Float64,
+                    γm::Float64,
+                    ps::TOParameters)
     # First generate random unique identifier for this pool
     PID = randstring(['0':'9'; 'a':'f'])
     # Print out that this is happening
@@ -52,8 +50,8 @@ function new_mic_gl(
     # Generate fixed set of reactions
     RP, ΔG = fix_reactions(O, M, μrange, T)
     # Preallocate vector of reactions
-    reacs = Array{Reaction,1}(undef, O)
-    for i = 1:O
+    reacs = Array{Reaction, 1}(undef, O)
+    for i in 1:O
         reacs[i] = make_Reaction(i, RP[i, 1], RP[i, 2], ΔG[i])
     end
     # Assume that half saturation occurs at a quarter κ/δ
@@ -74,8 +72,8 @@ function new_mic_gl(
     # Second is housekeeping
     n[2] = ns
     # Determine the others based on reactions
-    for j = 1:R
-        n[2+j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
+    for j in 1:R
+        n[2 + j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
     end
     # Make vectors of the (fixed) kinetic parameters
     kcs = kc * ones(R)
@@ -98,29 +96,27 @@ function new_mic_gl(
         η[i] = -(dG + Rgas * T * log(mratio)) / (ΔGATP)
     end
     # Can finally generate microbe
-    mic = make_Microbe(
-        MC,
-        γm,
-        Kγ,
-        χl,
-        χu,
-        Pb,
-        d,
-        ϕH,
-        KΩ,
-        fd,
-        ω,
-        R,
-        Reacs,
-        η,
-        kcs,
-        KSs,
-        krs,
-        n,
-        ϕP,
-        ID,
-        PID,
-    )
+    mic = make_Microbe(MC,
+                       γm,
+                       Kγ,
+                       χl,
+                       χu,
+                       Pb,
+                       d,
+                       ϕH,
+                       KΩ,
+                       fd,
+                       ω,
+                       R,
+                       Reacs,
+                       η,
+                       kcs,
+                       KSs,
+                       krs,
+                       n,
+                       ϕP,
+                       ID,
+                       PID)
     return (mic)
 end
 
@@ -138,8 +134,8 @@ function initialise_gl(M::Int64, O::Int64, μrange::Float64)
     # Generate fixed set of reactions
     RP, ΔG = fix_reactions(O, M, μrange, T)
     # Preallocate vector of reactions
-    reacs = Array{Reaction,1}(undef, O)
-    for i = 1:O
+    reacs = Array{Reaction, 1}(undef, O)
+    for i in 1:O
         reacs[i] = make_Reaction(i, RP[i, 1], RP[i, 2], ΔG[i])
     end
     # Now make the parameter set
@@ -199,7 +195,7 @@ function growth_laws()
         C, T = sing_pop(ps, Ni, Si, ai, ϕi, mic, Tmax)
         # Now calculate growth rates and elongation rates
         λa = zeros(length(T))
-        for j = 1:length(T)
+        for j in 1:length(T)
             λa[j] = λs(C[j, 4], C[j, 5], mic)
         end
         # Save maximum λ and ϕR values
@@ -232,7 +228,7 @@ function growth_laws()
         C, T = sing_pop(ps, Ni, Si, ai, ϕi, mic, Tmax)
         # Now calculate growth rates and proteome fractions
         λa = zeros(length(T))
-        for j = 1:length(T)
+        for j in 1:length(T)
             λa[j] = λs(C[j, 4], C[j, 5], mic)
         end
         # Save final λ and ϕR values
@@ -253,29 +249,25 @@ function growth_laws()
     plot!(p1, λ2s, pr2[1] * λ2s .+ pr2[2], label = "", color = :red)
     # Add arrows indicating direction of change
     l = 1e-4 # Way too large
-    quiver!(
-        p1,
-        [λ1[end-2]],
-        [ϕ1[end-2] + 0.03],
-        quiver = ([-l], [-pr1[1] * l]),
-        color = :blue,
-    )
+    quiver!(p1,
+            [λ1[end - 2]],
+            [ϕ1[end - 2] + 0.03],
+            quiver = ([-l], [-pr1[1] * l]),
+            color = :blue)
     quiver!(p1, [λ2[6]], [ϕ2[6] - 0.03], quiver = ([l], [pr2[1] * l]), color = :red)
     # Position is where the annotation centres are
-    pos1x = λ1[end-2] - l / 2
-    pos1y = ϕ1[end-2] + 0.05 - pr1[1] * l / 2
+    pos1x = λ1[end - 2] - l / 2
+    pos1y = ϕ1[end - 2] + 0.05 - pr1[1] * l / 2
     pos2x = λ2[6] + l / 2
     pos2y = ϕ2[6] - 0.05 + pr2[1] * l / 2
     # Calculate rotations in degrees
     r1 = -12.5 # Needs to be -ve
     r2 = 20 # Needs to be +ve
     # Then add the annotations
-    annotate!(
-        p1,
-        pos1x,
-        pos1y,
-        text("Translational inhibition", 8, color = :blue, rotation = r1),
-    )
+    annotate!(p1,
+              pos1x,
+              pos1y,
+              text("Translational inhibition", 8, color = :blue, rotation = r1))
     annotate!(p1, pos2x, pos2y, text("Nutrient quality", 8, color = :red, rotation = r2))
     # Plot final values
     scatter!(p1, λ1, ϕ1, label = "", color = :lightblue, markersize = 5)

@@ -2,8 +2,8 @@
 export initialise, choose_reactions
 
 # function to randomly choose the reactions that a specific microbe can make use of
-function choose_reactions(O::Int64, Rs::Array{Int64,1})
-    @assert length(Rs) > 0 "vector of possible numbers of reactions can't be empty"
+function choose_reactions(O::Int64, Rs::Array{Int64, 1})
+    @assert length(Rs)>0 "vector of possible numbers of reactions can't be empty"
     # select (uniformly) R value from supplied vector
     R = rand(Rs)
     # Preallocate vector of reaction identities
@@ -11,12 +11,12 @@ function choose_reactions(O::Int64, Rs::Array{Int64,1})
     # Choose random first value
     Reacs[1] = rand(1:O)
     # Then fill out later values
-    for i = 2:R
+    for i in 2:R
         good = false
         while good == false
             r = rand(1:O)
             # Check to avoid repeated values
-            if r ∉ Reacs[1:i-1]
+            if r ∉ Reacs[1:(i - 1)]
                 Reacs[i] = r
                 good = true
             end
@@ -41,8 +41,8 @@ function initialise(M::Int64, O::Int64)
     # Generate fixed set of reactions
     RP, ΔG = fix_reactions(O, M, μrange, T)
     # Preallocate vector of reactions
-    reacs = Array{Reaction,1}(undef, O)
-    for i = 1:O
+    reacs = Array{Reaction, 1}(undef, O)
+    for i in 1:O
         reacs[i] = make_Reaction(i, RP[i, 1], RP[i, 2], ΔG[i])
     end
     # Now make the parameter set
@@ -64,8 +64,8 @@ function initialise(M::Int64, O::Int64, μrange::Float64)
     # Generate fixed set of reactions
     RP, ΔG = fix_reactions(O, M, μrange, T)
     # Preallocate vector of reactions
-    reacs = Array{Reaction,1}(undef, O)
-    for i = 1:O
+    reacs = Array{Reaction, 1}(undef, O)
+    for i in 1:O
         reacs[i] = make_Reaction(i, RP[i, 1], RP[i, 2], ΔG[i])
     end
     # Now make the parameter set

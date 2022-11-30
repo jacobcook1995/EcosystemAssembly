@@ -55,7 +55,7 @@ function assemble()
     # Preallocate container for filenames
     pls = fill("", Np)
     # Loop over number of required pools
-    for i = 1:Np
+    for i in 1:Np
         # Find all pools satisfying the condition
         flnms = glob("Pools/ID=*N=$(Nt)M=$(M)d=$(d)u=$(μrange).jld")
         # Loop over valid filenames
@@ -69,7 +69,7 @@ function assemble()
     # Save the reaction set for the first file as a point of comparison
     rs = load(pls[1], "reacs")
     # Check that all pools match this
-    for i = 2:Np
+    for i in 2:Np
         rst = load(pls[i], "reacs")
         if rst ≠ rs
             error("pool $i uses different reaction set")
@@ -115,16 +115,14 @@ function assemble()
         mkdir("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)")
     end
     # Save this parameter set
-    jldopen(
-        "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld",
-        "w",
-    ) do file
+    jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld",
+            "w") do file
         write(file, "ps", ps)
     end
     # ONLY LOADING ONE POOL AT THE MOMENT, THIS PROBABLY HAS TO CHANGE
     mpl = load(pls[1], "mics")
     # Now loop over the number of repeats
-    for i = Rs:rps
+    for i in Rs:rps
         # Print that the new run has been started
         println("Run $i started!")
         flush(stdout)
@@ -136,10 +134,8 @@ function assemble()
         tf = time()
         println("Time elapsed on run $i: $(tf-ti) s")
         # Now just save the relevant data
-        jldopen(
-            "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld",
-            "w",
-        ) do file
+        jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Run$(i)Data$(ims)Ims.jld",
+                "w") do file
             # Save full set of microbe data
             write(file, "micd", micd)
             # Save extinction times

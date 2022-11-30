@@ -62,80 +62,70 @@ function figure3(rps::Int64, ims::Int64, sim_type::Int64)
     # Load in colour scheme
     a = ColorSchemes.tab10.colors
     # Make first plot
-    p1 = plot(
-        ylabel = "Total population ($(e13) cells)",
-        xlim = (-Inf, 5e7),
-        legend = :topleft,
-        t_times,
-        mn_pop / 1e13,
-        ribbon = se_pop / 1e13,
-        label = "Population",
-        color = a[1],
-        ylim = (-Inf, 4.0),
-    )
+    p1 = plot(ylabel = "Total population ($(e13) cells)",
+              xlim = (-Inf, 5e7),
+              legend = :topleft,
+              t_times,
+              mn_pop / 1e13,
+              ribbon = se_pop / 1e13,
+              label = "Population",
+              color = a[1],
+              ylim = (-Inf, 4.0))
     # Define box for inset here
     box = (1, bbox(0.4, 0.2, 0.4, 0.3, :bottom, :left))
     # Add histogram in as an insert
-    histogram!(
-        p1,
-        all_fin_ϕRs,
-        nbins = 100,
-        color = a[2],
-        label = "",
-        inset_subplots = box,
-        xlabel = "Final ribosome fraction ($(L"\phi_R"))",
-        ylabel = "Number of survivors",
-        subplot = 2,
-    )
+    histogram!(p1,
+               all_fin_ϕRs,
+               nbins = 100,
+               color = a[2],
+               label = "",
+               inset_subplots = box,
+               xlabel = "Final ribosome fraction ($(L"\phi_R"))",
+               ylabel = "Number of survivors",
+               subplot = 2)
     plot!(p1, guidefontsize = 9, grid = false, subplot = 2)
     # Twin the x-axis
     pt = twinx(p1)
     # Ensure same limits are used
     plot!(pt, xlim = (-Inf, 5e7), ylim = (-Inf, 2.9), ylabel = "Shannon diversity")
     # Then plot the Shannon diversity
-    p1 = plot!(
-        pt,
-        t_times,
-        mn_shD,
-        ribbon = se_shD,
-        label = "Diversity",
-        color = a[3],
-        legend = :topright,
-    )
+    p1 = plot!(pt,
+               t_times,
+               mn_shD,
+               ribbon = se_shD,
+               label = "Diversity",
+               color = a[3],
+               legend = :topright)
     # Add annotation
     px, py = annpos([0.0; 5e7], [0.0; 3.9], 0.05, 0.0)
     annotate!(p1, px, py, text("A", 17, :black))
     savefig(p1, "Output/Fig3/SumStats.png")
     # Now make the second plot
-    p2 = plot(
-        xlabel = "Time (s)",
-        ylabel = "Number of species",
-        xlim = (-Inf, 5e7),
-        ylim = (-Inf, 30.0),
-        t_times,
-        mn_svt,
-        ribbon = se_svt,
-        label = "Species",
-        color = a[4],
-        legend = :topleft,
-    )
+    p2 = plot(xlabel = "Time (s)",
+              ylabel = "Number of species",
+              xlim = (-Inf, 5e7),
+              ylim = (-Inf, 30.0),
+              t_times,
+              mn_svt,
+              ribbon = se_svt,
+              label = "Species",
+              color = a[4],
+              legend = :topleft)
     # Add annotation
     px, py = annpos([0.0; 5e7], [0.0; 30.0], 0.05, 0.0)
     annotate!(p2, px, py, text("B", 17, :black))
     # Define box for inset here
     box = (1, bbox(0.4, 0.4, 0.4, 0.3, :bottom, :left))
     # Add histogram in as an insert
-    histogram!(
-        p2,
-        sTs / 1e7,
-        nbins = 100,
-        color = a[5],
-        label = "",
-        inset_subplots = box,
-        xlabel = "Time of immigration ($(e7) s)",
-        ylabel = "Number of survivors",
-        subplot = 2,
-    )
+    histogram!(p2,
+               sTs / 1e7,
+               nbins = 100,
+               color = a[5],
+               label = "",
+               inset_subplots = box,
+               xlabel = "Time of immigration ($(e7) s)",
+               ylabel = "Number of survivors",
+               subplot = 2)
     plot!(p2, guidefontsize = 9, grid = false, subplot = 2)
     # Twin the x-axis
     pt = twinx(p2)
@@ -145,8 +135,8 @@ function figure3(rps::Int64, ims::Int64, sim_type::Int64)
     p2 = plot!(pt, s_times, gp, label = "Invasibility", color = a[6], legend = :topright)
     savefig(p2, "Output/Fig3/Invasibility.png")
     # Now want to make a plot incorporating both previous plots
-    pt =
-        plot(p1, p2, layout = (2, 1), size = (750, 800), margin = 5.0mm, rightmargin = 20mm)
+    pt = plot(p1, p2, layout = (2, 1), size = (750, 800), margin = 5.0mm,
+              rightmargin = 20mm)
     savefig(pt, "Output/Fig3/figure3.png")
     return (nothing)
 end

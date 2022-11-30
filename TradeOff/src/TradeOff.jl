@@ -29,7 +29,7 @@ export mvector, Keq, Q
 
 # function to generate a vector of values for the maintenance energy requirements m
 function mvector(N::Int64, mm::Float64, sdm::Float64)
-    @assert mm - 5 * sdm >= 0.0 "This choice could result in negative energy requirements"
+    @assert mm - (5 * sdm)>=0.0 "This choice could result in negative energy requirements"
     # Initialise vector of m
     m = zeros(N)
     # Make required Gaussian distribution using the provided mean (mm) and SD (sdm)
@@ -53,13 +53,13 @@ function Q(S::Float64, P::Float64)
 end
 
 # Function to interpolate over a time series
-function interpolate_time(ts::Array{Float64,1}, Tg::Float64, T1x::Float64, T2x::Float64)
-    return (ts[Tind] * (T1x) / Tg + ts[Tind-1] * (T2x) / Tg)
+function interpolate_time(ts::Array{Float64, 1}, Tg::Float64, T1x::Float64, T2x::Float64)
+    return (ts[Tind] * (T1x) / Tg + ts[Tind - 1] * (T2x) / Tg)
 end
 
 # Function to interpolate over a time series (vectorised form)
-function interpolate_time(ts::Array{Float64,2}, Tg::Float64, T1x::Float64, T2x::Float64)
-    return (ts[Tind, :] * (T1x) / Tg .+ ts[Tind-1, :] * (T2x) / Tg)
+function interpolate_time(ts::Array{Float64, 2}, Tg::Float64, T1x::Float64, T2x::Float64)
+    return (ts[Tind, :] * (T1x) / Tg .+ ts[Tind - 1, :] * (T2x) / Tg)
 end
 
 end # module

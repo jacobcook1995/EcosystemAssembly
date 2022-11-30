@@ -6,9 +6,9 @@ export new_pool, new_mic, fix_reactions
 # into any metabolite below it. The steps between metabolites are fixed.
 function fix_reactions(O::Int64, M::Int64, μrange::Float64, T::Float64)
     if M < 4
-        @assert O == M * (M - 1) / 2 "Miscalculated the number of reactions expected"
+        @assert O==M * (M - 1) / 2 "Miscalculated the number of reactions expected"
     else
-        @assert O == 4 * M - 10 "Miscalculated the number of reactions expected"
+        @assert O==4 * M - 10 "Miscalculated the number of reactions expected"
     end
     # preallocate output
     RP = zeros(Int64, O, 2)
@@ -17,7 +17,7 @@ function fix_reactions(O::Int64, M::Int64, μrange::Float64, T::Float64)
     dG = -μrange / (M - 1)
     c = 0 # counter for number of reactions
     # Loop till last but one metabolite
-    for i = 1:(M-1)
+    for i in 1:(M - 1)
         # Set up while loop to catch all valid reactions
         j = 0
         vld_rcs = true
@@ -39,12 +39,10 @@ function fix_reactions(O::Int64, M::Int64, μrange::Float64, T::Float64)
 end
 
 # function that chooses uniformly mixed values for η
-function choose_η_mix(
-    reacs::Array{Reaction,1},
-    Reacs::Array{Int64,1},
-    T::Float64,
-    mratio::Float64,
-)
+function choose_η_mix(reacs::Array{Reaction, 1},
+                      Reacs::Array{Int64, 1},
+                      T::Float64,
+                      mratio::Float64)
     # Preallocate memory to store η's
     η = zeros(length(Reacs))
     # Set a constant lower bound
@@ -76,14 +74,12 @@ function kin_rand(kc::Float64, KS::Float64, kr::Float64, R::Int64)
 end
 
 # Function to generate a new pool
-function new_pool(
-    Nt::Int64,
-    M::Int64,
-    Rs::Array{Int64,1},
-    d::Float64,
-    μrange::Float64,
-    mratio::Float64,
-)
+function new_pool(Nt::Int64,
+                  M::Int64,
+                  Rs::Array{Int64, 1},
+                  d::Float64,
+                  μrange::Float64,
+                  mratio::Float64)
     # First generate random unique identifier for this pool
     PID = randstring(['0':'9'; 'a':'f'])
     # Print out that this is happening
@@ -123,8 +119,8 @@ function new_pool(
     # Generate fixed set of reactions
     RP, ΔG = fix_reactions(O, M, μrange, T)
     # Preallocate vector of reactions
-    reacs = Array{Reaction,1}(undef, O)
-    for i = 1:O
+    reacs = Array{Reaction, 1}(undef, O)
+    for i in 1:O
         reacs[i] = make_Reaction(i, RP[i, 1], RP[i, 2], ΔG[i])
     end
     # Assume that half saturation occurs at a quarter κ/δ
@@ -134,9 +130,9 @@ function new_pool(
     # The reversibility factor remains the same as previously
     kr = 10.0
     # Preallocate vector of microbes
-    mics = Array{Microbe,1}(undef, Nt)
+    mics = Array{Microbe, 1}(undef, Nt)
     # Then construct microbes
-    for i = 1:Nt
+    for i in 1:Nt
         # For each microbe generate random set of reactions
         R, Reacs = choose_reactions(O, Rs)
         # Now preallocate protein masses
@@ -146,8 +142,8 @@ function new_pool(
         # Second is housekeeping
         n[2] = ns
         # Determine the others based on reactions
-        for j = 1:R
-            n[2+j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
+        for j in 1:R
+            n[2 + j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
         end
         # Roller et al suggest a factor of 10 variation in max growth rate
         # So varies between 0.1 and 1.0
@@ -160,29 +156,27 @@ function new_pool(
         # Find corresponding η's for these reactions
         η = choose_η_mix(reacs, Reacs, T, mratio)
         # Can finally generate microbe
-        mics[i] = make_Microbe(
-            MC,
-            γm,
-            Kγ,
-            χl,
-            χu,
-            Pb,
-            d,
-            ϕH,
-            KΩ,
-            fd,
-            ω,
-            R,
-            Reacs,
-            η,
-            kcs,
-            KSs,
-            krs,
-            n,
-            ϕP,
-            i,
-            PID,
-        )
+        mics[i] = make_Microbe(MC,
+                               γm,
+                               Kγ,
+                               χl,
+                               χu,
+                               Pb,
+                               d,
+                               ϕH,
+                               KΩ,
+                               fd,
+                               ω,
+                               R,
+                               Reacs,
+                               η,
+                               kcs,
+                               KSs,
+                               krs,
+                               n,
+                               ϕP,
+                               i,
+                               PID)
     end
     # Write out necessary data
     jldopen("Pools/ID=$(PID)N=$(Nt)M=$(M)d=$(d)u=$(μrange).jld", "w") do file
@@ -196,7 +190,8 @@ function new_pool(
 end
 
 # Alternative function to generate a single microbe
-function new_mic(M::Int64, Rs::Array{Int64,1}, d::Float64, μrange::Float64, mratio::Float64)
+function new_mic(M::Int64, Rs::Array{Int64, 1}, d::Float64, μrange::Float64,
+                 mratio::Float64)
     # First generate random unique identifier for this pool
     PID = randstring(['0':'9'; 'a':'f'])
     # Print out that this is happening
@@ -240,8 +235,8 @@ function new_mic(M::Int64, Rs::Array{Int64,1}, d::Float64, μrange::Float64, mra
     # Generate fixed set of reactions
     RP, ΔG = fix_reactions(O, M, μrange, T)
     # Preallocate vector of reactions
-    reacs = Array{Reaction,1}(undef, O)
-    for i = 1:O
+    reacs = Array{Reaction, 1}(undef, O)
+    for i in 1:O
         reacs[i] = make_Reaction(i, RP[i, 1], RP[i, 2], ΔG[i])
     end
     # Assume that half saturation occurs at a quarter κ/δ
@@ -259,8 +254,8 @@ function new_mic(M::Int64, Rs::Array{Int64,1}, d::Float64, μrange::Float64, mra
     # Second is housekeeping
     n[2] = ns
     # Determine the others based on reactions
-    for j = 1:R
-        n[2+j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
+    for j in 1:R
+        n[2 + j] = ns * (reacs[Reacs[j]].Prd - reacs[Reacs[j]].Rct)
     end
     # Roller et al suggest a factor of 10 variation in max growth rate
     # So varies between 0.1 and 1.0
@@ -275,28 +270,26 @@ function new_mic(M::Int64, Rs::Array{Int64,1}, d::Float64, μrange::Float64, mra
     # Find corresponding η's for these reactions
     η = choose_η_mix(reacs, Reacs, T, mratio)
     # Can finally generate microbe
-    mic = make_Microbe(
-        MC,
-        γm,
-        Kγ,
-        χl,
-        χu,
-        Pb,
-        d,
-        ϕH,
-        KΩ,
-        fd,
-        ω,
-        R,
-        Reacs,
-        η,
-        kcs,
-        KSs,
-        krs,
-        n,
-        ϕP,
-        ID,
-        PID,
-    )
+    mic = make_Microbe(MC,
+                       γm,
+                       Kγ,
+                       χl,
+                       χu,
+                       Pb,
+                       d,
+                       ϕH,
+                       KΩ,
+                       fd,
+                       ω,
+                       R,
+                       Reacs,
+                       η,
+                       kcs,
+                       KSs,
+                       krs,
+                       n,
+                       ϕP,
+                       ID,
+                       PID)
     return (mic)
 end

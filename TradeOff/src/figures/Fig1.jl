@@ -17,7 +17,7 @@ function efficency_plot()
     # Make a microbe so that the parameters are accessible
     mic = new_mic(M, Rs, d, μrange, mratio)
     # Preallocate a ribosome fractions to calculate this for
-    ϕRs = collect(0.0:0.01:(1-mic.ϕH))
+    ϕRs = collect(0.0:0.01:(1 - mic.ϕH))
     # Preallocate vector of maximum growth rates
     max_λ = zeros(length(ϕRs))
     # Loop over ribosome fractions
@@ -42,14 +42,12 @@ function efficency_plot()
     chi = L"\chi"
     m1 = L"^{-1}"
     # Plot the two things
-    plot(
-        max_λ,
-        effs,
-        label = false,
-        ylims = (0, Inf),
-        xlabel = "Max growth rate (s$(m1))",
-        linewidth = 2.5,
-    )
+    plot(max_λ,
+         effs,
+         label = false,
+         ylims = (0, Inf),
+         xlabel = "Max growth rate (s$(m1))",
+         linewidth = 2.5)
     plot!(ylabel = "Efficiency (aa ATP$(m1))")
     savefig("Output/Fig1/efficiency.png")
     return (nothing)

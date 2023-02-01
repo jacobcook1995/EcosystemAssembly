@@ -2,7 +2,6 @@
 using TradeOff
 using Plots
 using JLD
-import PyPlot
 
 # Function to plot the efficiency with changing ribosome fraction
 function early_immigration_dyns(rN::Int64, ims::Int64, sim_type::Int64)
@@ -36,7 +35,8 @@ function early_immigration_dyns(rN::Int64, ims::Int64, sim_type::Int64)
     totN = length(micd)
     # Set maximum time to plot to
     Tmax = 5e5
-    pyplot(dpi = 200)
+    # Set default plotting options
+    default(dpi = 200)
     # Plot all the populations
     p1 = plot(yaxis = :log10,
               ylabel = "Population (# cells)",

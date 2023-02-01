@@ -5,7 +5,6 @@ using JLD
 using ColorSchemes
 using Plots.PlotMeasures
 using LaTeXStrings
-import PyPlot
 
 function find_label(sim_type::Int64)
     # Assign label based on simulation type
@@ -17,10 +16,10 @@ function find_label(sim_type::Int64)
     return (lb)
 end
 
-function figure6(rps::Int64, ims::Int64)
+function figure6(ims::Int64)
     println("Compiled")
-    # Initialise plotting
-    pyplot(dpi = 200)
+    # Set default plotting options
+    default(dpi = 200)
     # Load in colour schemes
     a = ColorSchemes.Dark2_4.colors
     # Extract specific 4 colours from a colour scheme
@@ -49,19 +48,12 @@ function figure6(rps::Int64, ims::Int64)
     for i in 1:2
         # Extract other simulation parameters from the function
         Np, Nt, M, d, μrange = sim_paras(i)
-        # Read in appropriate files
-        pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
-        if ~isfile(pfile)
-            error("$(ims) immigrations run $(rN) is missing a parameter file")
-        end
         # Find file name to load in
         tfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld"
         # Check it actually exists
         if ~isfile(tfile)
             error("missing stats file for $(ims) immigrations simulations")
         end
-        # Read in relevant data
-        ps = load(pfile, "ps")
         # Now load out the times, and number of trajectories
         times = load(tfile, "times")
         no_via = load(tfile, "no_via")
@@ -132,4 +124,4 @@ function figure6(rps::Int64, ims::Int64)
     return (nothing)
 end
 
-@time figure6(250, 500)
+@time figure6(500)

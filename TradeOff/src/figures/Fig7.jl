@@ -5,7 +5,6 @@ using JLD
 using ColorSchemes
 using LaTeXStrings
 using Plots.PlotMeasures
-import PyPlot
 
 function sub_prob(M::Int64, R::Int64, subs::Float64)
     # Check that final waste product hasn't been generated
@@ -23,7 +22,7 @@ function sub_prob(M::Int64, R::Int64, subs::Float64)
 end
 
 # Function to plot the 7th figure (e.g. development without immigration)
-function figure7(rps::Int64)
+function figure7()
     println("Compiled")
     # No immigration situation (aka sim type 5)
     ims = 0
@@ -31,19 +30,12 @@ function figure7(rps::Int64)
     tk = "NoImm"
     # Extract other simulation parameters from the function
     Np, Nt, M, d, μrange = sim_paras(sim_type)
-    # Read in appropriate files
-    pfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
-    if ~isfile(pfile)
-        error("$(ims) immigrations run $(rN) is missing a parameter file")
-    end
     # Find file name to load in
     sfile = "Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld"
     # Check it actually exists
     if ~isfile(sfile)
         error("missing stats file for $(ims) immigrations simulations")
     end
-    # Read in relevant data
-    ps = load(pfile, "ps")
     # Now load out the times, and number of trajectories
     times = load(sfile, "times")
     no_sims = load(sfile, "no_sims")
@@ -85,8 +77,8 @@ function figure7(rps::Int64)
     if ~isdir("Output/Fig7")
         mkdir("Output/Fig7")
     end
-    # Setup plotting
-    pyplot(dpi = 200)
+    # Set default plotting options
+    default(dpi = 200)
     # Load in colour scheme
     a = ColorSchemes.sunset.colors
     # Plot basic trade-off first
@@ -183,4 +175,4 @@ function figure7(rps::Int64)
     return (nothing)
 end
 
-@time figure7(250)
+@time figure7()

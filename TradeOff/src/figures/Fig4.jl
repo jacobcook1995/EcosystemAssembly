@@ -5,7 +5,6 @@ using JLD
 using ColorSchemes
 using LaTeXStrings
 using Plots.PlotMeasures
-import PyPlot
 
 function sub_prob(M::Int64, R::Int64, subs::Float64)
     # Check that final waste product hasn't been generated
@@ -22,23 +21,16 @@ function sub_prob(M::Int64, R::Int64, subs::Float64)
     return (P)
 end
 
-function figure4(rps::Int64, ims::Int64, sim_type::Int64, sim_type2::Int64)
+function figure4(ims::Int64, sim_type::Int64, sim_type2::Int64)
     println("Compiled")
     # Extract other simulation parameters from the function
     Np, Nt, M, d, μrange = sim_paras(sim_type)
-    # Read in appropriate files
-    pfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/Paras$(ims)Ims.jld"
-    if ~isfile(pfile)
-        error("$(ims) immigrations run $(rN) is missing a parameter file")
-    end
     # Find file name to load in
     sfile = "Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld"
     # Check it actually exists
     if ~isfile(sfile)
         error("missing stats file for $(ims) immigrations simulations")
     end
-    # Read in relevant data
-    ps = load(pfile, "ps")
     # Now load out the times, and number of trajectories
     times = load(sfile, "times")
     no_sims = load(sfile, "no_sims")
@@ -85,8 +77,8 @@ function figure4(rps::Int64, ims::Int64, sim_type::Int64, sim_type2::Int64)
     if ~isdir("Output/Fig4")
         mkdir("Output/Fig4")
     end
-    # Setup plotting
-    pyplot(dpi = 200)
+    # Set default plotting options
+    default(dpi = 200)
     # Load in colour scheme
     a = ColorSchemes.sunset.colors
     # Plot basic trade-off first
@@ -235,4 +227,4 @@ function figure4(rps::Int64, ims::Int64, sim_type::Int64, sim_type2::Int64)
     return (nothing)
 end
 
-@time figure4(250, 500, 1, 2)
+@time figure4(500, 1, 2)

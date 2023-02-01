@@ -5,7 +5,6 @@ using Random
 using ColorSchemes
 using LaTeXStrings
 using Plots.PlotMeasures
-import PyPlot
 
 # Function to plot the 7th figure (e.g. development without immigration)
 function figure8()
@@ -160,8 +159,8 @@ function figure8()
     if ~isdir("Output/Fig8")
         mkdir("Output/Fig8")
     end
-    # Setup plotting
-    pyplot(dpi = 200)
+    # Set default plotting options
+    default(dpi = 200)
     # Load in colour scheme
     a = ColorSchemes.sunset.colors
     # Define latex label for max ribosome fraction

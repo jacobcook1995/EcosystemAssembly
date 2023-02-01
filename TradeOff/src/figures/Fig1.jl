@@ -2,7 +2,6 @@
 using TradeOff
 using Plots
 using LaTeXStrings
-import PyPlot
 
 # Function to plot the efficiency with changing ribosome fraction
 function efficency_plot()
@@ -31,25 +30,19 @@ function efficency_plot()
     for i in eachindex(ϕRs)
         effs[i] = 1 / χs(ϕRs[i], mic)
     end
-    # Setup plotting
-    pyplot(dpi = 200, guidefontsize = 18, tickfontsize = 10)
+    # Set default plotting options
+    default(dpi = 200, guidefontsize = 18, tickfontsize = 10)
     # Check if directory exists and if not make it
     if ~isdir("Output/Fig1")
         mkdir("Output/Fig1")
     end
-    # Define latex labels
-    phiR = L"\phi_R"
-    chi = L"\chi"
+    # Define latex label
     m1 = L"^{-1}"
     # Plot the two things
-    plot(max_λ,
-         effs,
-         label = false,
-         ylims = (0, Inf),
-         xlabel = "Max growth rate (s$(m1))",
-         linewidth = 2.5)
-    plot!(ylabel = "Efficiency (aa ATP$(m1))")
-    savefig("Output/Fig1/efficiency.png")
+    p1 = plot(max_λ, effs, label = false, ylims = (0, Inf),
+              xlabel = "Max growth rate (s$(m1))", linewidth = 2.5,
+              ylabel = "Efficiency (aa ATP$(m1))")
+    savefig(p1, "Output/Fig1/efficiency.png")
     return (nothing)
 end
 

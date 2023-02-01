@@ -5,7 +5,6 @@ using JLD
 using ColorSchemes
 using LaTeXStrings
 using Plots.PlotMeasures
-import PyPlot
 
 function figure3(rps::Int64, ims::Int64, sim_type::Int64)
     println("Compiled")
@@ -54,8 +53,8 @@ function figure3(rps::Int64, ims::Int64, sim_type::Int64)
     if ~isdir("Output/Fig3")
         mkdir("Output/Fig3")
     end
-    # Setup plotting
-    pyplot(dpi = 200)
+    # Set default plotting options
+    default(dpi = 200)
     # Define latex commands
     e7 = L"10^7"
     e13 = L"10^{13}"

@@ -24,7 +24,7 @@ function sim_paras(sim_type::Int64)
     return (Np, Nt, M, d, μrange)
 end
 
-# function to merge my output data into a plotable form
+# function to merge my output data into a plottable form
 function merge_data(ps::TOParameters,
                     traj::Array{Array{Float64, 2}, 1},
                     T::Array{Float64, 1},

@@ -28,7 +28,7 @@ function efficency_plot()
     effs = zeros(length(ϕRs))
     # Find efficiency for each step
     for i in eachindex(ϕRs)
-        effs[i] = 1 / χs(ϕRs[i], mic)
+        effs[i] = 1 / mic.χl
     end
     # Set default plotting options
     default(dpi = 200, guidefontsize = 18, tickfontsize = 10)

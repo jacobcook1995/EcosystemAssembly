@@ -63,7 +63,7 @@ function chemo_dynamics!(dx::Array{Float64, 1},
                 J += ms[i].η[j] * rate[i, ms[i].Reacs[j]]
             end
             # Add energy intake and subtract translation and dilution from the energy concentration
-            dx[length(ms) + i] = J - (ms[i].MC * χs(ϕR, ms[i]) + x[length(ms) + i]) * λ
+            dx[length(ms) + i] = J - (ms[i].MC * ps.χl + x[length(ms) + i]) * λ
         end
     end
     # Any ATP numbers that have gone below 0.33 should be removed
@@ -117,8 +117,6 @@ function ω_test()
     γm = 1260.0 / 60.0
     Kγ = 5e8
     χl = 29.0
-    χu = 3.5 * χl
-    χoff = 1e-20 # Turns off differences in efficiency
     Pb = 0.7
     ϕH = 0.45
     fd = log(100) / log(2)
@@ -162,7 +160,6 @@ function ω_test()
                               γm,
                               Kγ,
                               χl,
-                              χoff,
                               Pb,
                               d,
                               ϕH,
@@ -183,7 +180,6 @@ function ω_test()
                               γm,
                               Kγ,
                               χl,
-                              χu,
                               Pb,
                               d,
                               ϕH,

@@ -225,7 +225,7 @@ function v_over_t()
             write(file, "average_ΔG", average_ΔG)
             write(file, "final_ϕR", final_ϕR)
             # Finally save final time to help with benchmarking
-            write(file, "Tf", T[end])
+            write(file, "final_time_point", T[end])
         end
         println("Run $i analysed")
         flush(stdout)

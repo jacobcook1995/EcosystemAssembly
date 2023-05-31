@@ -102,8 +102,6 @@ function new_pool(Nt::Int64,
     # The number of ATP per translation step, including the cost of amino acid synthesis
     # This figure is taken from Lynch and Marinov 2015
     χl = 29.0
-    # Estimate maximum additional cost to be three times minimum (from Fig 1 in Roller et al)
-    χu = 3.5 * χl
     # This is a slightly arbitrary choice for Kγ
     Kγ = 5e8
     # Set minimum KΩ value
@@ -160,7 +158,6 @@ function new_pool(Nt::Int64,
                                γm,
                                Kγ,
                                χl,
-                               χu,
                                Pb,
                                d,
                                ϕH,
@@ -218,8 +215,6 @@ function new_mic(M::Int64, Rs::Array{Int64, 1}, d::Float64, μrange::Float64,
     # The number of ATP per translation step, including the cost of amino acid synthesis
     # This figure is taken from Lynch and Marinov 2015
     χl = 29.0
-    # Estimate maximum additional cost to be three times minimum (from Fig 1 in Roller et al)
-    χu = 3.5 * χl
     # This is a slightly arbitrary choice for Kγ
     Kγ = 5e8
     # Set minimum KΩ value
@@ -272,7 +267,6 @@ function new_mic(M::Int64, Rs::Array{Int64, 1}, d::Float64, μrange::Float64,
                        γm,
                        Kγ,
                        χl,
-                       χu,
                        Pb,
                        d,
                        ϕH,

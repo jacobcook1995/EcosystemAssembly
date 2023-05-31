@@ -102,104 +102,58 @@ function v_over_t()
             ms[j] = (pools[ind])[micd[j].MID]
         end
         # Preallocate containers to store number of survivors with time
-        svt = Array{Int64, 1}(undef, length(T))
-        tsvt = Array{Int64, 1}(undef, length(T))
-        pop = zeros(length(T))
-        shD = zeros(length(T))
-        sbs = Array{Int64, 1}(undef, length(T))
-        Rs = Array{Int64, 2}(undef, NoR, length(T))
-        via_R = Array{Int64, 2}(undef, NoR, length(T))
-        ηs = zeros(length(T))
-        kcs = zeros(length(T))
-        KSs = zeros(length(T))
-        krs = zeros(length(T))
-        av_steps = zeros(length(T))
-        av_steps_bw = zeros(length(T))
-        via_η = zeros(length(T))
-        via_η_bw = zeros(length(T))
-        via_bm = zeros(length(T))
-        ωs = zeros(length(T))
-        via_ω = zeros(length(T))
-        via_ω_bw = zeros(length(T))
-        fr_ΔG = zeros(length(T))
-        fr_ΔG_bw = zeros(length(T))
-        via_a = zeros(length(T))
-        via_ϕR = zeros(length(T))
-        η_stp = zeros(length(T), M - 1)
-        fr_ΔG_stp = zeros(length(T), M - 1)
-        ϕP_stp = zeros(length(T), M - 1)
-        ηs_R = zeros(NoR, length(T))
-        ωs_R = zeros(NoR, length(T))
-        kc_R = zeros(NoR, length(T))
-        KS_R = zeros(NoR, length(T))
-        kr_R = zeros(NoR, length(T))
+        surviving_species = Array{Int64, 1}(undef, length(T))
+        viable_species = Array{Int64, 1}(undef, length(T))
+        total_population = zeros(length(T))
+        shannon_diversity = zeros(length(T))
+        no_substrates = Array{Int64, 1}(undef, length(T))
+        species_per_reac_class = Array{Int64, 2}(undef, NoR, length(T))
+        viable_species_per_reac_class = Array{Int64, 2}(undef, NoR, length(T))
+        average_no_reac_steps = zeros(length(T))
+        average_η = zeros(length(T))
+        average_ω = zeros(length(T))
+        total_biomass_of_viable_species = zeros(length(T))
+        average_ΔG = zeros(length(T))
+        average_η_per_reac_class = zeros(NoR, length(T))
+        average_KS_per_reac_class = zeros(NoR, length(T))
         # Save total number of strains
-        numS = length(micd)
+        total_species = length(micd)
         # Make vector of indices
-        a_i = collect((numS + ps.M + 1):(2 * numS + ps.M))
-        ϕ_i = collect((2 * numS + ps.M + 1):(3 * numS + ps.M))
+        ϕ_i = collect((2 * total_species + ps.M + 1):(3 * total_species + ps.M))
         # Loop over all time points
         for j in 1:length(T)
             # Find indices of surviving strains
-            inds = findall(x -> x > 1e-5, C[j, 1:numS])
+            inds = findall(x -> x > 1e-5, C[j, 1:total_species])
             # Save number of surviving strains at each time point
-            svt[j] = length(inds)
-            # Check if multiple species survive
-            if svt[j] > 0
+            surviving_species[j] = length(inds)
+            # Check if at least one species survives
+            if surviving_species[j] > 0
                 # Save the total population at this point
-                pop[j] = sum(C[j, inds])
+                total_population[j] = sum(C[j, inds])
                 # Find diversity of this point
-                shD[j] = shan(C[j, inds])
+                shannon_diversity[j] = shan(C[j, inds])
             end
-            # Find indices of "viable" strains
-            vinds = findall(x -> x > 1e5, C[j, 1:numS])
-            # Save number of "viable" strains
-            tsvt[j] = length(vinds)
+            # Find indices of "viable" species
+            vinds = findall(x -> x > 1e5, C[j, 1:total_species])
+            # Save number of "viable" species
+            viable_species[j] = length(vinds)
             # Then also number of substrates (skipping final waste product)
-            sbs[j] = count(x -> x > 1e-12, C[j, (numS + 1):(numS + ps.M - 1)])
-            # Calculate average energy concentration (a)
-            if length(a_i[vinds]) > 0
-                via_a[j] = sum(C[j, a_i[vinds]]) / length(a_i[vinds])
-            end
-            # Do the same for the ribosome fraction
-            if length(ϕ_i[vinds]) > 0
-                via_ϕR[j] = sum(C[j, ϕ_i[vinds]]) / length(ϕ_i[vinds])
-            end
+            no_substrates[j] = count(x -> x > 1e-12,
+                                     C[j, (total_species + 1):(total_species + ps.M - 1)])
             # Loop over number of reactions
             for k in 1:NoR
                 # Count number of strains with reaction for each case
-                Rs[k, j] = count(x -> x == k, ms[inds] .↦ :R)
-                via_R[k, j] = count(x -> x == k, ms[vinds] .↦ :R)
+                species_per_reac_class[k, j] = count(x -> x == k, ms[inds] .↦ :R)
+                viable_species_per_reac_class[k, j] = count(x -> x == k,
+                                                            ms[vinds] .↦ :R)
             end
-            # Find (weighted) total eta value, and ω value, and kinetic parameters
-            for k in eachindex(inds)
-                ηs[j] += sum(ms[inds[k]].η .* ms[inds[k]].ϕP)
-                ωs[j] += ms[inds[k]].ω
-            end
-            # Average over number of strains
-            if svt[j] > 0
-                ηs[j] /= svt[j]
-                ωs[j] /= svt[j]
-            end
-            # Set up counters for the number of strains with each reaction gap
+            # Set up counters for the number of species with each reaction gap
             c = zeros(M - 1)
-            # Find (weighted) total eta value for viable strains
+            # Find (weighted) total eta value for viable species
             for k in eachindex(vinds)
-                via_η[j] += sum(ms[vinds[k]].η .* ms[vinds[k]].ϕP)
-                via_ω[j] += ms[vinds[k]].ω
-                via_η_bw[j] += sum(ms[vinds[k]].η .* ms[vinds[k]].ϕP) * C[j, vinds[k]]
-                via_ω_bw[j] += ms[vinds[k]].ω * C[j, vinds[k]]
-                via_bm[j] += C[j, vinds[k]]
-                kcs[j] += sum(ms[vinds[k]].kc .* ms[vinds[k]].ϕP)
-                KSs[j] += sum(ms[vinds[k]].KS .* ms[vinds[k]].ϕP)
-                krs[j] += sum(ms[vinds[k]].kr .* ms[vinds[k]].ϕP)
-                # Bools to store whether strain has 1 gap and 2 gap reaction, respectively
-                pres = fill(false, length(c))
-                # Set temporary values for the variables
-                ηt = fill(0.0, length(c))
-                fr_ΔGt = fill(0.0, length(c))
-                # Counters to track amount of protein allocated to each reaction type
-                ϕPt = fill(0.0, length(c))
+                average_η[j] += sum(ms[vinds[k]].η .* ms[vinds[k]].ϕP) * C[j, vinds[k]]
+                average_ω[j] += ms[vinds[k]].ω * C[j, vinds[k]]
+                total_biomass_of_viable_species[j] += C[j, vinds[k]]
                 # Loop over all reactions this strain has
                 for l in 1:(ms[vinds[k]].R)
                     # Find reaction number
@@ -207,136 +161,71 @@ function v_over_t()
                     # Find relevant reaction
                     r = ps.reacs[Rn]
                     # Then calculate frac transduced
-                    fr_ΔG[j] += ms[vinds[k]].η[l] .* ms[vinds[k]].ϕP[l] * ΔGATP / (-r.ΔG0)
-                    # Do biomass weighted version as well
-                    fr_ΔG_bw[j] += C[j, vinds[k]] * ms[vinds[k]].η[l] .*
-                                   ms[vinds[k]].ϕP[l] * ΔGATP /
-                                   (-r.ΔG0)
+                    average_ΔG[j] += C[j, vinds[k]] * ms[vinds[k]].η[l] .*
+                                     ms[vinds[k]].ϕP[l] * ΔGATP / (-r.ΔG0)
                     # Find step size
                     s_size = (r.Prd - r.Rct)
                     # weight this step size to 1 and add to total
-                    av_steps[j] += (s_size) * ms[vinds[k]].ϕP[l]
-                    # same approach for biomass weighted case
-                    av_steps_bw[j] += C[j, vinds[k]] * (s_size) * ms[vinds[k]].ϕP[l]
-                    # Store (population) weighted expression of the reaction
-                    ϕP_stp[j, s_size] += ms[vinds[k]].ϕP[l] * C[j, vinds[k]]
-                    # use step size to choose which eta value to add to
-                    pres[s_size] = true
-                    ϕPt[s_size] += ms[vinds[k]].ϕP[l]
-                    ηt[s_size] += ms[vinds[k]].η[l] .* ms[vinds[k]].ϕP[l]
-                    fr_ΔGt[s_size] += ms[vinds[k]].η[l] .* ms[vinds[k]].ϕP[l] * ΔGATP /
-                                      (-r.ΔG0)
-                end
-                # If they are present them increment the counters
-                for l in eachindex(c)
-                    if pres[l] == true
-                        c[l] += 1
-                        # Add temporary eta and fr_ΔG values to weighted total
-                        η_stp[j, l] += ηt[l] / ϕPt[l]
-                        fr_ΔG_stp[j, l] += fr_ΔGt[l] / ϕPt[l]
-                    end
+                    average_no_reac_steps[j] += C[j, vinds[k]] * (s_size) *
+                                                ms[vinds[k]].ϕP[l]
                 end
             end
-            # Average over number of strains (or biomass)
-            if tsvt[j] > 0
-                via_η[j] /= tsvt[j]
-                via_η_bw[j] /= via_bm[j]
-                via_ω[j] /= tsvt[j]
-                via_ω_bw[j] /= via_bm[j]
-                kcs[j] /= tsvt[j]
-                KSs[j] /= tsvt[j]
-                krs[j] /= tsvt[j]
-                av_steps[j] /= tsvt[j]
-                av_steps_bw[j] /= via_bm[j]
-                fr_ΔG[j] /= tsvt[j]
-                fr_ΔG_bw[j] /= via_bm[j]
-                # Divide by number of strains that possess reactions
-                for k in eachindex(c)
-                    if c[k] > 0
-                        η_stp[j, k] /= c[k]
-                        fr_ΔG_stp[j, k] /= c[k]
-                    end
-                end
-                # Find total population of viable strains, and use to find average
-                v_pop = sum(C[j, vinds])
-                ϕP_stp[j, :] = ϕP_stp[j, :] / v_pop
+            # Average over biomass of viable species
+            if viable_species[j] > 0
+                average_η[j] /= total_biomass_of_viable_species[j]
+                average_ω[j] /= total_biomass_of_viable_species[j]
+                average_no_reac_steps[j] /= total_biomass_of_viable_species[j]
+                average_ΔG[j] /= total_biomass_of_viable_species[j]
             end
             # Break down eta and omega value by R
             for k in eachindex(vinds)
                 # Find relevant reaction number
                 l = ms[vinds[k]].R
                 # Add contribution to relevant total
-                ηs_R[l, j] += sum(ms[vinds[k]].η .* ms[vinds[k]].ϕP)
-                ωs_R[l, j] += ms[vinds[k]].ω
-                kc_R[l, j] += sum(ms[vinds[k]].kc .* ms[vinds[k]].ϕP)
-                KS_R[l, j] += sum(ms[vinds[k]].KS .* ms[vinds[k]].ϕP)
-                kr_R[l, j] += sum(ms[vinds[k]].kr .* ms[vinds[k]].ϕP)
+                average_η_per_reac_class[l, j] += sum(ms[vinds[k]].η .* ms[vinds[k]].ϕP)
+                average_KS_per_reac_class[l, j] += sum(ms[vinds[k]].KS .* ms[vinds[k]].ϕP)
             end
             # Now weight by number of strains with each type of reaction
             for k in 1:NoR
-                if via_R[k, j] > 0
-                    ηs_R[k, j] /= via_R[k, j]
-                    ωs_R[k, j] /= via_R[k, j]
-                    kc_R[k, j] /= via_R[k, j]
-                    KS_R[k, j] /= via_R[k, j]
-                    kr_R[k, j] /= via_R[k, j]
+                if viable_species_per_reac_class[k, j] > 0
+                    average_η_per_reac_class[k, j] /= viable_species_per_reac_class[k, j]
+                    average_KS_per_reac_class[k, j] /= viable_species_per_reac_class[k, j]
                 end
             end
         end
         # Preallocate final ϕR values
-        fin_ϕR = zeros(svt[end])
+        final_ϕR = zeros(surviving_species[end])
         # Find indices of all surviving species
-        inds = findall(x -> x > 1e-5, C[end, 1:numS])
+        inds = findall(x -> x > 1e-5, C[end, 1:total_species])
         # Loop over number of survivors
-        for j in 1:svt[end]
+        for j in 1:surviving_species[end]
             # Store corresponding final ϕR value
-            fin_ϕR[j] = C[end, ϕ_i[inds[j]]]
+            final_ϕR[j] = C[end, ϕ_i[inds[j]]]
         end
-        # Store the identity of the lowest substrate with a significant concentration
-        vld_sb = findall(>(1e-10), C[end, (numS + 1):(numS + ps.M)])
-        l_sb = vld_sb[end]
         # Now just save the relevant data
         jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld",
                 "w") do file
             # Save full time course
             write(file, "T", T)
             # Save reaction data
-            write(file, "Rs", Rs)
-            write(file, "via_R", via_R)
-            write(file, "ηs_R", ηs_R)
-            write(file, "ωs_R", ωs_R)
-            write(file, "kc_R", kc_R)
-            write(file, "KS_R", KS_R)
-            write(file, "kr_R", kr_R)
+            write(file, "species_per_reac_class", species_per_reac_class)
+            write(file, "viable_species_per_reac_class", viable_species_per_reac_class)
+            write(file, "average_η_per_reac_class", average_η_per_reac_class)
+            write(file, "average_KS_per_reac_class", average_KS_per_reac_class)
             # Save the other quantities
-            write(file, "svt", svt)
-            write(file, "tsvt", tsvt)
-            write(file, "pop", pop)
-            write(file, "via_bm", via_bm)
-            write(file, "shD", shD)
-            write(file, "sbs", sbs)
-            write(file, "ηs", ηs)
-            write(file, "via_η", via_η)
-            write(file, "via_η_bw", via_η_bw)
-            write(file, "kcs", kcs)
-            write(file, "KSs", KSs)
-            write(file, "krs", krs)
-            write(file, "av_steps", av_steps)
-            write(file, "av_steps_bw", av_steps_bw)
-            write(file, "ωs", ωs)
-            write(file, "via_ω", via_ω)
-            write(file, "via_ω_bw", via_ω_bw)
-            write(file, "fr_ΔG", fr_ΔG)
-            write(file, "fr_ΔG_bw", fr_ΔG_bw)
-            write(file, "via_a", via_a)
-            write(file, "via_ϕR", via_ϕR)
-            write(file, "η_stp", η_stp)
-            write(file, "fr_ΔG_stp", fr_ΔG_stp)
-            write(file, "ϕP_stp", ϕP_stp)
-            write(file, "fin_ϕR", fin_ϕR)
-            write(file, "l_sb", l_sb)
+            write(file, "surviving_species", surviving_species)
+            write(file, "viable_species", viable_species)
+            write(file, "total_population", total_population)
+            write(file, "total_biomass_of_viable_species", total_biomass_of_viable_species)
+            write(file, "shannon_diversity", shannon_diversity)
+            write(file, "no_substrates", no_substrates)
+            write(file, "average_η", average_η)
+            write(file, "average_no_reac_steps", average_no_reac_steps)
+            write(file, "average_ω", average_ω)
+            write(file, "average_ΔG", average_ΔG)
+            write(file, "final_ϕR", final_ϕR)
             # Finally save final time to help with benchmarking
-            write(file, "Tf", T[end])
+            write(file, "final_time_point", T[end])
         end
         println("Run $i analysed")
         flush(stdout)

@@ -6,7 +6,7 @@ using ColorSchemes
 using LaTeXStrings
 using Plots.PlotMeasures
 
-function figure3(rps::Int64, ims::Int64, sim_type::Int64)
+function figure3(ims::Int64, sim_type::Int64)
     println("Compiled")
     # Extract other simulation parameters from the function
     Np, Nt, M, d, μrange = sim_paras(sim_type)
@@ -33,21 +33,21 @@ function figure3(rps::Int64, ims::Int64, sim_type::Int64)
     end
     # Now load out the times, and number of trajectories
     t_times = load(tfile, "times")
-    no_sims = load(tfile, "no_sims")
+    no_simulations = load(tfile, "no_simulations")
     # Load in final ϕR values
-    all_fin_ϕRs = load(tfile, "all_fin_ϕRs")
+    all_final_ϕRs = load(tfile, "all_final_ϕRs")
     # Load in averages
-    mn_svt = load(tfile, "mn_svt")
-    mn_pop = load(tfile, "mn_pop")
-    mn_shD = load(tfile, "mn_shD")
+    mean_surviving_species = load(tfile, "mean_surviving_species")
+    mean_total_population = load(tfile, "mean_total_population")
+    mean_shannon_diversity = load(tfile, "mean_shannon_diversity")
     # Load in standard deviations
-    sd_svt = load(tfile, "sd_svt")
-    sd_pop = load(tfile, "sd_pop")
-    sd_shD = load(tfile, "sd_shD")
+    sd_surviving_species = load(tfile, "sd_surviving_species")
+    sd_total_population = load(tfile, "sd_total_population")
+    sd_shannon_diversity = load(tfile, "sd_shannon_diversity")
     # Calculate standard errors
-    se_svt = sd_svt ./ sqrt.(no_sims)
-    se_pop = sd_pop ./ sqrt.(no_sims)
-    se_shD = sd_shD ./ sqrt.(no_sims)
+    se_surviving_species = sd_surviving_species ./ sqrt.(no_simulations)
+    se_total_population = sd_total_population ./ sqrt.(no_simulations)
+    se_shannon_diversity = sd_shannon_diversity ./ sqrt.(no_simulations)
     println("Data read in")
     # Check if directory exists and if not make it
     if ~isdir("Output/Fig3")
@@ -65,8 +65,8 @@ function figure3(rps::Int64, ims::Int64, sim_type::Int64)
               xlim = (-Inf, 5e7),
               legend = :topleft,
               t_times,
-              mn_pop / 1e13,
-              ribbon = se_pop / 1e13,
+              mean_total_population / 1e13,
+              ribbon = se_total_population / 1e13,
               label = "Population",
               color = a[1],
               ylim = (-Inf, 4.0))
@@ -74,7 +74,7 @@ function figure3(rps::Int64, ims::Int64, sim_type::Int64)
     box = (1, bbox(0.4, 0.2, 0.4, 0.3, :bottom, :left))
     # Add histogram in as an insert
     histogram!(p1,
-               all_fin_ϕRs,
+               all_final_ϕRs,
                nbins = 100,
                color = a[2],
                label = "",
@@ -90,8 +90,8 @@ function figure3(rps::Int64, ims::Int64, sim_type::Int64)
     # Then plot the Shannon diversity
     p1 = plot!(pt,
                t_times,
-               mn_shD,
-               ribbon = se_shD,
+               mean_shannon_diversity,
+               ribbon = se_shannon_diversity,
                label = "Diversity",
                color = a[3],
                legend = :topright)
@@ -105,8 +105,8 @@ function figure3(rps::Int64, ims::Int64, sim_type::Int64)
               xlim = (-Inf, 5e7),
               ylim = (-Inf, 30.0),
               t_times,
-              mn_svt,
-              ribbon = se_svt,
+              mean_surviving_species,
+              ribbon = se_surviving_species,
               label = "Species",
               color = a[4],
               legend = :topleft)
@@ -140,4 +140,4 @@ function figure3(rps::Int64, ims::Int64, sim_type::Int64)
     return (nothing)
 end
 
-@time figure3(250, 500, 1)
+@time figure3(500, 1)

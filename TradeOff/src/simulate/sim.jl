@@ -2,7 +2,7 @@
 export full_simulate, sing_pop, doub_pop, θ, θ_smooth, qs
 
 # These are temporarily being output to aid with testing
-export γs, λs, χs, Eα
+export γs, λs, Eα
 
 # function to find the thermodynamic term θ, for the case of 1 to 1 stoichiometry
 function θ(S::Float64, P::Float64, T::Float64, η::Float64, ΔG0::Float64)
@@ -64,12 +64,6 @@ end
 function γs(a::Float64, ps::Microbe)
     γ = ps.γm * a / (a + ps.Kγ)
     return (γ)
-end
-
-# function to find ATP dissipated (per translation step)
-function χs(ϕR::Float64, ps::Microbe)
-    χ = ps.χl + ps.χu * (ϕR / (1 - ps.ϕH))
-    return (χ)
 end
 
 # function to find the growth rate λ
@@ -147,8 +141,7 @@ function full_dynamics!(dx::Array{Float64, 1},
             end
             # Add energy intake and subtract translation and dilution from the energy concentration
             dx[length(ms) + ps.M + i] = J -
-                                        (ms[i].MC * χs(ϕR, ms[i]) +
-                                         x[length(ms) + ps.M + i]) * λ
+                                        (ms[i].MC * ms[i].χl + x[length(ms) + ps.M + i]) * λ
         end
     end
     # Do basic resource dynamics

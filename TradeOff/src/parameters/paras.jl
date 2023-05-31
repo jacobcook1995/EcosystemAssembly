@@ -41,7 +41,7 @@ function make_Reaction(ID::Int64, Rct::Int64, Prd::Int64, ΔG0::Float64)
 end
 
 """
-    Microbe(MC::Int64,γm::Float64,Kγ::Float64,χl::Float64,χu::Float64,Pb::Float64,d::Float64,ϕH::Float64,
+    Microbe(MC::Int64,γm::Float64,Kγ::Float64,χl::Float64,Pb::Float64,d::Float64,ϕH::Float64,
     KΩ::Float64,fd::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},
     KS::Vector{Float64},kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
 Type containing the parameters for a particular microbial strain, this now includes proteome parameters.
@@ -49,8 +49,7 @@ Type containing the parameters for a particular microbial strain, this now inclu
 - `MC::Int64`: Mass of cell in amino acids.
 - `γm::Float64`: Maximum elongation rate in amino acids per minute (per ribosome)
 - `Kγ::Float64`: Threshold energy in ATP per cell
-- `χl::Float64`: minimum ATP use per translation step
-- `χu::Float64`: maximum (additional) ATP use per translation step
+- `χl::Float64`: ATP use per translation step
 - `Pb::Float64`: Proportion of ribosomes bound
 - `d::Float64`: Biomass loss rate (~death rate)
 - `ϕH::Float64`: Fraction of proteome allocated to housekeeping proteins
@@ -73,7 +72,6 @@ struct Microbe
     γm::Float64
     Kγ::Float64
     χl::Float64
-    χu::Float64
     Pb::Float64
     d::Float64
     ϕH::Float64
@@ -93,7 +91,7 @@ struct Microbe
 end
 
 """
-    make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χl::Float64,χu::Float64,Pb::Float64,d::Float64,ϕH::Float64,
+    make_Microbe(MC::Int64,γm::Float64,Kγ::Float64,χl::Float64,Pb::Float64,d::Float64,ϕH::Float64,
     KΩ::Float64,fd::Float64,ω::Float64,R::Int64,Reacs::Vector{Int64},η::Vector{Float64},kc::Vector{Float64},
     KS::Vector{Float64},kr::Vector{Float64},n::Vector{Int64},ϕP::Vector{Float64},ID::Int64,PID::String)
 Helper function used internally. Takes values for parameters and returns a `Microbe` object.
@@ -103,7 +101,6 @@ function make_Microbe(MC::Int64,
                       γm::Float64,
                       Kγ::Float64,
                       χl::Float64,
-                      χu::Float64,
                       Pb::Float64,
                       d::Float64,
                       ϕH::Float64,
@@ -125,7 +122,6 @@ function make_Microbe(MC::Int64,
     @assert MC>0 "cell mass must be positive"
     @assert γm>=0.0 "elongation rate cannot be negative"
     @assert χl>0.0 "minimum ATP per synthesis step must be positive"
-    @assert χu>0.0 "maximum (additional) ATP per synthesis step must be positive"
     @assert Kγ>0.0 "threshold energy must be positive"
     @assert d>0.0 "death rate must be positive"
     @assert 0.0<=Pb<=1.0 "proportion of ribosomes bound has to be between 0 and 1"
@@ -154,7 +150,6 @@ function make_Microbe(MC::Int64,
                     γm,
                     Kγ,
                     χl,
-                    χu,
                     Pb,
                     d,
                     ϕH,

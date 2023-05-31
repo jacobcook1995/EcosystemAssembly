@@ -63,7 +63,7 @@ function chemo_dynamics!(dx::Array{Float64, 1},
                 J += ms[i].η[j] * rate[i, ms[i].Reacs[j]]
             end
             # Add energy intake and subtract translation and dilution from the energy concentration
-            dx[length(ms) + i] = J - (ms[i].MC * ps.χl + x[length(ms) + i]) * λ
+            dx[length(ms) + i] = J - (ms[i].MC * ms[i].χl + x[length(ms) + i]) * λ
         end
     end
     # Any ATP numbers that have gone below 0.33 should be removed

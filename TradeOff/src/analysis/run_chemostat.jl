@@ -3,6 +3,10 @@ using TradeOff
 
 function wrap_test()
     ωs, λlf, λhf, λlv, λhv = ω_test()
+    # Check if directory exists and if not make it
+    if ~isdir("Output/Fig8")
+        mkdir("Output/Fig8")
+    end
     # Extract max ribosome fraction
     plot(ωs, λlf, label = "")
     savefig("Output/Fig8/GrowthLowFixed.png")

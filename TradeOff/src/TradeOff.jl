@@ -25,7 +25,7 @@ global ΔGATP = 75000.0 # Need to find a reference for this at some point
 global NA = 6.02214076e23 # Avogadro's constant in mol−1
 
 # Defining and exporting functions useful in more than one script
-export mvector, Keq, Q
+export mvector, Keq, Q, interpolate_time
 
 # function to generate a vector of values for the maintenance energy requirements m
 function mvector(N::Int64, mm::Float64, sdm::Float64)
@@ -53,13 +53,15 @@ function Q(S::Float64, P::Float64)
 end
 
 # Function to interpolate over a time series
-function interpolate_time(ts::Array{Float64, 1}, Tg::Float64, T1x::Float64, T2x::Float64)
-    return (ts[Tind] * (T1x) / Tg + ts[Tind - 1] * (T2x) / Tg)
+function interpolate_time(ts::Union{Array{Float64, 1}, Array{Int64, 1}}, Tg::Float64,
+                          T1x::Float64, T2x::Float64, Tind::Int64)
+    return ((ts[Tind] * (T1x) / Tg) + (ts[Tind - 1] * (T2x) / Tg))
 end
 
 # Function to interpolate over a time series (vectorised form)
-function interpolate_time(ts::Array{Float64, 2}, Tg::Float64, T1x::Float64, T2x::Float64)
-    return (ts[Tind, :] * (T1x) / Tg .+ ts[Tind - 1, :] * (T2x) / Tg)
+function interpolate_time(ts::Union{Array{Float64, 2}, Array{Int64, 2}}, Tg::Float64,
+                          T1x::Float64, T2x::Float64, Tind::Int64)
+    return ((ts[:, Tind] * (T1x) / Tg) .+ (ts[:, Tind - 1] * (T2x) / Tg))
 end
 
 end # module

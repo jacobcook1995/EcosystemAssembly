@@ -27,7 +27,6 @@ function figure8()
     γm = 1260.0 / 60.0
     Kγ = 5e8
     χl = 29.0
-    χu = 1e-20 # Turns off differences in efficiency
     Pb = 0.7
     ϕH = 0.45
     fd = log(100) / log(2)
@@ -71,7 +70,6 @@ function figure8()
                                      γm,
                                      Kγ,
                                      χl,
-                                     χu,
                                      Pb,
                                      d,
                                      ϕH,
@@ -107,7 +105,6 @@ function figure8()
                                      γm,
                                      Kγ,
                                      χl,
-                                     χu,
                                      Pb,
                                      d,
                                      ϕH,

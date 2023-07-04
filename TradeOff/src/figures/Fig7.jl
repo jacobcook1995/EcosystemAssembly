@@ -38,16 +38,16 @@ function figure7()
     end
     # Now load out the times, and number of trajectories
     times = load(sfile, "times")
-    no_sims = load(sfile, "no_sims")
-    no_via = load(sfile, "no_via")
+    no_sims = load(sfile, "no_simulations")
+    no_via = load(sfile, "no_viable_simulations")
     # Load in averages
-    mn_sbs = load(sfile, "mn_sbs")
-    mn_via_R = load(sfile, "mn_via_R")
-    mn_KS_R = load(sfile, "mn_KS_R")
+    mn_sbs = load(sfile, "mean_no_substrates")
+    mn_via_R = load(sfile, "mean_viable_species_per_reac_class")
+    mn_KS_R = load(sfile, "mean_average_KS_per_reac_class")
     # Load in standard deviations
-    sd_sbs = load(sfile, "sd_sbs")
-    sd_via_R = load(sfile, "sd_via_R")
-    sd_KS_R = load(sfile, "sd_KS_R")
+    sd_sbs = load(sfile, "sd_no_substrates")
+    sd_via_R = load(sfile, "sd_viable_species_per_reac_class")
+    sd_KS_R = load(sfile, "sd_average_KS_per_reac_class")
     # Preallocate standard errors
     se_via_R = zeros(size(sd_via_R))
     se_KS_R = zeros(size(sd_KS_R))

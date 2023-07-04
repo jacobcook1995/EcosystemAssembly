@@ -51,4 +51,4 @@ function early_immigration_dyns(rN::Int64, ims::Int64, sim_type::Int64)
     return (nothing)
 end
 
-@time early_immigration_dyns(1, 500, 1)
+@time early_immigration_dyns(2, 500, 1)

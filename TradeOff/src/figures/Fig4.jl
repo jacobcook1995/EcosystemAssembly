@@ -33,19 +33,19 @@ function figure4(ims::Int64, sim_type::Int64, sim_type2::Int64)
     end
     # Now load out the times, and number of trajectories
     times = load(sfile, "times")
-    no_sims = load(sfile, "no_sims")
-    no_via = load(sfile, "no_via")
-    no_rs = load(sfile, "no_rs")
+    no_sims = load(sfile, "no_simulations")
+    no_via = load(sfile, "no_viable_simulations")
+    no_rs = load(sfile, "no_simulations_with_R")
     # Load in averages
-    mn_sbs = load(sfile, "mn_sbs")
-    mn_via_R = load(sfile, "mn_via_R")
-    mn_ηs_R = load(sfile, "mn_ηs_R")
-    mn_KS_R = load(sfile, "mn_KS_R")
+    mn_sbs = load(sfile, "mean_no_substrates")
+    mn_via_R = load(sfile, "mean_viable_species_per_reac_class")
+    mn_ηs_R = load(sfile, "mean_average_η_per_reac_class")
+    mn_KS_R = load(sfile, "mean_average_KS_per_reac_class")
     # Load in standard deviations
-    sd_sbs = load(sfile, "sd_sbs")
-    sd_via_R = load(sfile, "sd_via_R")
-    sd_ηs_R = load(sfile, "sd_ηs_R")
-    sd_KS_R = load(sfile, "sd_KS_R")
+    sd_sbs = load(sfile, "sd_no_substrates")
+    sd_via_R = load(sfile, "sd_viable_species_per_reac_class")
+    sd_ηs_R = load(sfile, "sd_average_η_per_reac_class")
+    sd_KS_R = load(sfile, "sd_average_KS_per_reac_class")
     # Preallocate standard errors
     se_via_R = zeros(size(sd_via_R))
     se_ηs_R = zeros(size(sd_ηs_R))
@@ -196,11 +196,11 @@ function figure4(ims::Int64, sim_type::Int64, sim_type2::Int64)
     end
     # Now load out the times, and number of trajectories
     times = load(sfile, "times")
-    no_via = load(sfile, "no_via")
+    no_via = load(sfile, "no_viable_simulations")
     # Load in averages
-    mn_via_R = load(sfile, "mn_via_R")
+    mn_via_R = load(sfile, "mean_viable_species_per_reac_class")
     # Load in standard deviations
-    sd_via_R = load(sfile, "sd_via_R")
+    sd_via_R = load(sfile, "sd_viable_species_per_reac_class")
     # Preallocate standard errors
     se_via_R = zeros(size(sd_via_R))
     # Calculation (slightly) different in the viable case

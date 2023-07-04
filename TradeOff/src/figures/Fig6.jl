@@ -56,15 +56,15 @@ function figure6(ims::Int64)
         end
         # Now load out the times, and number of trajectories
         times = load(tfile, "times")
-        no_via = load(tfile, "no_via")
+        no_via = load(tfile, "no_viable_simulations")
         # Load in averages
-        mn_via_η_bw = load(tfile, "mn_via_η_bw")
-        mn_fr_ΔG_bw = load(tfile, "mn_fr_ΔG_bw")
-        mn_av_steps_bw = load(tfile, "mn_av_steps_bw")
+        mn_via_η_bw = load(tfile, "mean_average_η")
+        mn_fr_ΔG_bw = load(tfile, "mean_average_ΔG")
+        mn_av_steps_bw = load(tfile, "mean_average_no_reac_steps")
         # Load in standard deviations
-        sd_via_η_bw = load(tfile, "sd_via_η_bw")
-        sd_fr_ΔG_bw = load(tfile, "sd_fr_ΔG_bw")
-        sd_av_steps_bw = load(tfile, "sd_av_steps_bw")
+        sd_via_η_bw = load(tfile, "sd_average_η")
+        sd_fr_ΔG_bw = load(tfile, "sd_average_ΔG")
+        sd_av_steps_bw = load(tfile, "sd_average_no_reac_steps")
         # Calculate relevant standard errors
         se_via_η_bw = sd_via_η_bw ./ sqrt.(no_via)
         se_fr_ΔG_bw = sd_fr_ΔG_bw ./ sqrt.(no_via)
@@ -84,10 +84,10 @@ function figure6(ims::Int64)
         error("missing stats file for no immigrations simulations")
     end
     times = load(noim_file, "times")
-    no_via = load(noim_file, "no_via")
+    no_via = load(noim_file, "no_viable_simulations")
     # Load in η data
-    mn_via_η_bw = load(noim_file, "mn_via_η_bw")
-    sd_via_η_bw = load(noim_file, "sd_via_η_bw")
+    mn_via_η_bw = load(noim_file, "mean_average_η")
+    sd_via_η_bw = load(noim_file, "sd_average_η")
     # Calculate relevant standard errors
     se_via_η_bw = sd_via_η_bw ./ sqrt.(no_via)
     # Then plot

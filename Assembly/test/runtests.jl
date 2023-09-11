@@ -1,5 +1,7 @@
 using Test
-using TradeOff
+using Assembly
+
+# WHEN I ADD NEW FUNCTIONS ADD TESTS FOR THEM IN HERE
 
 # Test that the Q function has sensible behaviour for positive and negative concentrations
 @testset "Test Q function" begin

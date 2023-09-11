@@ -1,5 +1,5 @@
 # Script that makes the parameters needed for simulation of the full proteome model
-export initialise, initialise_syn_trio, initialise_pol_duo
+export fix_reactions, initialise, initialise_syn_trio, initialise_pol_duo
 
 # function to randomly choose the reactions that a specific microbe can make use of
 function choose_reactions(O::Int64, Rl::Int64, Ru::Int64)
@@ -27,7 +27,7 @@ end
 
 # function that chooses uniformly mixed values for η
 function choose_η_mix(reacs::Array{Reaction, 1}, Reacs::Array{Int64, 1}, T::Float64,
-                      syn::Bool)
+    syn::Bool)
     # Preallocate memory to store η's
     η = zeros(length(Reacs))
     # Set a constant lower bound
@@ -94,7 +94,7 @@ end
 
 # function to generate parameter set for the model with inhibition
 function initialise(N::Int64, M::Int64, O::Int64, Rl::Int64, Ru::Int64, kc::Float64,
-                    KS::Float64, kr::Float64, syn::Bool)
+    KS::Float64, kr::Float64, syn::Bool)
     # Assume that temperature T is constant at 20°C
     T = 293.15
     # Cell mass is taken from Bremer H, Dennis P (1996) Modulation of chemical
@@ -155,7 +155,7 @@ function initialise(N::Int64, M::Int64, O::Int64, Rl::Int64, Ru::Int64, kc::Floa
         η = choose_η_mix(reacs, Reacs, T, syn)
         # Can finally generate microbe
         mics[i] = make_MicrobeP(MC, γm, ρ, Kγ, Pb, d, ϕH, KΩ, fd, R, Reacs, η, kcs, KSs,
-                                krs, n, ϕP)
+            krs, n, ϕP)
     end
     # Now make the parameter set
     ps = make_FullParameters(N, M, O, T, κ, δ, reacs, mics)
@@ -243,7 +243,7 @@ function initialise_syn_trio(kc::Float64, KS::Float64, kr::Float64)
         ϕP = ϕP / sum(ϕP)
         # Can finally generate microbe
         mics[i] = make_MicrobeP(MC, γm, ρ, Kγ, Pb, d, ϕH, KΩ, fd, R, Reacs, η, kcs, KSs,
-                                krs, n, ϕP)
+            krs, n, ϕP)
     end
     # Now make the parameter set
     ps = make_FullParameters(N, M, O, T, κ, δ, reacs, mics)
@@ -330,7 +330,7 @@ function initialise_pol_duo(kc::Float64, KS::Float64, kr::Float64)
         ϕP = ϕP / sum(ϕP)
         # Can finally generate microbe
         mics[i] = make_MicrobeP(MC, γm, ρ, Kγ, Pb, d, ϕH, KΩ, fd, R, Reacs, η, kcs, KSs,
-                                krs, n, ϕP)
+            krs, n, ϕP)
     end
     # Now make the parameter set
     ps = make_FullParameters(N, M, O, T, κ, δ, reacs, mics)

@@ -120,3 +120,28 @@ end
     @test qs(-10.0, 2.0, 20000.0, 2, microbe, 293.15, reactions[2]) == 0.0
     @test qs(-10.0, -2.0, 20000.0, 2, microbe, 293.15, reactions[2]) == 0.0
 end
+
+# Test that the elongation rate γs behaves sensibly for negative ATP
+@testset "Test γs function" begin
+    @test γs(1e6, microbe) == 0.041916167664670656
+    @test γs(2.5e5, microbe) == 0.010494752623688156
+    @test γs(0.0, microbe) == 0.0
+    @test γs(-2.5e5, microbe) == 0.0
+end
+
+# Test that the growth rate λ behaves sensibly for negative ATP
+@testset "Test λs function" begin
+    @test λs(1e6, 0.05, microbe) == 1.966839882374947e-7
+    @test λs(1e6, 0.17, microbe) == 6.68725560007482e-7
+    @test λs(2.5e5, 0.05, microbe) == 4.924471669514485e-8
+    @test λs(0.0, 0.05, microbe) == 0.0
+    @test λs(-2.5e5, 0.05, microbe) == 0.0
+end
+
+# That that function to find ϕR behaves sensibly for negative ATP
+@testset "Test ϕ_R function" begin
+    @test ϕ_R(1e6, microbe) == 0.0002747252747252747
+    @test ϕ_R(2.5e5, microbe) == 6.873281679580104e-5
+    @test ϕ_R(0.0, microbe) == 0.0
+    @test ϕ_R(-2.5e5, microbe) == 0.0
+end

@@ -39,7 +39,7 @@ end
 
 # function to find the rate of substrate consumption by a particular reaction
 function qs(S::Float64, P::Float64, E::Float64, i::Int64, ps::MicrobeP, T::Float64,
-            r::Reaction)
+    r::Reaction)
     # To speed things I don't have a check here to ensure that r.ID matches ps.Reac[i]
     # This is something to check if I start getting errors
     θs = θ(S, P, T, ps.η[i], r.ΔG0)
@@ -57,7 +57,7 @@ end
 # function to find the elongation rate γ
 function γs(a::Float64, ps::MicrobeP)
     γ = ps.γm * a / (ps.Kγ + a)
-    return (γ)
+    return (max(γ, 0.0))
 end
 
 # function to find the growth rate λ
@@ -71,12 +71,12 @@ end
 # function to find ϕR based on the energy concentration
 function ϕ_R(a::Float64, ps::MicrobeP)
     ϕ = (1 - ps.ϕH) * a / (ps.KΩ + a)
-    return (ϕ)
+    return (max(ϕ, 0.0))
 end
 
 # function to implement the consumer resource dynamics
 function full_dynamics!(dx::Array{Float64, 1}, x::Array{Float64, 1}, ps::FullParameters,
-                        rate::Array{Float64, 2}, t::Float64)
+    rate::Array{Float64, 2}, t::Float64)
     # loop over the reactions to find reaction rate for each reaction for each strain
     for j in 1:(ps.O)
         # Find substrate and product for this reaction
@@ -89,7 +89,7 @@ function full_dynamics!(dx::Array{Float64, 1}, x::Array{Float64, 1}, ps::FullPar
                 E = Eα(x[2 * ps.N + ps.M + i], ps.mics[i], k)
                 # Then finally calculate reaction rate
                 rate[i, j] = qs(x[ps.N + ps.reacs[j].Rct], x[ps.N + ps.reacs[j].Prd], E, k,
-                                ps.mics[i], ps.T, ps.reacs[ps.mics[i].Reacs[k]])
+                    ps.mics[i], ps.T, ps.reacs[ps.mics[i].Reacs[k]])
             else
                 rate[i, j] = 0.0
             end
@@ -168,8 +168,8 @@ end
 # Simulation code to run one instance of the simulation with a user defined starting condition
 # ps is parameter set, Tmax is the time to integrate to, pop, conc, as and ϕs are the initial conditions
 function full_simulate(ps::FullParameters, Tmax::Float64, pop::Array{Float64, 1},
-                       conc::Array{Float64, 1},
-                       as::Array{Float64, 1}, ϕs::Array{Float64, 1})
+    conc::Array{Float64, 1},
+    as::Array{Float64, 1}, ϕs::Array{Float64, 1})
     @assert length(pop)==ps.N "From parameter set expected $(ps.N) strains"
     @assert length(conc)==ps.M "From parameter set expected $(ps.M) metabolites"
     @assert length(as)==length(pop) "Every strain must have an energy concentration"
@@ -191,9 +191,8 @@ end
 # Same as the above but with a specific strain given a massively increased death rate
 # This should help us investigate syntrophic pairs
 function full_simulate_syn(ps::FullParameters, Tmax::Float64, pop::Array{Float64, 1},
-                           conc::Array{Float64, 1},
-                           as::Array{Float64, 1}, ϕs::Array{Float64, 1},
-                           inds::Array{Int64, 1})
+    conc::Array{Float64, 1}, as::Array{Float64, 1}, ϕs::Array{Float64, 1},
+    inds::Array{Int64, 1})
     @assert length(pop)==ps.N "From parameter set expected $(ps.N) strains"
     @assert length(conc)==ps.M "From parameter set expected $(ps.M) metabolites"
     @assert length(as)==length(pop) "Every strain must have an energy concentration"
@@ -216,7 +215,7 @@ function full_simulate_syn(ps::FullParameters, Tmax::Float64, pop::Array{Float64
             m = ps.mics[i]
             # Make new microbe
             nmics[i] = make_MicrobeP(m.MC, m.γm, m.ρ, m.Kγ, m.Pb, nd, m.ϕH, m.KΩ, m.fd, m.R,
-                                     m.Reacs, m.η, m.kc, m.KS, m.kr, m.n, m.ϕP)
+                m.Reacs, m.η, m.kc, m.KS, m.kr, m.n, m.ϕP)
         end
     end
     # Use to make a new parameter set
@@ -235,7 +234,7 @@ end
 
 # Same dynamics function altered to do detailed testing
 function test_dynamics!(dx::Array{Float64, 1}, x::Array{Float64, 1}, ps::FullParameters,
-                        rate::Array{Float64, 2}, t::Float64)
+    rate::Array{Float64, 2}, t::Float64)
     # loop over the reactions to find reaction rate for each reaction for each strain
     for j in 1:(ps.O)
         # Find substrate and product for this reaction
@@ -248,7 +247,7 @@ function test_dynamics!(dx::Array{Float64, 1}, x::Array{Float64, 1}, ps::FullPar
                 E = Eα(x[2 * ps.N + ps.M + i], ps.mics[i], k)
                 # Then finally calculate reaction rate
                 rate[i, j] = qs(x[ps.N + ps.reacs[j].Rct], x[ps.N + ps.reacs[j].Prd], E, k,
-                                ps.mics[i], ps.T, ps.reacs[ps.mics[i].Reacs[k]])
+                    ps.mics[i], ps.T, ps.reacs[ps.mics[i].Reacs[k]])
             else
                 rate[i, j] = 0.0
             end
@@ -326,8 +325,7 @@ end
 
 # Same function as above but for detailed testing
 function test_full_simulate(ps::FullParameters, Tmax::Float64, pop::Array{Float64, 1},
-                            conc::Array{Float64, 1},
-                            as::Array{Float64, 1}, ϕs::Array{Float64, 1})
+    conc::Array{Float64, 1}, as::Array{Float64, 1}, ϕs::Array{Float64, 1})
     @assert length(pop)==ps.N "From parameter set expected $(ps.N) strains"
     @assert length(conc)==ps.M "From parameter set expected $(ps.M) metabolites"
     @assert length(as)==length(pop) "Every strain must have an energy concentration"

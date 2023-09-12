@@ -1,8 +1,8 @@
 # A script to run the dynamics for the full model.
 export full_simulate, sing_pop, doub_pop, θ, θ_smooth, qs
 
-# These are temporarily being output to aid with testing
-export γs, λs, Eα
+# These are output to aid with testing
+export γs, λs, Eα, ϕ_R
 
 # function to find the thermodynamic term θ, for the case of 1 to 1 stoichiometry
 function θ(S::Float64, P::Float64, T::Float64, η::Float64, ΔG0::Float64)
@@ -39,13 +39,8 @@ function qs(ps::Microbe, S::Float64, P::Float64, E::Float64, θs::Float64)
 end
 
 # function to find the rate of substrate consumption by a particular reaction
-function qs(S::Float64,
-            P::Float64,
-            E::Float64,
-            i::Int64,
-            ps::Microbe,
-            T::Float64,
-            r::Reaction)
+function qs(S::Float64, P::Float64, E::Float64, i::Int64, ps::Microbe, T::Float64,
+    r::Reaction)
     # To speed things I don't have a check here to ensure that r.ID matches ps.Reac[i]
     # This is something to check if I start getting errors
     θs = θ(S, P, T, ps.η[i], r.ΔG0)
@@ -63,7 +58,7 @@ end
 # function to find (energy use dependent) elongation rate γ
 function γs(a::Float64, ps::Microbe)
     γ = ps.γm * a / (a + ps.Kγ)
-    return (γ)
+    return (max(γ, 0.0))
 end
 
 # function to find the growth rate λ
@@ -77,16 +72,12 @@ end
 # function to find ϕR based on the energy concentration
 function ϕ_R(a::Float64, ps::Microbe)
     ϕ = ps.ω * (1 - ps.ϕH) * a / (ps.KΩ + a)
-    return (ϕ)
+    return (max(ϕ, 0.0))
 end
 
 # function to implement the consumer resource dynamics
-function full_dynamics!(dx::Array{Float64, 1},
-                        x::Array{Float64, 1},
-                        ms::Array{Microbe, 1},
-                        ps::TOParameters,
-                        rate::Array{Float64, 2},
-                        t::Float64)
+function full_dynamics!(dx::Array{Float64, 1}, x::Array{Float64, 1}, ms::Array{Microbe, 1},
+    ps::TOParameters, rate::Array{Float64, 2}, t::Float64)
     # loop over the reactions to find reaction rate for each reaction for each strain
     for j in 1:(ps.O)
         # Find substrate and product for this reaction
@@ -99,12 +90,8 @@ function full_dynamics!(dx::Array{Float64, 1},
                 E = Eα(x[2 * length(ms) + ps.M + i], ms[i], k)
                 # Then finally calculate reaction rate
                 rate[i, j] = qs(x[length(ms) + ps.reacs[j].Rct],
-                                x[length(ms) + ps.reacs[j].Prd],
-                                E,
-                                k,
-                                ms[i],
-                                ps.T,
-                                ps.reacs[ms[i].Reacs[k]])
+                    x[length(ms) + ps.reacs[j].Prd], E, k, ms[i], ps.T,
+                    ps.reacs[ms[i].Reacs[k]])
             else
                 rate[i, j] = 0.0
             end
@@ -182,16 +169,8 @@ end
 # condition. ps is parameter set, Tmax is the time to integrate to, pop, conc, as and ϕs
 # are the initial conditions, mpl is a pool of microbes, mT is mean immigration time,
 # ims is the number of immigrations, λIm controls rate of additional immigrants
-function full_simulate(ps::TOParameters,
-                       pop::Float64,
-                       conc::Float64,
-                       as::Float64,
-                       ϕs::Float64,
-                       mpl::Array{Microbe, 1},
-                       Ni::Int64,
-                       mT::Float64,
-                       ims::Int64,
-                       λIm::Float64)
+function full_simulate(ps::TOParameters, pop::Float64, conc::Float64, as::Float64,
+    ϕs::Float64, mpl::Array{Microbe, 1}, Ni::Int64, mT::Float64, ims::Int64, λIm::Float64)
     # Preallocate immigration times
     its = zeros(ims)
     # Make container to store microbial data
@@ -407,13 +386,8 @@ function full_simulate(ps::TOParameters,
 end
 
 # function to test for single population growth
-function sing_pop(ps::TOParameters,
-                  pop::Float64,
-                  conc::Float64,
-                  as::Float64,
-                  ϕs::Float64,
-                  mic::Microbe,
-                  Tmax::Float64)
+function sing_pop(ps::TOParameters, pop::Float64, conc::Float64, as::Float64, ϕs::Float64,
+    mic::Microbe, Tmax::Float64)
     # Preallocate memory
     rate = zeros(1, ps.O)
     # Now substitute preallocated memory in
@@ -430,13 +404,8 @@ function sing_pop(ps::TOParameters,
 end
 
 # function to test for competition between two populations
-function doub_pop(ps::TOParameters,
-                  pop::Float64,
-                  conc::Float64,
-                  as::Float64,
-                  ϕs::Float64,
-                  mics::Array{Microbe, 1},
-                  Tmax::Float64)
+function doub_pop(ps::TOParameters, pop::Float64, conc::Float64, as::Float64, ϕs::Float64,
+    mics::Array{Microbe, 1}, Tmax::Float64)
     # Check correct number of microbes has been provided
     if length(mics) != 2
         error("must provide two microbes")

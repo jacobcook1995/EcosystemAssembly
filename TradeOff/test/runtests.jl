@@ -96,9 +96,10 @@ end
 end
 
 # Test that simplified q function has sensible behaviour for positive and negative
-# concentrations
+# concentrations, and negative enzyme copy numbers
 @testset "Test simplified q function" begin
     @test qs(microbe, 10.0, 2.0, 20000.0, 7.022907324912199e-6) == 199957.0585240782
+    @test qs(microbe, 10.0, 2.0, -20000.0, 7.022907324912199e-6) == 0.0
     @test qs(microbe, 10.0, 2.0, 20000.0, 1.5e8) == 0.0
     @test qs(microbe, 10.0, 2.0, 20000.0, 1.0) == 0.0
     @test qs(microbe, 5.0, 2.0, 20000.0, 7.022907324912199e-6) == 199929.57391701653
@@ -108,11 +109,12 @@ end
 end
 
 # Test that full version of q function has sensible behaviour for positive and negative
-# concentrations, and that if a large enough product value is given rates drop to zero
-# rather than reversing
+# concentrations, negative enzyme copy numbers, and that if a large enough product value is
+# given rates drop to zero rather than reversing
 @testset "Test full q function" begin
     @test qs(10.0, 2.0, 46666.666666666664, 1, microbe, 293.15, reactions[1]) ==
           466566.4698895157
+    @test qs(10.0, 2.0, -46666.666666666664, 1, microbe, 293.15, reactions[1]) == 0.0
     @test qs(10.0, 2.0, 20000.0, 2, microbe, 293.15, reactions[2]) == 199972.50323833904
     @test qs(10.0, 200000.0, 20000.0, 2, microbe, 293.15, reactions[1]) == 0.0
     @test qs(5.0, 2.0, 20000.0, 2, microbe, 293.15, reactions[2]) == 199945.01403634422

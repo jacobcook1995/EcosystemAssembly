@@ -99,37 +99,36 @@ function full_dynamics!(dx::Array{Float64, 1}, x::Array{Float64, 1}, ms::Array{M
     end
     # Now want to use the rate matrix in the consumer dynamics
     for i in 1:length(ms)
-        # Check if strain is effectively extinct
-        if x[i] <= 1e-5
-            # If so x should be set to zero and should not change from that
-            dx[i] = 0.0
-            x[i] = 0.0
-            # In this case the energy concentration should also be fixed to zero
-            dx[length(ms) + ps.M + i] = 0.0
-            x[length(ms) + ps.M + i] = 0.0
-            # Corresponding proteome fraction also shouldn't shift
-            dx[2 * length(ms) + ps.M + i] = 0.0
-        else
-            # find growth rate for strains that aren't extinct
-            λ = λs(x[length(ms) + ps.M + i], x[2 * length(ms) + ps.M + i], ms[i])
+        # find growth rate for strains that aren't extinct
+        λ = λs(x[length(ms) + ps.M + i], x[2 * length(ms) + ps.M + i], ms[i])
+        # Extinction is irrecoverable so only update populations for microbes with +ve
+        # populations
+        if x[i] > 0.0
             # (growth rate - death rate)*population
-            dx[i] = (λ - ms[i].d) * x[i]
-            # Now find optimal ribosome fraction
-            ϕR = ϕ_R(x[length(ms) + ps.M + i], ms[i])
-            # This introduces a time delay
+            dx[i] = (λ - ps.mics[i].d) * x[i]
+        else
+            dx[i] = 0.0
+        end
+        # Now find optimal ribosome fraction
+        ϕR = ϕ_R(x[length(ms) + ps.M + i], ms[i])
+        # If cells are growing then calculate the time delay, and from that change in
+        # ribosome fraction
+        if λ >= 0.0
             τ = ms[i].fd / λ
             # Then update actual ribosome fraction
             dx[2 * length(ms) + ps.M + i] = (ϕR - x[2 * length(ms) + ps.M + i]) / τ
-            # Energy intake is zero
-            J = 0
-            # Loop over all reactions to find energy gained by them
-            for j in 1:(ms[i].R)
-                J += ms[i].η[j] * rate[i, ms[i].Reacs[j]]
-            end
-            # Add energy intake and subtract translation and dilution from the energy concentration
-            dx[length(ms) + ps.M + i] = J -
-                                        (ms[i].MC * ms[i].χl + x[length(ms) + ps.M + i]) * λ
+        else
+            # If there's no growth then the ribosome fraction doesn't change
+            dx[2 * length(ms) + ps.M + i] = 0.0
         end
+        # Energy intake is zero
+        J = 0
+        # Loop over all reactions to find energy gained by them
+        for j in 1:(ms[i].R)
+            J += ms[i].η[j] * rate[i, ms[i].Reacs[j]]
+        end
+        # Add energy intake and subtract translation and dilution from the energy concentration
+        dx[length(ms) + ps.M + i] = J - (ms[i].MC * ms[i].χl + x[length(ms) + ps.M + i]) * λ
     end
     # Do basic resource dynamics
     for i in (length(ms) + 1):(length(ms) + ps.M)
@@ -138,28 +137,17 @@ function full_dynamics!(dx::Array{Float64, 1}, x::Array{Float64, 1}, ms::Array{M
     end
     # Then loop over microbes
     for i in 1:length(ms)
-        # Loop over reactions for specific microbe
-        for j in 1:(ms[i].R)
-            # Increase the product
-            dx[length(ms) + ps.reacs[ms[i].Reacs[j]].Prd] += rate[i, ms[i].Reacs[j]] *
-                                                             x[i] / NA
-            # and decrease the reactant
-            dx[length(ms) + ps.reacs[ms[i].Reacs[j]].Rct] -= rate[i, ms[i].Reacs[j]] *
-                                                             x[i] / NA
-        end
-    end
-    # Final step to correct for any concentrations that have dropped below threshold (1e-15)
-    for i in (length(ms) + 1):(length(ms) + ps.M)
-        if x[i] < 1e-15
-            x[i] = 1e-15
-            dx[i] = 0.0
-        end
-    end
-    # Any ATP numbers that have gone below 0.33 should be removed
-    for i in (length(ms) + ps.M + 1):(2 * length(ms) + ps.M)
-        if x[i] < 0.33
-            x[i] = 0.0
-            dx[i] = 0.0
+        # Check that the population isn't negative
+        if x[i] >= 0.0
+            # Loop over reactions for specific microbe
+            for j in 1:(ms[i].R)
+                # Increase the product
+                dx[length(ms) + ps.reacs[ms[i].Reacs[j]].Prd] += rate[i, ms[i].Reacs[j]] *
+                                                                 x[i] / NA
+                # and decrease the reactant
+                dx[length(ms) + ps.reacs[ms[i].Reacs[j]].Rct] -= rate[i, ms[i].Reacs[j]] *
+                                                                 x[i] / NA
+            end
         end
     end
     return (dx)

@@ -151,9 +151,9 @@ function plot_run_averages()
     # Read in relevant data
     ps = load(pfile, "ps")
     T = load(ofile, "T")
-    svt = load(ofile, "svt")
-    tsvt = load(ofile, "tsvt")
-    ηs = load(ofile, "ηs")
+    svt = load(ofile, "surviving_species")
+    tsvt = load(ofile, "viable_species")
+    ηs = load(ofile, "average_η")
     # Setup plotting
     pyplot(dpi = 200)
     # Plot this data

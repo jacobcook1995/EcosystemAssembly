@@ -40,9 +40,9 @@ end
 
 # function that chooses uniformly mixed values for η
 function choose_η_mix(reacs::Array{Reaction, 1},
-                      Reacs::Array{Int64, 1},
-                      T::Float64,
-                      mratio::Float64)
+        Reacs::Array{Int64, 1},
+        T::Float64,
+        mratio::Float64)
     # Preallocate memory to store η's
     η = zeros(length(Reacs))
     # Set a constant lower bound
@@ -75,11 +75,11 @@ end
 
 # Function to generate a new pool
 function new_pool(Nt::Int64,
-                  M::Int64,
-                  Rs::Array{Int64, 1},
-                  d::Float64,
-                  μrange::Float64,
-                  mratio::Float64)
+        M::Int64,
+        Rs::Array{Int64, 1},
+        d::Float64,
+        μrange::Float64,
+        mratio::Float64)
     # First generate random unique identifier for this pool
     PID = randstring(['0':'9'; 'a':'f'])
     # Print out that this is happening
@@ -155,25 +155,25 @@ function new_pool(Nt::Int64,
         η = choose_η_mix(reacs, Reacs, T, mratio)
         # Can finally generate microbe
         mics[i] = make_Microbe(MC,
-                               γm,
-                               Kγ,
-                               χl,
-                               Pb,
-                               d,
-                               ϕH,
-                               KΩ,
-                               fd,
-                               ω,
-                               R,
-                               Reacs,
-                               η,
-                               kcs,
-                               KSs,
-                               krs,
-                               n,
-                               ϕP,
-                               i,
-                               PID)
+            γm,
+            Kγ,
+            χl,
+            Pb,
+            d,
+            ϕH,
+            KΩ,
+            fd,
+            ω,
+            R,
+            Reacs,
+            η,
+            kcs,
+            KSs,
+            krs,
+            n,
+            ϕP,
+            i,
+            PID)
     end
     # Write out necessary data
     jldopen("Pools/ID=$(PID)N=$(Nt)M=$(M)d=$(d)u=$(μrange).jld", "w") do file
@@ -188,7 +188,7 @@ end
 
 # Alternative function to generate a single microbe
 function new_mic(M::Int64, Rs::Array{Int64, 1}, d::Float64, μrange::Float64,
-                 mratio::Float64)
+        mratio::Float64)
     # First generate random unique identifier for this pool
     PID = randstring(['0':'9'; 'a':'f'])
     # Print out that this is happening
@@ -264,24 +264,24 @@ function new_mic(M::Int64, Rs::Array{Int64, 1}, d::Float64, μrange::Float64,
     η = choose_η_mix(reacs, Reacs, T, mratio)
     # Can finally generate microbe
     mic = make_Microbe(MC,
-                       γm,
-                       Kγ,
-                       χl,
-                       Pb,
-                       d,
-                       ϕH,
-                       KΩ,
-                       fd,
-                       ω,
-                       R,
-                       Reacs,
-                       η,
-                       kcs,
-                       KSs,
-                       krs,
-                       n,
-                       ϕP,
-                       ID,
-                       PID)
+        γm,
+        Kγ,
+        χl,
+        Pb,
+        d,
+        ϕH,
+        KΩ,
+        fd,
+        ω,
+        R,
+        Reacs,
+        η,
+        kcs,
+        KSs,
+        krs,
+        n,
+        ϕP,
+        ID,
+        PID)
     return (mic)
 end

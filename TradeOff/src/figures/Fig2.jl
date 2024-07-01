@@ -39,9 +39,9 @@ function early_immigration_dyns(rN::Int64, ims::Int64, sim_type::Int64)
     default(dpi = 200)
     # Plot all the populations
     p1 = plot(yaxis = :log10,
-              ylabel = "Population (# cells)",
-              ylims = (1e-5, Inf),
-              xlabel = "Time (s)")
+        ylabel = "Population (# cells)",
+        ylims = (1e-5, Inf),
+        xlabel = "Time (s)")
     for i in 1:totN
         # Find and eliminate zeros so that they can be plotted on a log plot
         inds = (C[:, i] .> 0) .& (T .<= Tmax)

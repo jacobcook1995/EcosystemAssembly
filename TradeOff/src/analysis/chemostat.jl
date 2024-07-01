@@ -4,12 +4,12 @@ export ω_test
 
 # function to implement the consumer resource dynamics
 function chemo_dynamics!(dx::Array{Float64, 1},
-                         x::Array{Float64, 1},
-                         ms::Array{Microbe, 1},
-                         ps::TOParameters,
-                         C::Array{Float64, 1},
-                         rate::Array{Float64, 2},
-                         t::Float64)
+        x::Array{Float64, 1},
+        ms::Array{Microbe, 1},
+        ps::TOParameters,
+        C::Array{Float64, 1},
+        rate::Array{Float64, 2},
+        t::Float64)
     # loop over the reactions to find reaction rate for each reaction for each strain
     for j in 1:(ps.O)
         # Find substrate and product for this reaction
@@ -22,12 +22,12 @@ function chemo_dynamics!(dx::Array{Float64, 1},
                 E = Eα(x[2 * length(ms) + i], ms[i], k)
                 # Then finally calculate reaction rate
                 rate[i, j] = qs(C[ps.reacs[j].Rct],
-                                C[ps.reacs[j].Prd],
-                                E,
-                                k,
-                                ms[i],
-                                ps.T,
-                                ps.reacs[ms[i].Reacs[k]])
+                    C[ps.reacs[j].Prd],
+                    E,
+                    k,
+                    ms[i],
+                    ps.T,
+                    ps.reacs[ms[i].Reacs[k]])
             else
                 rate[i, j] = 0.0
             end
@@ -78,12 +78,12 @@ end
 
 # function to test for single population growth
 function chemo(ps::TOParameters,
-               pop::Float64,
-               conc::Float64,
-               as::Float64,
-               ϕs::Float64,
-               mic::Microbe,
-               Tmax::Float64)
+        pop::Float64,
+        conc::Float64,
+        as::Float64,
+        ϕs::Float64,
+        mic::Microbe,
+        Tmax::Float64)
     # Preallocate memory
     rate = zeros(1, ps.O)
     # Set constant concentration
@@ -157,45 +157,45 @@ function ω_test()
     for i in eachindex(ωs)
         # Can finally generate microbe
         fix[i] = make_Microbe(MC,
-                              γm,
-                              Kγ,
-                              χl,
-                              Pb,
-                              d,
-                              ϕH,
-                              Ωf,
-                              fd,
-                              ωs[i],
-                              R,
-                              Reacs,
-                              [η],
-                              [kc],
-                              [KS],
-                              [kr],
-                              n,
-                              [1.0],
-                              i,
-                              PID)
+            γm,
+            Kγ,
+            χl,
+            Pb,
+            d,
+            ϕH,
+            Ωf,
+            fd,
+            ωs[i],
+            R,
+            Reacs,
+            [η],
+            [kc],
+            [KS],
+            [kr],
+            n,
+            [1.0],
+            i,
+            PID)
         var[i] = make_Microbe(MC,
-                              γm,
-                              Kγ,
-                              χl,
-                              Pb,
-                              d,
-                              ϕH,
-                              Ωf,
-                              fd,
-                              ωs[i],
-                              R,
-                              Reacs,
-                              [η],
-                              [kc],
-                              [KS],
-                              [kr],
-                              n,
-                              [1.0],
-                              i + length(ωs),
-                              PID)
+            γm,
+            Kγ,
+            χl,
+            Pb,
+            d,
+            ϕH,
+            Ωf,
+            fd,
+            ωs[i],
+            R,
+            Reacs,
+            [η],
+            [kc],
+            [KS],
+            [kr],
+            n,
+            [1.0],
+            i + length(ωs),
+            PID)
     end
     # Choose sensible initial values
     ϕi = 0.01 # Start at low value

@@ -98,25 +98,25 @@ Helper function used internally. Takes values for parameters and returns a `Micr
 Also does checks internally to make sure the values are correct.
 """
 function make_Microbe(MC::Int64,
-                      γm::Float64,
-                      Kγ::Float64,
-                      χl::Float64,
-                      Pb::Float64,
-                      d::Float64,
-                      ϕH::Float64,
-                      KΩ::Float64,
-                      fd::Float64,
-                      ω::Float64,
-                      R::Int64,
-                      Reacs::Vector{Int64},
-                      η::Vector{Float64},
-                      kc::Vector{Float64},
-                      KS::Vector{Float64},
-                      kr::Vector{Float64},
-                      n::Vector{Int64},
-                      ϕP::Vector{Float64},
-                      ID::Int64,
-                      PID::String)
+        γm::Float64,
+        Kγ::Float64,
+        χl::Float64,
+        Pb::Float64,
+        d::Float64,
+        ϕH::Float64,
+        KΩ::Float64,
+        fd::Float64,
+        ω::Float64,
+        R::Int64,
+        Reacs::Vector{Int64},
+        η::Vector{Float64},
+        kc::Vector{Float64},
+        KS::Vector{Float64},
+        kr::Vector{Float64},
+        n::Vector{Int64},
+        ϕP::Vector{Float64},
+        ID::Int64,
+        PID::String)
     # Check that physical parameters have been provided
     @assert R>0 "number of reactions must be positive"
     @assert MC>0 "cell mass must be positive"
@@ -147,25 +147,25 @@ function make_Microbe(MC::Int64,
     @assert all(ϕP .>= 0.0) "All metabolic fractions must be non-negative"
     @assert sum(ϕP)≈1.0 "Metabolic fractions should sum to 1"
     return (Microbe(MC,
-                    γm,
-                    Kγ,
-                    χl,
-                    Pb,
-                    d,
-                    ϕH,
-                    KΩ,
-                    fd,
-                    ω,
-                    R,
-                    Reacs,
-                    η,
-                    kc,
-                    KS,
-                    kr,
-                    n,
-                    ϕP,
-                    ID,
-                    PID))
+        γm,
+        Kγ,
+        χl,
+        Pb,
+        d,
+        ϕH,
+        KΩ,
+        fd,
+        ω,
+        R,
+        Reacs,
+        η,
+        kc,
+        KS,
+        kr,
+        n,
+        ϕP,
+        ID,
+        PID))
 end
 
 """
@@ -195,11 +195,11 @@ Helper function used internally. Takes values for parameters and returns a `TOPa
 Also does checks internally to make sure the values are correct.
 """
 function make_TOParameters(M::Int64,
-                           O::Int64,
-                           T::Float64,
-                           κ::Vector{Float64},
-                           δ::Vector{Float64},
-                           reacs::Vector{Reaction})
+        O::Int64,
+        T::Float64,
+        κ::Vector{Float64},
+        δ::Vector{Float64},
+        reacs::Vector{Reaction})
     # Use asserts to ensure that arrays are correct sizes
     @assert length(κ)==M "Vector of external resource supplies (κ) is the wrong length"
     @assert length(δ)==M "Vector of decay rates (δ) is the wrong length"

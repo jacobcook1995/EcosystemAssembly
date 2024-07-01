@@ -5,27 +5,27 @@ using JLD
 # Function to make a dictionary to store all desired data based on list of names and
 # dimensions. This also involves preallocating data where relevant
 function make_data_dictonary_from_list(variables_of_interest::Array{
-                                                                    Tuple{String, Int64,
-                                                                          Bool, Bool}, 1
-                                                                    },
-                                       repeats::Int64,
-                                       no_reactions::Int64,
-                                       no_time_points::Int64)
+            Tuple{String, Int64,
+                Bool, Bool}, 1,
+        },
+        repeats::Int64,
+        no_reactions::Int64,
+        no_time_points::Int64)
     # Make initially empty dictionary
     data_dict = Dict()
     # Then use a for loop to populate it with names + preallocated memory
     for variable in variables_of_interest
         if variable[2] == 2
             data_dict[variable[1]] = Dict("combined_data" => zeros(repeats, no_time_points),
-                                          "run_data" => Float64[], "dims" => 2,
-                                          "viable" => variable[3],
-                                          "divide_by_R" => variable[4])
+                "run_data" => Float64[], "dims" => 2,
+                "viable" => variable[3],
+                "divide_by_R" => variable[4])
         elseif variable[2] == 3
             data_dict[variable[1]] = Dict("combined_data" => zeros(repeats, no_reactions,
-                                                                   no_time_points),
-                                          "run_data" => Float64[], "dims" => 3,
-                                          "viable" => variable[3],
-                                          "divide_by_R" => variable[4])
+                    no_time_points),
+                "run_data" => Float64[], "dims" => 3,
+                "viable" => variable[3],
+                "divide_by_R" => variable[4])
         end
     end
 
@@ -44,7 +44,7 @@ end
 # This functions uses interpolation to take time slices for each variable. This is done to
 # ensure that runs can be sensibly compared
 function add_to_combined_data!(data_dict::Dict, T::Array{Float64, 1},
-                               times::Array{Float64, 1}, Tind::Int64, cnt::Int64, i::Int64)
+        times::Array{Float64, 1}, Tind::Int64, cnt::Int64, i::Int64)
     # Skip averaging if previous point is missing
     if Tind > 1 && data_dict["viable_species"]["run_data"][Tind - 1] != 0
         # Calculate relevant time gaps
@@ -57,11 +57,11 @@ function add_to_combined_data!(data_dict::Dict, T::Array{Float64, 1},
             if data_dict[variable]["dims"] == 2
                 # Interpolate and add into combined data
                 point = interpolate_time(data_dict[variable]["run_data"], Tg, T1x, T2x,
-                                         Tind)
+                    Tind)
                 data_dict[variable]["combined_data"][i, cnt] = point
             elseif data_dict[variable]["dims"] == 3
                 point = interpolate_time(data_dict[variable]["run_data"], Tg, T1x, T2x,
-                                         Tind)
+                    Tind)
                 data_dict[variable]["combined_data"][i, :, cnt] = point
             end
         end
@@ -84,9 +84,9 @@ end
 
 # This function calculates the means for all variables along the trajectory
 function calculate_trajectory_means!(data_dict::Dict, no_reactions::Int64,
-                                     no_simulations::Vector{Float64},
-                                     no_viable_simulations::Vector{Float64},
-                                     no_simulations_with_R::Array{Float64, 2})
+        no_simulations::Vector{Float64},
+        no_viable_simulations::Vector{Float64},
+        no_simulations_with_R::Array{Float64, 2})
     # Loop over every name in the data dictionary
     for variable in keys(data_dict)
         # Sum to find totals
@@ -130,11 +130,11 @@ end
 
 # This function calculates the standard deviations for all variables along the trajectory
 function calculate_trajectory_standard_devs!(data_dict::Dict, times::Vector{Float64},
-                                             final_time_points::Vector{Float64},
-                                             no_simulations::Vector{Float64},
-                                             no_viable_simulations::Vector{Float64},
-                                             no_simulations_with_R::Matrix{Float64},
-                                             no_reactions::Int64)
+        final_time_points::Vector{Float64},
+        no_simulations::Vector{Float64},
+        no_viable_simulations::Vector{Float64},
+        no_simulations_with_R::Matrix{Float64},
+        no_reactions::Int64)
     # Preallocate containers for the standard deviations
     for variable in keys(data_dict)
         data_dict[variable]["sds"] = zeros(size(data_dict[variable]["means"]))
@@ -151,7 +151,7 @@ function calculate_trajectory_standard_devs!(data_dict::Dict, times::Vector{Floa
         for j in 1:no_reactions
             rinds[j] = (final_time_points .>= times[i]) .&
                        (data_dict["viable_species_per_reac_class"]["combined_data"][:, j,
-                                                                                    i] .>
+                i] .>
                         0.0)
         end
         # Loop over all variables
@@ -162,17 +162,17 @@ function calculate_trajectory_standard_devs!(data_dict::Dict, times::Vector{Floa
                 # These should be calculated just for viable strains
                 if no_viable_simulations[i] > 1
                     sd_value = find_stand_dev(data_dict[variable]["combined_data"][vinds,
-                                                                                   i],
-                                              data_dict[variable]["means"][i],
-                                              no_viable_simulations[i])
+                            i],
+                        data_dict[variable]["means"][i],
+                        no_viable_simulations[i])
                     data_dict[variable]["sds"][i] = sd_value
                 else
                     data_dict[variable]["sds"][i] = NaN
                 end
             elseif data_dict[variable]["dims"] == 2
                 sd_value = find_stand_dev(data_dict[variable]["combined_data"][inds, i],
-                                          data_dict[variable]["means"][i],
-                                          no_simulations[i])
+                    data_dict[variable]["means"][i],
+                    no_simulations[i])
                 data_dict[variable]["sds"][i] = sd_value
             elseif data_dict[variable]["dims"] == 3 && data_dict[variable]["divide_by_R"]
                 # Calculate standard deviations for reactions
@@ -180,10 +180,10 @@ function calculate_trajectory_standard_devs!(data_dict::Dict, times::Vector{Floa
                     # Use only these in the reaction calculation
                     if no_simulations_with_R[j, i] > 1
                         sd_value = find_stand_dev(data_dict[variable]["combined_data"][rinds[j],
-                                                                                       j,
-                                                                                       i],
-                                                  data_dict[variable]["means"][j, i],
-                                                  no_simulations_with_R[j, i])
+                                j,
+                                i],
+                            data_dict[variable]["means"][j, i],
+                            no_simulations_with_R[j, i])
                         data_dict[variable]["sds"][j, i] = sd_value
                     else
                         data_dict[variable]["sds"][j, i] = NaN
@@ -194,10 +194,10 @@ function calculate_trajectory_standard_devs!(data_dict::Dict, times::Vector{Floa
                 if no_viable_simulations[i] > 1
                     for j in 1:no_reactions
                         sd_value = find_stand_dev(data_dict[variable]["combined_data"][vinds,
-                                                                                       j,
-                                                                                       i],
-                                                  data_dict[variable]["means"][j, i],
-                                                  no_viable_simulations[i])
+                                j,
+                                i],
+                            data_dict[variable]["means"][j, i],
+                            no_viable_simulations[i])
                         data_dict[variable]["sds"][j, i] = sd_value
                     end
                 else
@@ -206,9 +206,9 @@ function calculate_trajectory_standard_devs!(data_dict::Dict, times::Vector{Floa
             elseif data_dict[variable]["dims"] == 3
                 for j in 1:no_reactions
                     sd_value = find_stand_dev(data_dict[variable]["combined_data"][inds, j,
-                                                                                   i],
-                                              data_dict[variable]["means"][j, i],
-                                              no_simulations[i])
+                            i],
+                        data_dict[variable]["means"][j, i],
+                        no_simulations[i])
                     data_dict[variable]["sds"][j, i] = sd_value
                 end
             end
@@ -293,8 +293,8 @@ function calculate_trajectory_stats()
     ]
     # Convert this list into a dictionary of preallocated arrays
     data_dict = make_data_dictonary_from_list(variables_of_interest, repeats,
-                                              no_reactions,
-                                              length(times))
+        no_reactions,
+        length(times))
     # Final ϕR values are a special case
     all_final_ϕRs = Float64[]
     # Loop over number of trajectories (to minimise the number of reads in)
@@ -345,16 +345,16 @@ function calculate_trajectory_stats()
     end
     # Use function to calculate means
     data_dict = calculate_trajectory_means!(data_dict, no_reactions, no_simulations,
-                                            no_viable_simulations, no_simulations_with_R)
+        no_viable_simulations, no_simulations_with_R)
     println("Means found")
     # Then use function to calculate standard deviations
     data_dict = calculate_trajectory_standard_devs!(data_dict, times, final_time_points,
-                                                    no_simulations, no_viable_simulations,
-                                                    no_simulations_with_R, no_reactions)
+        no_simulations, no_viable_simulations,
+        no_simulations_with_R, no_reactions)
     println("Standard deviations found")
     # Now want to save means and standard deviations
     jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/RunStats$(ims)Ims.jld",
-            "w") do file
+        "w") do file
         # Save times
         write(file, "times", times)
         # Save number of continuing trajectories
@@ -445,7 +445,7 @@ function snpstats()
     end
     # Now just save the relevant data
     jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapDataStats$(ims)Ims.jld",
-            "w") do file
+        "w") do file
         # Save times of snapshots
         write(file, "times", times)
         # Save growth probabilities

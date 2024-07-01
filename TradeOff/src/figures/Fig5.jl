@@ -50,34 +50,34 @@ function figure5(ims::Int64)
     e6 = L"10^6"
     # Make plot objects
     p1 = plot(xlabel = "Time (s)",
-              xlim = (-Inf, 5e7),
-              ylim = (0.35, 0.55),
-              legend = :topleft,
-              title = "Variation with free energy",
-              ylabel = "Maximum ribosome fraction factor ($(L"\omega"))")
+        xlim = (-Inf, 5e7),
+        ylim = (0.35, 0.55),
+        legend = :topleft,
+        title = "Variation with free energy",
+        ylabel = "Maximum ribosome fraction factor ($(L"\omega"))")
     # Add inset box to plot other trade-off into
     plot!(p1,
-          xlabel = "Time ($(e6) s)",
-          ylabel = L"\phi_R",
-          inset_subplots = box,
-          subplot = 2,
-          grid = false,
-          legend = false)
+        xlabel = "Time ($(e6) s)",
+        ylabel = L"\phi_R",
+        inset_subplots = box,
+        subplot = 2,
+        grid = false,
+        legend = false)
     plot!(p1, subplot = 2, xlim = (-Inf, 10.0), ylim = (0.05, 0.3), legend = false)
     # Now make second plot
     p2 = plot(xlabel = "Time (s)",
-              xlim = (-Inf, 5e7),
-              ylim = (0.4, 0.55),
-              legend = :topleft,
-              title = "Variation with maintenance cost",
-              ylabel = "Maximum ribosome fraction factor ($(L"\omega"))")
+        xlim = (-Inf, 5e7),
+        ylim = (0.4, 0.55),
+        legend = :topleft,
+        title = "Variation with maintenance cost",
+        ylabel = "Maximum ribosome fraction factor ($(L"\omega"))")
     # Add the same inset box, to plot the other trade-off into
     plot!(p2,
-          xlabel = "Time ($(e6) s)",
-          ylabel = L"\phi_R",
-          inset_subplots = box,
-          subplot = 2,
-          grid = false)
+        xlabel = "Time ($(e6) s)",
+        ylabel = L"\phi_R",
+        inset_subplots = box,
+        subplot = 2,
+        grid = false)
     plot!(p2, subplot = 2, xlim = (-Inf, 10.0), ylim = (0.05, 0.3), legend = false)
     p3 = plot(xlabel = "Time (s)", xlim = (-Inf, 5e7), legend = :topleft)
     p4 = plot(xlabel = "Time (s)", xlim = (-Inf, 5e7), legend = :topleft)

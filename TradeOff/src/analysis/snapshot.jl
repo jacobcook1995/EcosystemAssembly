@@ -178,7 +178,7 @@ function snp_shot()
     end
     # Now just save the relevant data
     jldopen("Output/$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/SnapData$(ims)Ims.jld",
-            "w") do file
+        "w") do file
         # Save times of snapshots
         write(file, "times", snps)
         # Save whatever I generate here

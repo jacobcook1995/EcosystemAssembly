@@ -139,13 +139,13 @@ function v_over_t()
             viable_species[j] = length(vinds)
             # Then also number of substrates (skipping final waste product)
             no_substrates[j] = count(x -> x > 1e-12,
-                                     C[j, (total_species + 1):(total_species + ps.M - 1)])
+                C[j, (total_species + 1):(total_species + ps.M - 1)])
             # Loop over number of reactions
             for k in 1:NoR
                 # Count number of strains with reaction for each case
                 species_per_reac_class[k, j] = count(x -> x == k, ms[inds] .↦ :R)
                 viable_species_per_reac_class[k, j] = count(x -> x == k,
-                                                            ms[vinds] .↦ :R)
+                    ms[vinds] .↦ :R)
             end
             # Set up counters for the number of species with each reaction gap
             c = zeros(M - 1)
@@ -204,7 +204,7 @@ function v_over_t()
         end
         # Now just save the relevant data
         jldopen("Output/$(tk)$(Np)Pools$(M)Metabolites$(Nt)Speciesd=$(d)u=$(μrange)/AvRun$(i)Data$(ims)Ims.jld",
-                "w") do file
+            "w") do file
             # Save full time course
             write(file, "T", T)
             # Save reaction data

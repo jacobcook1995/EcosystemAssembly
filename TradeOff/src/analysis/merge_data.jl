@@ -26,10 +26,10 @@ end
 
 # function to merge my output data into a plottable form
 function merge_data(ps::TOParameters,
-                    traj::Array{Array{Float64, 2}, 1},
-                    T::Array{Float64, 1},
-                    micd::Array{MicData, 1},
-                    its::Array{Float64, 1})
+        traj::Array{Array{Float64, 2}, 1},
+        T::Array{Float64, 1},
+        micd::Array{MicData, 1},
+        its::Array{Float64, 1})
     # Find total number of microbes
     totN = length(micd)
     # Find total number of immigration attempts

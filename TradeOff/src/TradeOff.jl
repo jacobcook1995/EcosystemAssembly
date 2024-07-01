@@ -54,13 +54,13 @@ end
 
 # Function to interpolate over a time series
 function interpolate_time(ts::Union{Array{Float64, 1}, Array{Int64, 1}}, Tg::Float64,
-                          T1x::Float64, T2x::Float64, Tind::Int64)
+        T1x::Float64, T2x::Float64, Tind::Int64)
     return ((ts[Tind] * (T1x) / Tg) + (ts[Tind - 1] * (T2x) / Tg))
 end
 
 # Function to interpolate over a time series (vectorised form)
 function interpolate_time(ts::Union{Array{Float64, 2}, Array{Int64, 2}}, Tg::Float64,
-                          T1x::Float64, T2x::Float64, Tind::Int64)
+        T1x::Float64, T2x::Float64, Tind::Int64)
     return ((ts[:, Tind] * (T1x) / Tg) .+ (ts[:, Tind - 1] * (T2x) / Tg))
 end
 

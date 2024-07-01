@@ -40,8 +40,8 @@ function efficency_plot()
     m1 = L"^{-1}"
     # Plot the two things
     p1 = plot(max_λ, effs, label = false, ylims = (0, Inf),
-              xlabel = "Max growth rate (s$(m1))", linewidth = 2.5,
-              ylabel = "Efficiency (aa ATP$(m1))")
+        xlabel = "Max growth rate (s$(m1))", linewidth = 2.5,
+        ylabel = "Efficiency (aa ATP$(m1))")
     savefig(p1, "Output/Fig1/efficiency.png")
     return (nothing)
 end

@@ -1,7 +1,7 @@
 # Script to construct figure 5
 using Assembly
 using Plots
-using JLD
+using JLD2
 using LaTeXStrings
 using StatsBase
 using Plots.PlotMeasures
@@ -10,7 +10,7 @@ import PyPlot
 
 # Make figure plots for the interactions
 function SI_ints(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, rps::Int64, Ni::Int64,
-                 en::String)
+        en::String)
     println("Compiled!")
     # Preallocate memory to store number of interactions
     ins1 = zeros(rps, length(syns))
@@ -134,19 +134,19 @@ function SI_ints(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, rps::Int64, Ni::Int
         # Now plot all strengths
         p[1, j] = plot(title = tl, ylabel = "Number of interactions", legend = :topleft)
         plot!(p[1, j], xticks = (rgn, ergn), legendfontsize = 10, tickfontsize = 10,
-              guidefontsize = 12)
+            guidefontsize = 12)
         # Add xlabel for reversible case
         if syns[j] == true
             plot!(p[1, j], legend = false, xlabel = "Interaction strength")
         end
         histogram!(p[1, j], log10.(sts1[j]), fillalpha = 0.75, label = "Competition",
-                   bins = sbins)
+            bins = sbins)
         histogram!(p[1, j], log10.(sts2[j]), fillalpha = 0.75, label = "Facilitation",
-                   bins = sbins)
+            bins = sbins)
         histogram!(p[1, j], log10.(sts4[j]), fillalpha = 0.75, label = "Pollution",
-                   bins = sbins)
+            bins = sbins)
         histogram!(p[1, j], log10.(sts3[j]), fillalpha = 0.75, label = "Syntrophy",
-                   bins = sbins)
+            bins = sbins)
         # Choose which letter to annotate
         if syns[j] == false
             # Add annotation
@@ -174,7 +174,7 @@ function SI_ints(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, rps::Int64, Ni::Int
         savefig(p[1, j], "Output/SI/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
         # Move onto plotting the simplex
         p[2, j] = plot(grid = false, showaxis = false, xlim = (-0.325, 1.325),
-                       ylim = (-0.1, 1.0))
+            ylim = (-0.1, 1.0))
         plot!(p[2, j], legendfontsize = 10, tickfontsize = 10, guidefontsize = 12)
         # Plot the triangle over this
         plot!(p[2, j], [0.0; 0.5], [0.0; 0.8660], color = :black, label = false)
@@ -211,7 +211,7 @@ function SI_ints(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, rps::Int64, Ni::Int
     end
     # Combine all graphs and save
     pt = plot(p[1, 2], p[2, 2], p[1, 1], p[2, 1], layout = 4, size = (1200, 800),
-              margin = 5.0mm)
+        margin = 5.0mm)
     # Save as high energy supply case
     savefig(pt, "Output/SI/HighInts.pdf")
     return (nothing)
@@ -219,8 +219,8 @@ end
 
 # function to plot strain diversity against substrate diversity
 function SvvsDv(Nr::Int64, Ni::Int64, Rls::Array{Int64, 1}, Rus::Array{Int64, 1},
-                syns::Array{Bool, 1},
-                ens::Array{String, 1})
+        syns::Array{Bool, 1},
+        ens::Array{String, 1})
     # Find number of parameter sets
     Ns = length(Rls)
     # Container to store number of survivors
@@ -262,7 +262,7 @@ function SvvsDv(Nr::Int64, Ni::Int64, Rls::Array{Int64, 1}, Rus::Array{Int64, 1}
     wongc = wong2_palette()
     # Make scatter plot of substrate diversification against strain diversity
     plot(title = "Survivors per substrate", ylabel = "Number of survivors",
-         xlabel = "Number of substrates")
+        xlabel = "Number of substrates")
     for i in 1:Ns
         scatter!(mbs[i, :], svs[i, :], color = wongc[1], label = "")
     end
@@ -299,7 +299,7 @@ function growth_laws()
         γm / 3,
         γm / 2,
         γm / 1.5,
-        γm,
+        γm
     ]
     # Make vector to store final growth rates and fractions
     λ1 = zeros(length(γs))
@@ -336,7 +336,7 @@ function growth_laws()
         ΔG / 10,
         ΔG / 20,
         ΔG / 50,
-        ΔG / 100,
+        ΔG / 100
     ]
     # Make vector to store final growth rates and fractions
     λ2 = zeros(length(ΔGs))
@@ -372,7 +372,7 @@ function growth_laws()
     # Add arrows indicating direction of change
     l = 1e-4 # Way too large
     quiver!(p1, [λ1[end - 2]], [ϕ1[end - 2] + 0.03], quiver = ([-l], [-pr1[1] * l]),
-            color = :blue)
+        color = :blue)
     quiver!(p1, [λ2[6]], [ϕ2[6] - 0.03], quiver = ([l], [pr2[1] * l]), color = :red)
     # Position is where the annotation centres are
     pos1x = λ1[end - 2] - l / 2
@@ -384,7 +384,7 @@ function growth_laws()
     r2 = 20 # Needs to be +ve
     # Then add the annotations
     annotate!(p1, pos1x, pos1y,
-              text("Translational inhibition", 8, color = :blue, rotation = r1))
+        text("Translational inhibition", 8, color = :blue, rotation = r1))
     annotate!(p1, pos2x, pos2y, text("Nutrient quality", 8, color = :red, rotation = r2))
     # Plot final values
     scatter!(p1, λ1, ϕ1, label = "", color = :lightblue, markersize = 5)
@@ -397,5 +397,5 @@ end
 # Run both high interactions, survivors vs diversity, and growth law plots
 @time SI_ints(1, 5, [true, false], 250, 250, "h")
 @time SvvsDv(250, 250, [1, 1, 1, 1], [5, 5, 5, 5], [false, true, false, true],
-             ["l", "l", "h", "h"])
+    ["l", "l", "h", "h"])
 @time growth_laws()

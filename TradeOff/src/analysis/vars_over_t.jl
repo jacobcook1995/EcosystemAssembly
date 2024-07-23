@@ -1,6 +1,6 @@
 # Script to find how variables change over time, which then saves them
 using TradeOff
-using JLD
+using JLD2
 
 # Function to calculate Shannon diversity from a vector of populations
 function shan(pops::Array{Float64, 1})

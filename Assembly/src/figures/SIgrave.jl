@@ -1,7 +1,7 @@
 # Script to construct figure 3
 using Assembly
 using Plots
-using JLD
+using JLD2
 using DataFrames
 using StatsPlots
 using StatsBase
@@ -201,9 +201,9 @@ function divloss(Rl::Int64, Ru::Int64, syn::Bool, en::String, Ni::Int64, Nr::Int
 end
 
 function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1},
-                 ens::Array{String, 1},
-                 Ni::Int64, Nr::Int64, dRl::Int64, dRu::Int64, dsyn::Bool, den::String,
-                 runN::Int64)
+        ens::Array{String, 1},
+        Ni::Int64, Nr::Int64, dRl::Int64, dRu::Int64, dsyn::Bool, den::String,
+        runN::Int64)
     # Check if all these vectors are the same length
     if length(Rls) != length(Rus) || length(Rls) != length(syns) ||
        length(Rls) != length(ens)
@@ -326,7 +326,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
         Ps = my_t_test(mbs[inds[1], :], mbs[inds[2], :])
         Pe = my_t_test(dsp[inds[1], :], dsp[inds[2], :])
         Pr = my_t_test(svs[inds[1], :] ./ mbs[inds[1], :],
-                       svs[inds[2], :] ./ mbs[inds[2], :])
+            svs[inds[2], :] ./ mbs[inds[2], :])
         println("Looking at $(en) case")
         println("Diversity P value = $(Pd)")
         println("Substrate diversification P value = $(Ps)")
@@ -340,9 +340,9 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
     # Want to do the plotting here
     p1 = plot(title = "Ecosystem diversity", ylabel = "Number of surviving strains")
     @df survivors violin!(p1, :PSet, :ns, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(p1, :PSet, :ns, color = wongc[4], fillalpha = 0.75,
-                           linewidth = 2, label = "", group = :en)
+        linewidth = 2, label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
@@ -351,7 +351,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
         sdn = sem(svs[i, :]) * 2.576
         msd[i] = mn + sdn
         scatter!(p1, [pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     # Calculate minimum and maximum diversities
     maxd = convert(Float64, maximum(svs))
@@ -362,9 +362,9 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
     savefig(p1, "Output/Fig3/Diversity.png")
     p2 = plot(title = "Substrate diversification", ylabel = "Number of substrates")
     @df survivors violin!(p2, :PSet, :sdv, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(p2, :PSet, :sdv, color = wongc[4], fillalpha = 0.75,
-                           linewidth = 2, label = "", group = :en)
+        linewidth = 2, label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
@@ -373,7 +373,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
         sdn = sem(mbs[i, :]) * 2.576
         msd[i] = mn + sdn
         scatter!(p2, [pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     # Calculate minimum and maximum substrate diversities
     maxs = convert(Float64, maximum(mbs))
@@ -383,11 +383,11 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
     annotate!(px, py, text("C", 17, :black))
     savefig(p2, "Output/Fig3/SubDiv.png")
     p3 = plot(title = "Entropy production",
-              ylabel = "Ecosystem entropy production rate ($(JKs))", yaxis = :log10)
+        ylabel = "Ecosystem entropy production rate ($(JKs))", yaxis = :log10)
     @df survivors violin!(p3, :PSet, :ent, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(p3, :PSet, :ent, color = wongc[4], fillalpha = 0.75,
-                           linewidth = 2, label = "", group = :en)
+        linewidth = 2, label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
@@ -396,7 +396,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
         sdn = sem(dsp[i, :]) * 2.576
         msd[i] = mn + sdn
         scatter!(p3, [pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     # Calculate minimum and maximum entropies
     maxe = convert(Float64, maximum(dsp))
@@ -413,9 +413,9 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
     # Want to do the plotting here
     plot(title = "Ratio", ylabel = "Survivors per substrate")
     @df survivors violin!(:PSet, :rat, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(:PSet, :rat, color = wongc[4], fillalpha = 0.75, linewidth = 2,
-                           label = "", group = :en)
+        label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
@@ -423,7 +423,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
         # Calculate 99% confidence interval
         sdn = sem(svs[i, :] ./ mbs[i, :]) * 2.576
         scatter!([pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     savefig("Output/Fig3/Ratio.png")
     return (nothing)

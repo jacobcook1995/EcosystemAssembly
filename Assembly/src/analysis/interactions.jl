@@ -1,6 +1,6 @@
 # Script to find and analyse the interaction strength and type of strains in my simulation
 using Assembly
-using JLD
+using JLD2
 using SymPy
 using LinearAlgebra
 using Statistics
@@ -142,13 +142,13 @@ function quantify_ints()
                             # Check if reaction has metabolite as a reactant
                             if r.Rct == j
                                 q = qs(inf_out[ps.N + r.Rct], inf_out[ps.N + r.Prd], E, l,
-                                       ps.mics[k], ps.T, r)
+                                    ps.mics[k], ps.T, r)
                                 nvf[k] += q
                             end
                             # Or as a product
                             if r.Prd == j
                                 q = qs(inf_out[ps.N + r.Rct], inf_out[ps.N + r.Prd], E, l,
-                                       ps.mics[k], ps.T, r)
+                                    ps.mics[k], ps.T, r)
                                 pvf[k] += q
                             end
                         end
@@ -249,8 +249,9 @@ function quantify_ints()
                 end
             end
             # Output all interaction data
-            jldopen("Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
-                    "w") do file
+            jldopen(
+                "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/IntsReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
+                "w") do file
                 # Save ATP forces and fraction used to generate them
                 write(file, "Fatp", Fatp)
                 write(file, "frc", frc)
@@ -615,7 +616,7 @@ function plot_ptrbs()
             end
             # Preallocate plot
             plot(title = "Perturbed strain $(j)", yaxis = :log10, xlabel = "Time",
-                 ylabel = "Log population")
+                ylabel = "Log population")
             # Loop over and plot all strains
             for k in 1:(ps.N)
                 # Find and eliminate zeros so that they can be plotted on a log plot
@@ -915,39 +916,40 @@ function ints_scat()
     wongc = get_color_palette(wong_palette, 57)
     # Plot diversity against number of syntrophic interactions
     scatter(ins3, dvs, label = "", xlabel = "Number of syntrophic interactions",
-            ylabel = "Surviving strains")
+        ylabel = "Surviving strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/NumbInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # or maybe against mean interaction strength
     plot(xscale = :log10)
     scatter!(i3str, dvs, label = "", xlabel = "Mean syntrophic interaction strength",
-             ylabel = "Surviving strains")
+        ylabel = "Surviving strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/StrInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative number of syntrophy interactions against diversity
     scatter(rsyn, dvs, label = "", xlabel = "Relative number of syntrophic interactions",
-            ylabel = "Surviving strains")
+        ylabel = "Surviving strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelNumbInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative number of thermodynamic interactions against diversity
-    scatter(rthm, dvs, label = "", xlabel = "Relative number of thermodynamic interactions",
-            ylabel = "Surviving strains")
+    scatter(
+        rthm, dvs, label = "", xlabel = "Relative number of thermodynamic interactions",
+        ylabel = "Surviving strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelThermInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative number of cooperative interactions against diversity
     scatter(rcp, dvs, label = "", xlabel = "Relative number of cooperative interactions",
-            ylabel = "Surviving strains")
+        ylabel = "Surviving strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelCoopInts$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative strength of syntrophic interactions
     scatter(mean3 ./ (mean1 .+ mean2 .+ mean3 .+ mean4), dvs, label = "")
     plot!(xlabel = "Relative strength of syntrophic interactions",
-          ylabel = "Surviving strains")
+        ylabel = "Surviving strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelSynStr$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative strength of syntrophic interactions
     scatter((mean3 .+ mean4) ./ (mean1 .+ mean2 .+ mean3 .+ mean4), dvs, label = "")
     plot!(xlabel = "Relative strength of thermodynamic interactions",
-          ylabel = "Surviving strains")
+        ylabel = "Surviving strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelThermStr$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot relative strength of cooperative interactions
     scatter((mean2 .+ mean4) ./ (mean1 .+ mean2 .+ mean3 .+ mean4), dvs, label = "")
     plot!(xlabel = "Relative strength of cooperative interactions",
-          ylabel = "Surviving strains")
+        ylabel = "Surviving strains")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/RelCoopStr$(Rl)-$(Ru)$(syn)$(Ni).png")
     return (nothing)
 end

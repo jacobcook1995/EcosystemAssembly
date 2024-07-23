@@ -1,6 +1,6 @@
 # Script to find and save long term survival data
 using TradeOff
-using JLD
+using JLD2
 
 # Something
 function long_term_surv()

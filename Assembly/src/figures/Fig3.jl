@@ -1,7 +1,7 @@
 # Script to construct figure 3
 using Assembly
 using Plots
-using JLD
+using JLD2
 using StatsPlots
 using StatsBase
 using Statistics
@@ -55,7 +55,7 @@ end
 
 # function to calculate simpson indices of diversity for a set of data
 function simp_ind(Rl::Int64, Ru::Int64, syn::Bool, en::String, Ni::Int64, rps::Int64,
-                  ipop::Float64)
+        ipop::Float64)
     # Preallocate output data
     Sindi = zeros(rps)
     Sindf = zeros(rps)
@@ -120,7 +120,7 @@ end
 
 # Function to make bar chart of the diversity loss
 function divloss(Rl::Int64, Ru::Int64, syn::Bool, en::String, Ni::Int64, Nr::Int64,
-                 rps::Int64)
+        rps::Int64)
     # Read in relevant files
     pfile = "Data/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/ParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(Nr)Ns$(Ni).jld"
     if ~isfile(pfile)
@@ -235,7 +235,7 @@ function divloss(Rl::Int64, Ru::Int64, syn::Bool, en::String, Ni::Int64, Nr::Int
     p = groupedbar(abT, bar_position = :stack, label = "", palette = sch)
     plot!(p, xticks = (1:Tp, xs), ylabel = "Relative abundance", xlabel = "Time (s)")
     plot!(p, title = "Diversity with time", guidefontsize = 13, legendfontsize = 8,
-          tickfontsize = 11)
+        tickfontsize = 11)
     # Add annotation
     px, py = annpos([0.25; convert(Float64, Tp)], [1.0; 0.0], 0.125, 0.05)
     annotate!(px, py, text("A", 17, :black))
@@ -253,15 +253,15 @@ function divloss(Rl::Int64, Ru::Int64, syn::Bool, en::String, Ni::Int64, Nr::Int
     plot!(p[2], def, color = :red, label = "Final", xlabel = L"^{2}D")
     # 8 and 7 before
     plot!(p[2], guidefontsize = 11, legendfontsize = 9, tickfontsize = 9, yaxis = false,
-          grid = false, legend = :top)
+        grid = false, legend = :top)
     savefig(p, "Output/Fig3/abT.png")
     return (p)
 end
 
 function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1},
-                 ens::Array{String, 1},
-                 Ni::Int64, Nr::Int64, dRl::Int64, dRu::Int64, dsyn::Bool, den::String,
-                 runN::Int64)
+        ens::Array{String, 1},
+        Ni::Int64, Nr::Int64, dRl::Int64, dRu::Int64, dsyn::Bool, den::String,
+        runN::Int64)
     # Check if all these vectors are the same length
     if length(Rls) != length(Rus) || length(Rls) != length(syns) ||
        length(Rls) != length(ens)
@@ -356,7 +356,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
     msd = zeros(Ns)
     # Want to do the plotting here
     p1 = plot(ylabel = "Number of surviving strains", xlim = (0.5, 3.5),
-              xlabel = "Energy supply")
+        xlabel = "Energy supply")
     plot!(p1, xticks = ([1.25, 2.75], ["high", "low"]))
     # Plot means
     for i in 1:Ns
@@ -365,7 +365,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
         # Calculate 99% confidence interval
         sdn = sem(svs[i, :]) * 2.576
         scatter!(p1, [pos[i]], [mn], yerror = [sdn], label = "", color = c[i], ms = 6,
-                 msc = c[i])
+            msc = c[i])
     end
     # Add bracket for significance plot
     plot!(p1, [2.5, 3.0], [5.0, 5.0], color = :black, label = "")
@@ -376,7 +376,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
     savefig(p1, "Output/Fig3/Diversity.png")
     p3 = plot(ylabel = "Entropy production rate ($(JKs))", yaxis = :log10)
     plot!(p3, xlim = (0.5, 3.5), xticks = ([1.25, 2.75], ["high", "low"]),
-          xlabel = "Energy supply")
+        xlabel = "Energy supply")
     # Plot means
     for i in 1:Ns
         # Calculate mean
@@ -384,7 +384,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
         # Calculate 99% confidence interval
         sdn = sem(dsp[i, :]) * 2.576
         scatter!(p3, [pos[i]], [mn], yerror = [sdn], label = "", color = c[i], ms = 6,
-                 msc = c[i])
+            msc = c[i])
     end
     # Add bracket for significance plot
     plot!(p3, [2.5, 3.0], [6.25e-2, 6.25e-2], color = :black, label = "")
@@ -403,13 +403,13 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
         # Calculate 99% confidence interval
         sdn = sem(svs[i, :] ./ mbs[i, :]) * 2.576
         scatter!(p2, [pos[i]], [mn], yerror = [sdn], label = "", color = c[i], ms = 6,
-                 msc = c[i])
+            msc = c[i])
     end
     savefig(p2, "Output/Fig3/Ratio.png")
     # Want to do the plotting here
     p4 = plot(ylabel = "Number of surviving functional groups", xlim = (0.5, 3.5))
     plot!(p4, xticks = ([1.25, 2.75], ["high", "low"]), xlabel = "Energy supply",
-          legend = :right)
+        legend = :right)
     # Plot means
     for i in 1:Ns
         # Calculate mean
@@ -429,7 +429,7 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
             end
         end
         scatter!(p4, [pos[i]], [mn], yerror = [sdn], label = lb, color = c[i], ms = 6,
-                 msc = c[i])
+            msc = c[i])
     end
     # Add annotation
     px, py = annpos([0.5; 3.5], msd, 0.5, -0.01)
@@ -443,13 +443,13 @@ function figure3(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1
     savefig(p4, "Output/Fig3/FuncDiv.png")
     # Combine all three plots into a single one
     pc = plot(p4, p1, p2, p3, layout = (1, 4), size = (800, 400), guidefontsize = 13,
-              legendfontsize = 8, tickfontsize = 11)
+        legendfontsize = 8, tickfontsize = 11)
     savefig(pc, "Output/Fig3/condensed.png")
     # # Run div loss function to make extra plot
     pd = divloss(dRl, dRu, dsyn, den, Ni, runN, Nr)
     # Now want to make a plot incorporating all four previous plots
     pt = plot(pd, pc, layout = grid(1, 2, widths = [0.43, 0.57]), size = (1400, 400),
-              margin = 5.0mm, grid = false)
+        margin = 5.0mm, grid = false)
     savefig(pt, "Output/Fig3/figure3.png")
     return (nothing)
 end

@@ -1,7 +1,7 @@
 # Script to plot figure 6
 using TradeOff
 using Plots
-using JLD
+using JLD2
 using ColorSchemes
 using Plots.PlotMeasures
 using LaTeXStrings

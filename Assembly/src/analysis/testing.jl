@@ -1,7 +1,7 @@
 # A script to read in parameter files and test why
 using Assembly
 using Plots
-using JLD
+using JLD2
 using LaTeXStrings
 import PyPlot
 
@@ -65,13 +65,13 @@ function test()
     end
     savefig(p1, "Output/PopvsTime.png")
     plot(T, C[:, (ps.N + 1):(ps.N + ps.M)], xlabel = "Time", label = "",
-         ylabel = "Concentration")
+        ylabel = "Concentration")
     savefig("Output/MetabolitevsTime.png")
     plot(T, C[:, (ps.N + ps.M + 1):(2 * ps.N + ps.M)], xlabel = "Time", label = "",
-         ylabel = "Cell energy conc")
+        ylabel = "Cell energy conc")
     savefig("Output/EnergyvsTime.png")
     plot(T, C[:, (2 * ps.N + ps.M + 1):end], xlabel = "Time", label = "",
-         ylabel = L"\phi_R")
+        ylabel = L"\phi_R")
     savefig("Output/FractionvsTime.png")
     # Sensible plotting will require removal of dead species
     # Metabolites comparatively easy to plot though

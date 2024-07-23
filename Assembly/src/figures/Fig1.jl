@@ -1,7 +1,7 @@
 # Script to plot elements needed for figure 1
 using Assembly
 using Plots
-using JLD
+using JLD2
 using LaTeXStrings
 import PyPlot
 
@@ -71,7 +71,7 @@ function plt_trdff(Rl::Int64, Ru::Int64, syn::Bool, runN::Int64, en::String, Ni:
     savefig("Output/Fig1/TrdOff.png")
     # Do plot of just the tradeoff
     plot(ηs, as, label = "", xlabel = "ATP per reaction event",
-         ylabel = "ATP production rate")
+        ylabel = "ATP production rate")
     savefig("Output/Fig1/BareTrdOff.png")
     # Make a vector of η*rate
     as3 = ηs .* rs2
@@ -83,12 +83,12 @@ function plt_trdff(Rl::Int64, Ru::Int64, syn::Bool, runN::Int64, en::String, Ni:
     uns = L"10^{5}\;s^{-1}"
     # Now calculate and plot syntrophy stuff
     plot(ηs, as3 / 1e5, xlabel = "ATP per reaction event",
-         ylabel = "ATP production rate ($(uns))", labels = lbs, lw = 2.5)
+        ylabel = "ATP production rate ($(uns))", labels = lbs, lw = 2.5)
     plot!(legendfontsize = 18, guidefontsize = 18, tickfontsize = 10, legend = :bottomleft,
-          xlims = (4.0, 6.0))
+        xlims = (4.0, 6.0))
     # Add arrow between the two lines
     quiver!([5.56], [3e5 / 1e5], quiver = ([-0.145], [0.0]), color = :red, lw = 2.5,
-            arrow = 1.25)
+        arrow = 1.25)
     # Change size of the plot so that yaxis label fits
     plot!(size = (600, 450)) # Was 600 400
     savefig("Output/Fig1/SynTrdOff.png")

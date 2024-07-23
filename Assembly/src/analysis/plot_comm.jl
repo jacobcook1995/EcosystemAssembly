@@ -2,7 +2,7 @@
 using Assembly
 using StatsPlots
 using LaTeXStrings
-using JLD
+using JLD2
 using StatsBase
 using Statistics
 using DataFrames
@@ -307,8 +307,8 @@ function net_vis()
     end
     # Plot "presence" data
     groupedbar([nR .- pres pres], bar_position = :stack, labels = ["Absent" "Present"],
-               xticks = (1:(ps.O), xs), xlabel = "Reaction",
-               ylabel = "Number of ecosystems", title = tl, legend = :outerright)
+        xticks = (1:(ps.O), xs), xlabel = "Reaction",
+        ylabel = "Number of ecosystems", title = tl, legend = :outerright)
     savefig("Output/$(Rl)-$(Ru)$(syn)/PresenseType$(Rl)-$(Ru)$(syn).png")
     # Now plot "abundance" data
     lbs = Array{String, 2}(undef, 1, size(abnd, 2))
@@ -316,15 +316,15 @@ function net_vis()
         lbs[i] = string(i - 1)
     end
     groupedbar(abnd, bar_position = :stack, labels = lbs, legend = :outerright,
-               xticks = (1:(ps.O), xs), xlabel = "Reaction",
-               ylabel = "Number of ecosystems", title = tl)
+        xticks = (1:(ps.O), xs), xlabel = "Reaction",
+        ylabel = "Number of ecosystems", title = tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)/AbundanceType$(Rl)-$(Ru)$(syn).png")
     # Plot histogram of the number of active reactions
     histogram(cA, bins = range(0, stop = O + 1, length = O + 2), title = tl,
-              xlabel = "Number of active reactions")
+        xlabel = "Number of active reactions")
     savefig("Output/$(Rl)-$(Ru)$(syn)/ActiveReactionsType$(Rl)-$(Ru)$(syn).png")
     histogram(mf, bins = range(1, stop = O + 1, length = O + 1), xticks = (1:(ps.O), xs),
-              title = tl, xlabel = "Reaction with greatest flux")
+        title = tl, xlabel = "Reaction with greatest flux")
     savefig("Output/$(Rl)-$(Ru)$(syn)/MaxFluxType$(Rl)-$(Ru)$(syn).png")
     # Now find average flux
     fRT /= nR
@@ -386,7 +386,7 @@ function net_vis()
     d1 = f_ln(bins1, μ1, σ1)
     d1 /= maximum(d1)
     plot!(bins1, maximum(h1.weights) * d1, label = "Orginal distribution", title = tl,
-          xlabel = L"K_S")
+        xlabel = L"K_S")
     savefig("Output/$(Rl)-$(Ru)$(syn)/TopKSType$(Rl)-$(Ru)$(syn).png")
     bar(h2, label = "Main reaction")
     μ2 = log(10.0)
@@ -394,7 +394,7 @@ function net_vis()
     d2 = f_ln(bins2, μ2, σ2)
     d2 /= maximum(d2)
     plot!(bins2, maximum(h2.weights) * d2, label = "Orginal distribution", title = tl,
-          xlabel = L"k_c")
+        xlabel = L"k_c")
     savefig("Output/$(Rl)-$(Ru)$(syn)/TopkcType$(Rl)-$(Ru)$(syn).png")
     bar(h3, label = "Main reaction")
     μ3 = log(10.0)
@@ -402,7 +402,7 @@ function net_vis()
     d3 = f_ln(bins3, μ3, σ3)
     d3 /= maximum(d3)
     plot!(bins3, maximum(h3.weights) * d3, label = "Orginal distribution", title = tl,
-          xlabel = L"k_r")
+        xlabel = L"k_r")
     savefig("Output/$(Rl)-$(Ru)$(syn)/TopkrType$(Rl)-$(Ru)$(syn).png")
     bar(h4, label = "Main reaction", title = tl, xlabel = L"\phi_p")
     savefig("Output/$(Rl)-$(Ru)$(syn)/TopPhiPType$(Rl)-$(Ru)$(syn).png")
@@ -410,7 +410,7 @@ function net_vis()
     d5 = f_ext_un(bins5, syn)
     d5 /= maximum(d5)
     plot!(bins5, maximum(h5.weights) * d5, label = "Orginal distribution",
-          legend = :topleft, title = tl, xlabel = "Fraction of free energy retained")
+        legend = :topleft, title = tl, xlabel = "Fraction of free energy retained")
     savefig("Output/$(Rl)-$(Ru)$(syn)/TopEfficencyType$(Rl)-$(Ru)$(syn).png")
     # Repeat process for full kinetics data
     bins1 = range(1e-4, stop = maximum(KSF), length = 500)
@@ -432,7 +432,7 @@ function net_vis()
     d1 = f_ln(bins1, μ1, σ1)
     d1 /= maximum(d1)
     plot!(bins1, maximum(h1.weights) * d1, label = "Orginal distribution", title = tl,
-          xlabel = L"K_S")
+        xlabel = L"K_S")
     savefig("Output/$(Rl)-$(Ru)$(syn)/AllKSType$(Rl)-$(Ru)$(syn).png")
     bar(h2, label = "All reactions")
     μ2 = log(10.0)
@@ -440,7 +440,7 @@ function net_vis()
     d2 = f_ln(bins2, μ2, σ2)
     d2 /= maximum(d2)
     plot!(bins2, maximum(h2.weights) * d2, label = "Orginal distribution", title = tl,
-          xlabel = L"k_c")
+        xlabel = L"k_c")
     savefig("Output/$(Rl)-$(Ru)$(syn)/AllkcType$(Rl)-$(Ru)$(syn).png")
     bar(h3, label = "All reactions")
     μ3 = log(10.0)
@@ -448,7 +448,7 @@ function net_vis()
     d3 = f_ln(bins3, μ3, σ3)
     d3 /= maximum(d3)
     plot!(bins3, maximum(h3.weights) * d3, label = "Orginal distribution", title = tl,
-          xlabel = L"k_r")
+        xlabel = L"k_r")
     savefig("Output/$(Rl)-$(Ru)$(syn)/AllkrType$(Rl)-$(Ru)$(syn).png")
     bar(h4, label = "All reactions", title = tl, xlabel = L"\phi_p")
     savefig("Output/$(Rl)-$(Ru)$(syn)/AllPhiPType$(Rl)-$(Ru)$(syn).png")
@@ -456,7 +456,7 @@ function net_vis()
     d5 = f_ext_un(bins5, syn)
     d5 /= maximum(d5)
     plot!(bins5, maximum(h5.weights) * d5, label = "Orginal distribution",
-          legend = :topleft, title = tl, xlabel = "Fraction of free energy retained")
+        legend = :topleft, title = tl, xlabel = "Fraction of free energy retained")
     savefig("Output/$(Rl)-$(Ru)$(syn)/AllEfficencyType$(Rl)-$(Ru)$(syn).png")
     return (nothing)
 end
@@ -558,7 +558,7 @@ function plt_trdff()
     savefig("Output/TrdOff.png")
     # Do plot of just the tradeoff
     plot(ηs, as, label = "", xlabel = "ATP per reaction event",
-         ylabel = "ATP production rate")
+        ylabel = "ATP production rate")
     savefig("Output/BareTrdOff.png")
     # Want a detailed visualisation of the peak
     inds = findall(x -> (3.25 <= x <= 3.75), ηs)
@@ -575,10 +575,10 @@ function plt_trdff()
     end
     # Now calculate and plot syntrophy stuff
     plot(ηs, as3, xlabel = "ATP per reaction event", ylabel = "ATP production rate",
-         labels = "")#lbs)
+        labels = "")#lbs)
     savefig("Output/SynTrdOff.png")
     plot(ηs, θs, yscale = :log10, xlabel = L"\eta", ylabel = L"\theta", label = "",
-         ylims = (1e-15, 1e1), color = wongc[2])
+        ylims = (1e-15, 1e1), color = wongc[2])
     savefig("Output/LogInhib.png")
     return (nothing)
 end
@@ -791,29 +791,29 @@ function flux_abund()
     histogram(abnd, label = "", title = "$(R) reactions per strain", xlabel = "Abundances")
     savefig("Output/Type$(R)/StrainAbundType$(R).png")
     histogram(log10.(abnd), label = "", title = "$(R) reactions per strain",
-              xlabel = "Log Abundances")
+        xlabel = "Log Abundances")
     savefig("Output/Type$(R)/LogStrainAbundType$(R).png")
     histogram(fl, label = "", title = "$(R) reactions per strain", xlabel = "Flux")
     savefig("Output/Type$(R)/FluxesType$(R).png")
     histogram(log10.(fl), label = "", title = "$(R) reactions per strain",
-              xlabel = "Log Flux")
+        xlabel = "Log Flux")
     savefig("Output/Type$(R)/LogFluxesType$(R).png")
     histogram(flm, label = "", title = "$(R) reactions per strain",
-              xlabel = "Mass specific flux")
+        xlabel = "Mass specific flux")
     savefig("Output/Type$(R)/FluxesMType$(R).png")
     histogram(log10.(flm), label = "", title = "$(R) reactions per strain",
-              xlabel = "Log Mass specific flux")
+        xlabel = "Log Mass specific flux")
     savefig("Output/Type$(R)/LogFluxesMType$(R).png")
     histogram(Afl, label = "", title = "$(R) reactions per strain", xlabel = "ATP flux")
     savefig("Output/Type$(R)/ATPFType$(R).png")
     histogram(log10.(Afl), label = "", title = "$(R) reactions per strain",
-              xlabel = "Log ATP flux")
+        xlabel = "Log ATP flux")
     savefig("Output/Type$(R)/LogATPFType$(R).png")
     histogram(Aflm, label = "", title = "$(R) reactions per strain",
-              xlabel = "Mass specific ATP flux")
+        xlabel = "Mass specific ATP flux")
     savefig("Output/Type$(R)/ATPFMType$(R).png")
     histogram(log10.(Aflm), label = "", title = "$(R) reactions per strain",
-              xlabel = "Log Mass specific ATP flux")
+        xlabel = "Log Mass specific ATP flux")
     savefig("Output/Type$(R)/LogATPFMType$(R).png")
     return (nothing)
 end
@@ -1020,7 +1020,7 @@ function basic_info()
     histogram(rcs, bins = rbs, label = "", xlabel = "Number of reactions", title = tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/Reactions$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(log10.(abds), label = "",
-              xlabel = "Species abundance (log of number of cells)", title = tl)
+        xlabel = "Species abundance (log of number of cells)", title = tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/Abundance$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Rescale distribution to mean zero
     rrabs = rabs .- mean(rabs)
@@ -1030,11 +1030,11 @@ function basic_info()
     histogram(effs * 100.0, bins = ebs, label = "", xlabel = "Efficiency", title = tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/Efficiency$(Rl)-$(Ru)$(syn)$(Ni).png")
     scatter([Rs], [ms], yerror = sds, label = "", title = tl,
-            xlabel = "Number of reactions",
-            ylabel = "Strain abundance (number of cells)")
+        xlabel = "Number of reactions",
+        ylabel = "Strain abundance (number of cells)")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/AbvsRct$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(mbs, bins = mbn, label = "", xlabel = "Final number of metabolites",
-              title = tl)
+        title = tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/NoMets$(Rl)-$(Ru)$(syn)$(Ni).png")
     histogram(hmb, bins = mbn, label = "", xlabel = "Lowest energy metabolite", title = tl)
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/LowMet$(Rl)-$(Ru)$(syn)$(Ni).png")
@@ -1043,17 +1043,17 @@ function basic_info()
     # Plot number of reactions using each substrate for each reaction number
     for j in 1:(Ru - Rl + 1)
         histogram(Sbs[j], bins = mbn, label = "",
-                  title = "Strains with $(j+Rl-1) reactions",
-                  xlabel = "Metabolite used by reaction")
+            title = "Strains with $(j+Rl-1) reactions",
+            xlabel = "Metabolite used by reaction")
         savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/WhichSubs$(Rl)-$(Ru)$(syn)$(Ni)R=$(j+Rl-1).png")
         SbsT = cat(SbsT, Sbs[j], dims = 1)
     end
     histogram(SbsT, bins = mbn, label = "", title = "All strains",
-              xlabel = "Metabolite used by reaction")
+        xlabel = "Metabolite used by reaction")
     savefig("Output/$(Rl)-$(Ru)$(syn)$(Ni)$(en)/WhichSubs$(Rl)-$(Ru)$(syn)$(Ni)All.png")
     # Make plot for strength of generalism
     p = plot(title = "Generalism vs Substrate Diversity ($(Rl)-$(Ru) $(syn))",
-             ylabel = "Average number of reactions", xlabel = "Prob of viable reaction")
+        ylabel = "Average number of reactions", xlabel = "Prob of viable reaction")
     for i in 1:(M - 1)
         if fnd[i] == true && length(avR[i]) > 1
             scatter!(p, [i / (M - 1)], [mean(avR[i])], yerror = [std(avR[i])], label = "")
@@ -1227,7 +1227,7 @@ function multi_sets()
     end
     # Collect everything into one data frame
     survivors = DataFrame(PSet = tl, ns = tsv, mn = tmn, md = tmd, sdv = tdv, ta = tta,
-                          en = enl, ent = eps)
+        en = enl, ent = eps)
     # Need to make a second data frame
     absT = Float64[]
     lbT = String[]
@@ -1282,98 +1282,99 @@ function multi_sets()
     # Want to do the plotting here
     plot(title = "Ecosystem diversity", ylabel = "Number of surviving strains")
     @df survivors violin!(:PSet, :ns, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(:PSet, :ns, color = wongc[4], fillalpha = 0.75, linewidth = 2,
-                           label = "", group = :en)
+        label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
         mn = mean(svs[i, :])
         sdn = std(svs[i, :])
         scatter!([pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     savefig("Output/Diversity.png")
     plot(title = "Mean abundances", ylabel = "Mean abundance", yaxis = :log10)
     @df survivors violin!(:PSet, :mn, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(:PSet, :mn, color = wongc[4], fillalpha = 0.75, linewidth = 2,
-                           label = "", group = :en)
+        label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
         mn = mean(mna[i, :])
         sdn = std(mna[i, :])
         scatter!([pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     savefig("Output/MeanAbund.png")
     plot(title = "Median abundances", ylabel = "Median abundance", yaxis = :log10)
     @df survivors violin!(:PSet, :md, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(:PSet, :md, color = wongc[4], fillalpha = 0.75, linewidth = 2,
-                           label = "", group = :en)
+        label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
         mn = mean(mda[i, :])
         sdn = std(mda[i, :])
         scatter!([pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     savefig("Output/MedianAbund.png")
     plot(title = "Substrate diversification", ylabel = "Number of substrates")
     @df survivors violin!(:PSet, :sdv, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(:PSet, :sdv, color = wongc[4], fillalpha = 0.75, linewidth = 2,
-                           label = "", group = :en)
+        label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
         mn = mean(mbs[i, :])
         sdn = std(mbs[i, :])
         scatter!([pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     savefig("Output/SubDiv.png")
     plot(title = "Entropy productions", ylabel = "Entropy production (per ecosystem)")
     @df survivors violin!(:PSet, :ent, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(:PSet, :ent, color = wongc[4], fillalpha = 0.75, linewidth = 2,
-                           label = "", group = :en)
+        label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
         mn = mean(dsp[i, :])
         sdn = std(dsp[i, :])
         scatter!([pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     savefig("Output/EntropyProduction.png")
     plot(title = "All abundances", ylabel = "Strain abundance", yaxis = :log10)
     @df abundances violin!(:PSet, :abun, linewidth = 0, label = "", color = wongc[2],
-                           group = :en)
-    @df abundances boxplot!(:PSet, :abun, color = wongc[4], fillalpha = 0.75, linewidth = 2,
-                            label = "", group = :en)
+        group = :en)
+    @df abundances boxplot!(
+        :PSet, :abun, color = wongc[4], fillalpha = 0.75, linewidth = 2,
+        label = "", group = :en)
     # Plot means
     for i in 1:Ns
         scatter!([pos[i]], [mn_abs[i]], yerror = [sd_abs[i]], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     savefig("Output/AllAbund.png")
     plot(title = "Total abundances", ylabel = "Total abundance (per ecosystem)",
-         yaxis = :log10)
+        yaxis = :log10)
     @df survivors violin!(:PSet, :ta, linewidth = 0, label = "", color = wongc[2],
-                          group = :en)
+        group = :en)
     @df survivors boxplot!(:PSet, :ta, color = wongc[4], fillalpha = 0.75, linewidth = 2,
-                           label = "", group = :en)
+        label = "", group = :en)
     # Plot means
     for i in 1:Ns
         # Calculate mean
         mn = mean(tab[i, :])
         sdn = std(tab[i, :])
         scatter!([pos[i]], [mn], yerror = [sdn], label = "", shape = :star5,
-                 color = wongc[5], ms = 10, msc = wongc[5])
+            color = wongc[5], ms = 10, msc = wongc[5])
     end
     savefig("Output/TotalAbund.png")
     return (nothing)
@@ -1511,21 +1512,21 @@ function plot_survivors()
     lb = ["low", "intermediate", "high"]
     # Plot survivors
     p = plot(title = "Survival ($(Rl)-$(Ru) $(syn))", xlabel = "Time",
-             ylabel = "Number of surviving strains")
+        ylabel = "Number of surviving strains")
     for i in 1:length(ens)
         plot!(p, Ts, msvs[:, i], ribbon = sdsvs[:, i], label = lb[i])
     end
     savefig(p, "Output/$(Rl)-$(Ru)$(syn)$(Ni)/SvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot substrate diversity
     p = plot(title = "Diversification ($(Rl)-$(Ru) $(syn))", xlabel = "Time",
-             ylabel = "Number of substrates")
+        ylabel = "Number of substrates")
     for i in 1:length(ens)
         plot!(p, Ts, mdv[:, i], ribbon = sddv[:, i], label = lb[i])
     end
     savefig(p, "Output/$(Rl)-$(Ru)$(syn)$(Ni)/DvTime$(Rl)-$(Ru)$(syn)$(Ni).png")
     # Plot total abundances
     p = plot(title = "Ecosystem abundance ($(Rl)-$(Ru) $(syn))", xlabel = "Time",
-             ylabel = "Total abundance")
+        ylabel = "Total abundance")
     for i in 1:length(ens)
         plot!(p, Ts, mta[:, i], ribbon = sdta[:, i], label = lb[i])
     end

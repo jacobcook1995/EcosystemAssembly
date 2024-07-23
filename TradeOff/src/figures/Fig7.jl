@@ -1,7 +1,7 @@
 # Script to plot figure 7 (which shows situation without immigration)
 using TradeOff
 using Plots
-using JLD
+using JLD2
 using ColorSchemes
 using LaTeXStrings
 using Plots.PlotMeasures

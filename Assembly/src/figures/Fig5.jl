@@ -1,14 +1,14 @@
 # Script to construct figure 5
 using Assembly
 using Plots
-using JLD
+using JLD2
 using LaTeXStrings
 using StatsBase
 using Plots.PlotMeasures
 import PyPlot
 
 function figure5(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, rps::Int64, Ni::Int64,
-                 en::String)
+        en::String)
     println("Compiled!")
     # Preallocate memory to store number of interactions
     ins1 = zeros(rps, length(syns))
@@ -132,19 +132,19 @@ function figure5(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, rps::Int64, Ni::Int
         # Now plot all strengths
         p[1, j] = plot(title = tl, ylabel = "Number of interactions", legend = :topleft)
         plot!(p[1, j], xticks = (rgn, ergn), legendfontsize = 10, tickfontsize = 10,
-              guidefontsize = 12)
+            guidefontsize = 12)
         # Add xlabel for reversible case
         if syns[j] == true
             plot!(p[1, j], legend = false, xlabel = "Interaction strength")
         end
         histogram!(p[1, j], log10.(sts1[j]), fillalpha = 0.75, label = "Competition",
-                   bins = sbins)
+            bins = sbins)
         histogram!(p[1, j], log10.(sts2[j]), fillalpha = 0.75, label = "Facilitation",
-                   bins = sbins)
+            bins = sbins)
         histogram!(p[1, j], log10.(sts4[j]), fillalpha = 0.75, label = "Pollution",
-                   bins = sbins)
+            bins = sbins)
         histogram!(p[1, j], log10.(sts3[j]), fillalpha = 0.75, label = "Syntrophy",
-                   bins = sbins)
+            bins = sbins)
         # Choose which letter to annotate
         if syns[j] == false
             # Add annotation
@@ -172,7 +172,7 @@ function figure5(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, rps::Int64, Ni::Int
         savefig(p[1, j], "Output/Fig5/AllIntStrength$(Rl)-$(Ru)$(syns[j])$(Ni)$(en).png")
         # Move onto plotting the simplex
         p[2, j] = plot(grid = false, showaxis = false, xlim = (-0.325, 1.325),
-                       ylim = (-0.1, 1.0), title = "")
+            ylim = (-0.1, 1.0), title = "")
         plot!(p[2, j], legendfontsize = 10, tickfontsize = 10, guidefontsize = 12)
         # Plot the triangle over this
         plot!(p[2, j], [0.0; 0.5], [0.0; 0.8660], color = :black, label = false)
@@ -209,7 +209,7 @@ function figure5(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, rps::Int64, Ni::Int
     end
     # Combine all graphs and save
     pt = plot(p[1, 2], p[2, 2], p[1, 1], p[2, 1], layout = 4, size = (1200, 800),
-              margin = 5.0mm)
+        margin = 5.0mm)
     savefig(pt, "Output/Fig5/figure5.png")
     return (nothing)
 end

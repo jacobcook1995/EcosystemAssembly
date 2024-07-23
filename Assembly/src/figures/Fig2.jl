@@ -1,7 +1,7 @@
 # Script to construct figure 2
 using Assembly
 using Plots
-using JLD
+using JLD2
 using StatsBase
 using KernelDensity
 using StatsPlots
@@ -53,9 +53,9 @@ end
 
 # Function to count the number of spikes in the entropy production trace
 function ent_sp_cnt(ps::FullParameters, C::Array{Float64, 2}, T::Array{Float64, 1},
-                    Ns::Int64,
-                    out::Array{Float64, 1}, inf_out::Array{Float64, 1},
-                    ded::Array{MicrobeP, 1})
+        Ns::Int64,
+        out::Array{Float64, 1}, inf_out::Array{Float64, 1},
+        ded::Array{MicrobeP, 1})
     # Make new vector of microbes
     ms = Array{MicrobeP, 1}(undef, Ns)
     # Setup counter
@@ -148,7 +148,7 @@ function ent_sp_cnt(ps::FullParameters, C::Array{Float64, 2}, T::Array{Float64, 
 end
 
 function figure2(Rl::Int64, Ru::Int64, syn::Bool, Nr::Int64, Ns::Int64, en::String,
-                 Tf::Float64, rps::Int64)
+        Tf::Float64, rps::Int64)
     println("Compiled!")
     # Set initial number of concentrations, and preallocate the final ones
     nmi = ones(rps)
@@ -389,7 +389,7 @@ function figure2(Rl::Int64, Ru::Int64, syn::Bool, Nr::Int64, Ns::Int64, en::Stri
     plot!(p2, dei, color = :black, label = "Initial", inset_subplots = box, subplot = 2)
     plot!(p2[2], def, color = :red, label = "Final", xlabel = "Number of substrates")
     plot!(p2[2], guidefontsize = 12, legendfontsize = 12, tickfontsize = 9, yaxis = false,
-          grid = false)
+        grid = false)
     savefig(p2, "Output/Fig2/concs.png")
     # Now plot proteome fraction
     p3 = plot(ylabel = "Ribosome fraction")
@@ -430,14 +430,14 @@ function figure2(Rl::Int64, Ru::Int64, syn::Bool, Nr::Int64, Ns::Int64, en::Stri
         if mtr[i] == true && ~isnan(exT[i])
             println(exT[i])
             plot!(p4, [exT[i]; exT[i]], [-0.01; 0.01], color = wongc[i], style = :solid,
-                  lw = wdt, label = "")
+                lw = wdt, label = "")
         end
     end
     # Define box for inset here
     box = (1, bbox(0.65, 0.20, 0.325, 0.325, :bottom, :left))
     # Plot scatter points as an inset
     scatter!(p4, xdataT, ydataT, ms = 6, color = :black, label = "", inset_subplots = box,
-             subplot = 2)
+        subplot = 2)
     # Set range of x values to plot for
     xran = 0.0:1.0:25.0
     # and then plot best fit line
@@ -445,11 +445,11 @@ function figure2(Rl::Int64, Ru::Int64, syn::Bool, Nr::Int64, Ns::Int64, en::Stri
     # Set labels, fontsize, etc
     plot!(p4[2], guidefontsize = 12, legendfontsize = 12, tickfontsize = 9, grid = false)
     plot!(p4[2], xlabel = "Entropy production peaks", ylabel = "New metabolites",
-          ylim = (0, 25), xlim = (0, 25))
+        ylim = (0, 25), xlim = (0, 25))
     savefig(p4, "Output/Fig2/entp.png")
     # Now want to make a plot incorporating all four previous plots
     pt = plot(p1, p3, p2, p4, layout = (4, 1), size = (900, 1600), margin = 5mm,
-              grid = false)
+        grid = false)
     savefig(pt, "Output/Fig2/figure2.eps")
     return (nothing)
 end

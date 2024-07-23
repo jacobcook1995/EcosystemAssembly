@@ -1,7 +1,7 @@
 # Script to construct figure 4
 using Assembly
 using Plots
-using JLD
+using JLD2
 using StatsBase
 using Plots.PlotMeasures
 using LaTeXStrings
@@ -9,7 +9,7 @@ import PyPlot
 
 # function to find average efficiency
 function av_eff(pop::Array{Float64, 1}, conc::Array{Float64, 1}, ms::Array{MicrobeP, 1},
-                ps::FullParameters)
+        ps::FullParameters)
     # Define minimum product to substrate ratio (to calculate) the efficiency
     mr = 1e-2
     # Find indices of surviving populations
@@ -34,7 +34,7 @@ end
 
 # function to find average growth rate
 function av_λ(pop::Array{Float64, 1}, as::Array{Float64, 1}, ϕRs::Array{Float64, 1},
-              ms::Array{MicrobeP, 1})
+        ms::Array{MicrobeP, 1})
     # Find indices of surviving populations
     inds = findall(x -> x > 0.0, pop)
     # weighted total growth rate (starts at zero)
@@ -52,8 +52,8 @@ function av_λ(pop::Array{Float64, 1}, as::Array{Float64, 1}, ϕRs::Array{Float6
 end
 
 function figure4(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, ens::Array{String, 1},
-                 rps::Int64,
-                 Ni::Int64, fT::Float64, sT::Float64)
+        rps::Int64,
+        Ni::Int64, fT::Float64, sT::Float64)
     println("Compiled!")
     # Check I haven't provided stupid times
     if fT <= 0.0 || fT > 1.0
@@ -156,61 +156,61 @@ function figure4(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, ens::Array{String, 
                         if T[ind] == Ts[k]
                             svs[k, i, (j - 1) * le + l] = count(x -> x > 0.0, C[ind, 1:Ni])
                             via[k, i, (j - 1) * le + l] = count(x -> x >= popt,
-                                                                C[ind, 1:Ni])
+                                C[ind, 1:Ni])
                             dv[k, i, (j - 1) * le + l] = count(x -> x > 0.0,
-                                                               C[ind,
-                                                                 (Ni + 1):(Ni + ps.M - 1)])
+                                C[ind,
+                                    (Ni + 1):(Ni + ps.M - 1)])
                             tab[k, i, (j - 1) * le + l] = sum(C[ind, 1:Ni])
                             efs[k, i, (j - 1) * le + l] = av_eff(C[ind, 1:Ni],
-                                                                 C[ind,
-                                                                   (Ni + 1):(Ni + ps.M)],
-                                                                 ms, ps)
+                                C[ind,
+                                    (Ni + 1):(Ni + ps.M)],
+                                ms, ps)
                             λts[k, i, (j - 1) * le + l] = av_λ(C[ind, 1:Ni],
-                                                               C[ind,
-                                                                 (Ni + ps.M + 1):(2 * Ni + ps.M)],
-                                                               C[ind,
-                                                                 (2 * Ni + ps.M + 1):end],
-                                                               ms)
+                                C[ind,
+                                    (Ni + ps.M + 1):(2 * Ni + ps.M)],
+                                C[ind,
+                                    (2 * Ni + ps.M + 1):end],
+                                ms)
                         else
                             # Otherwise need to (linearly) interpolate
                             dT = (T[ind] - Ts[k]) / (T[ind] - T[ind - 1])
                             svs[k, i, (j - 1) * le + l] = (1 - dT) * count(x -> x > 0.0,
-                                                                C[ind, 1:Ni]) +
+                                C[ind, 1:Ni]) +
                                                           dT * count(x -> x > 0.0,
-                                                                C[ind - 1, 1:Ni])
+                                C[ind - 1, 1:Ni])
                             via[k, i, (j - 1) * le + l] = (1 - dT) *
                                                           count(x -> x >= popt,
-                                                                C[ind, 1:Ni]) +
+                                C[ind, 1:Ni]) +
                                                           dT * count(x -> x >= popt,
-                                                                C[ind - 1, 1:Ni])
+                                C[ind - 1, 1:Ni])
                             dv[k, i, (j - 1) * le + l] = (1 - dT) * count(x -> x > 0.0,
-                                                               C[ind,
-                                                                 (Ni + 1):(Ni + ps.M - 1)]) +
+                                C[ind,
+                                    (Ni + 1):(Ni + ps.M - 1)]) +
                                                          dT * count(x -> x > 0.0,
-                                                               C[ind - 1,
-                                                                 (Ni + 1):(Ni + ps.M - 1)])
+                                C[ind - 1,
+                                    (Ni + 1):(Ni + ps.M - 1)])
                             tab[k, i, (j - 1) * le + l] = (1 - dT) * sum(C[ind, 1:Ni]) +
                                                           dT * sum(C[ind, 1:Ni])
                             efs[k, i, (j - 1) * le + l] = (1 - dT) * av_eff(C[ind, 1:Ni],
-                                                                 C[ind,
-                                                                   (Ni + 1):(Ni + ps.M)],
-                                                                 ms, ps)
+                                C[ind,
+                                    (Ni + 1):(Ni + ps.M)],
+                                ms, ps)
                             efs[k, i, (j - 1) * le + l] += dT * av_eff(C[ind - 1, 1:Ni],
-                                                                  C[ind - 1,
-                                                                    (Ni + 1):(Ni + ps.M)],
-                                                                  ms, ps)
+                                C[ind - 1,
+                                    (Ni + 1):(Ni + ps.M)],
+                                ms, ps)
                             λts[k, i, (j - 1) * le + l] = (1 - dT) * av_λ(C[ind, 1:Ni],
-                                                               C[ind,
-                                                                 (Ni + ps.M + 1):(2 * Ni + ps.M)],
-                                                               C[ind,
-                                                                 (2 * Ni + ps.M + 1):end],
-                                                               ms)
+                                C[ind,
+                                    (Ni + ps.M + 1):(2 * Ni + ps.M)],
+                                C[ind,
+                                    (2 * Ni + ps.M + 1):end],
+                                ms)
                             λts[k, i, (j - 1) * le + l] += dT * av_λ(C[ind - 1, 1:Ni],
-                                                                C[ind - 1,
-                                                                  (Ni + ps.M + 1):(2 * Ni + ps.M)],
-                                                                C[ind - 1,
-                                                                  (2 * Ni + ps.M + 1):end],
-                                                                ms)
+                                C[ind - 1,
+                                    (Ni + ps.M + 1):(2 * Ni + ps.M)],
+                                C[ind - 1,
+                                    (2 * Ni + ps.M + 1):end],
+                                ms)
                         end
                     end
                 end
@@ -287,7 +287,7 @@ function figure4(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, ens::Array{String, 
     vline!(p1, vTs / 1e6, linestyle = :dash, color = :black, label = "")
     for i in 1:L
         plot!(p1, Ts / 1e6, msvs[:, i], ribbon = sdsvs[:, i], label = lb[i],
-              legend = :right, color = pl[i], lw = wdt)
+            legend = :right, color = pl[i], lw = wdt)
     end
     # Add annotation
     px, py = annpos(Ts / 1e6, [5.0, 250.0], 0.1, 0.05)
@@ -297,11 +297,11 @@ function figure4(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, ens::Array{String, 
     s6 = L"10^6\;s"
     # plot substrate diversification
     p2 = plot(title = "Substrate diversification", ylabel = "Number of substrates",
-              xlabel = "Time ($(s6))", legend = false)
+        xlabel = "Time ($(s6))", legend = false)
     vline!(p2, vTs / 1e6, linestyle = :dash, color = :black, label = "")
     for i in 1:L
         plot!(p2, Ts / 1e6, mdv[:, i], ribbon = sddv[:, i], label = lb[i], color = pl[i],
-              lw = wdt)
+            lw = wdt)
     end
     # Add annotation
     px, py = annpos(Ts / 1e6, [0.0, 23.0], 0.1, 0.05)
@@ -311,10 +311,10 @@ function figure4(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, ens::Array{String, 
     Tend = 1e6
     # Plot graph of efficiencies
     p3 = plot(title = "Average efficiency", xlabel = "Time ($(s6))",
-              ylabel = "Efficiency of reactions", legend = false)
+        ylabel = "Efficiency of reactions", legend = false)
     for i in 1:L
         plot!(p3, Ts / 1e6, mefs[:, i], ribbon = sdefs[:, i], label = lb[i], color = pl[i],
-              lw = wdt)
+            lw = wdt)
     end
     # Add vertical line
     vline!(p3, vTs / 1e6, linestyle = :dash, color = :black, label = "")
@@ -329,7 +329,7 @@ function figure4(Rl::Int64, Ru::Int64, syns::Array{Bool, 1}, ens::Array{String, 
     p4 = plot(title = "Growth rate", ylabel = "Growth rate ($(s1))", legend = false)
     for i in 1:L
         plot!(p4, Ts / 1e6, mλts[:, i], ribbon = sdλts[:, i], label = lb[i], color = pl[i],
-              lw = wdt)
+            lw = wdt)
     end
     # Add vertical line
     vline!(p4, vTs / 1e6, linestyle = :dash, color = :black, label = "")

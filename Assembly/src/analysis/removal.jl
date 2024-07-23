@@ -1,6 +1,6 @@
 # Script to remove strains that don't survive to infinity from the data sets
 using Assembly
-using JLD
+using JLD2
 using SymPy
 
 # function to read in data set and remove non-long term survivors
@@ -124,17 +124,17 @@ function removal()
             # Write out old data if stable
             # Save extinct strains
             jldopen("$(pth)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
-                    "w") do file
+                "w") do file
                 write(file, "ded", ded)
             end
             # the reduced parameter sets
             jldopen("$(P_pth)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
-                    "w") do file
+                "w") do file
                 write(file, "ps", ps)
             end
             # and the full output
             jldopen("$(pth)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
-                    "w") do file
+                "w") do file
                 # Save final output
                 write(file, "out", out)
                 # This output is basically the output at infinity
@@ -284,17 +284,17 @@ function removal()
             ded = cat(ded, ded2, dims = 1)
             # Save extinct strains
             jldopen("$(pth)/RedExtinctReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
-                    "w") do file
+                "w") do file
                 write(file, "ded", ded)
             end
             # the reduced parameter sets
             jldopen("$(P_pth)/RedParasReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
-                    "w") do file
+                "w") do file
                 write(file, "ps", ps)
             end
             # and the full output
             jldopen("$(pth)/RedOutputReacs$(Rl)-$(Ru)Syn$(syn)Run$(i)Ns$(Ni).jld",
-                    "w") do file
+                "w") do file
                 # Save final output
                 write(file, "out", nout)
                 # Save the output at infinity here

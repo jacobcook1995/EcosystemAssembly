@@ -1,7 +1,7 @@
 # Script to make robustness figures
 using Assembly
 using Plots
-using JLD
+using JLD2
 using StatsPlots
 using StatsBase
 using Statistics
@@ -13,7 +13,7 @@ import PyPlot
 
 # function to find average efficiency
 function av_eff(pop::Array{Float64, 1}, conc::Array{Float64, 1}, ms::Array{MicrobeP, 1},
-                ps::FullParameters)
+        ps::FullParameters)
     # Define minimum product to substrate ratio (to calculate) the efficiency
     mr = 1e-2
     # Find indices of surviving populations
@@ -38,7 +38,7 @@ end
 
 # function to find average growth rate
 function av_λ(pop::Array{Float64, 1}, as::Array{Float64, 1}, ϕRs::Array{Float64, 1},
-              ms::Array{MicrobeP, 1})
+        ms::Array{MicrobeP, 1})
     # Find indices of surviving populations
     inds = findall(x -> x > 0.0, pop)
     # weighted total growth rate (starts at zero)
@@ -56,8 +56,8 @@ function av_λ(pop::Array{Float64, 1}, as::Array{Float64, 1}, ϕRs::Array{Float6
 end
 
 function rob_figs(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 1},
-                  ens::Array{String, 1},
-                  Ni::Int64, Nr::Int64, Nr_1::Int64)
+        ens::Array{String, 1},
+        Ni::Int64, Nr::Int64, Nr_1::Int64)
     # Check if all these vectors are the same length
     if length(Rls) != length(Rus) || length(Rls) != length(syns) ||
        length(Rls) != length(ens)
@@ -126,9 +126,9 @@ function rob_figs(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 
     end
     # Make first figure
     p1 = plot(ylabel = "Number of surviving species", xlim = (0.5, 3.5),
-              xlabel = "Energy supply")
+        xlabel = "Energy supply")
     plot!(p1, xticks = ([1.25, 2.75], ["high", "low"]), title = "Original case",
-          legend = :right)
+        legend = :right)
     # Plot means
     for i in 1:Ns
         # Calculate mean
@@ -146,7 +146,7 @@ function rob_figs(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 
             end
         end
         scatter!(p1, [pos[i]], [mn], yerror = [sdn], label = lb, color = c[i], ms = 6,
-                 msc = c[i])
+            msc = c[i])
     end
     # Add bracket for significance plot
     plot!(p1, [2.5, 3.0], [5.0, 5.0], linecolor = :black, label = "")
@@ -195,8 +195,9 @@ function rob_figs(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 
             mn = mean(svs[i, :])
             # Calculate 99% confidence interval
             sdn = sem(svs[i, :]) * 2.576
-            scatter!(p[l], [pos[i]], [mn], yerror = [sdn], label = "", color = c[i], ms = 6,
-                     msc = c[i])
+            scatter!(
+                p[l], [pos[i]], [mn], yerror = [sdn], label = "", color = c[i], ms = 6,
+                msc = c[i])
         end
         # Check if there's a significant difference between the two low free-energy conditions
         if sig_dif[l] == true
@@ -216,10 +217,10 @@ function rob_figs(Rls::Array{Int64, 1}, Rus::Array{Int64, 1}, syns::Array{Bool, 
     end
     # Combine plots so that comparisons can be performed
     pc1 = plot(p1a, p[1], p[2], p[3], layout = (1, 4), size = (800, 400),
-               guidefontsize = 13, legendfontsize = 8, tickfontsize = 11)
+        guidefontsize = 13, legendfontsize = 8, tickfontsize = 11)
     savefig(pc1, "Output/SI/Surv_comp_1.png")
     pc2 = plot(p1b, p[4], p[5], p[6], layout = (1, 4), size = (800, 400),
-               guidefontsize = 13, legendfontsize = 8, tickfontsize = 11)
+        guidefontsize = 13, legendfontsize = 8, tickfontsize = 11)
     savefig(pc2, "Output/SI/Surv_comp_2.png")
     return (nothing)
 end

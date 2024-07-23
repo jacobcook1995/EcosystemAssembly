@@ -1,6 +1,6 @@
 # File to calculate stats for the variables across trajectories
 using TradeOff
-using JLD
+using JLD2
 
 # Function to make a dictionary to store all desired data based on list of names and
 # dimensions. This also involves preallocating data where relevant

@@ -1,6 +1,6 @@
 # This script exists to investigate syntrophy in the simulated communities
 using Assembly
-using JLD
+using JLD2
 using LaTeXStrings
 using Plots
 import PyPlot
@@ -124,7 +124,7 @@ function find_syn()
                     θrs[k] = θ(out[ps.N + r.Rct], out[ps.N + r.Prd], ps.T, m.η[1], r.ΔG0)
                     # Find θ values after extinction
                     θas[k] = θ(Ca[end, ps.N + r.Rct], Ca[end, ps.N + r.Prd], ps.T, m.η[1],
-                               r.ΔG0)
+                        r.ΔG0)
                 end
                 # Store in main collection
                 dNs = cat(dNs, dN, dims = 1)
@@ -148,10 +148,10 @@ function find_syn()
     th = L"\theta"
     # Scatter graph of population change vs theta
     scatter(dNs * 100.0, θs, label = "", xlabel = "Percentage population change",
-            ylabel = "$(th) before extinction")
+        ylabel = "$(th) before extinction")
     savefig("Output/PopChange.png")
     scatter(θa, θs, label = "", xlabel = "$(th) after extinction",
-            ylabel = "$(th) before extinction")
+        ylabel = "$(th) before extinction")
     savefig("Output/ThetaChange.png")
     return (nothing)
 end

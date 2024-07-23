@@ -1,7 +1,7 @@
 # Script to plot elements needed for figure 1
 using TradeOff
 using Plots
-using JLD
+using JLD2
 
 # Function to plot the efficiency with changing ribosome fraction
 function early_immigration_dyns(rN::Int64, ims::Int64, sim_type::Int64)

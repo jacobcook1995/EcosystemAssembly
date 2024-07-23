@@ -1,6 +1,6 @@
 # A script to assemble and save communities
 using TradeOff
-using JLD
+using JLD2
 using Glob
 
 # Function to assemble specific communities

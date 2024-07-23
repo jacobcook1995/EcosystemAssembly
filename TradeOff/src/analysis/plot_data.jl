@@ -1,6 +1,6 @@
 # A script to read in and analyse model output data
 using TradeOff
-using JLD
+using JLD2
 using Plots
 import PyPlot
 
